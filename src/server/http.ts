@@ -73,7 +73,7 @@ export interface ServerOptions {
   webDir?: string;
   routes: Route[];
   /** A URL prefix that comes from a different folder than `webDir`; it is checked first. */
-  static?: { prefix: string; map: () => string }[];
+  static?: { prefix: string; dir: () => string }[];
 }
 
 const MAX_BODY = 1_000_000;
@@ -211,7 +211,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: 
   }
 }
 
-async function file(req: IncomingMessage, res: ServerResponse, name: string, map: string, index = false) {
+async function file(req: IncomingMessage, res: ServerResponse, name: string, dir: string, index = false) {
   const notFound = () => send(res, 404, "text/plain; charset=utf-8", "Not found");
   if (req.method !== "GET" && req.method !== "HEAD") return notFound();
   try {
@@ -220,8 +220,8 @@ async function file(req: IncomingMessage, res: ServerResponse, name: string, map
     return notFound();
   }
   if (name.includes("\0")) return notFound();
-  const p = join(map, index && name === "/" ? "index.html" : name);
-  const rel = relative(map, p);
+  const p = join(dir, index && name === "/" ? "index.html" : name);
+  const rel = relative(dir, p);
   if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return notFound();
   try {
     send(res, 200, TYPES[extname(p).toLowerCase()] ?? "application/octet-stream", await readFile(p));
@@ -267,7 +267,7 @@ export async function startServer(o: ServerOptions): Promise<{ url: string; clos
       const resolve = url.pathname.startsWith("/api/")
         ? api(req, res, url, o.routes)
         : custom
-          ? file(req, res, url.pathname.slice(custom.prefix.length), custom.map())
+          ? file(req, res, url.pathname.slice(custom.prefix.length), custom.dir())
           : file(req, res, url.pathname, webDir, true);
       resolve.catch((error) => errors(res, error));
     } catch (error) {

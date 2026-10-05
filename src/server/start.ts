@@ -16,7 +16,7 @@ try {
     port,
     routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir })],
     // The brand's files (logos, fonts) come from `data/brand` if a brand is there.
-    static: [{ prefix: "/brand/", map: () => brandFolder(dataDir) }],
+    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
   });
   console.log(`Postwright is running at ${url}`);
 } catch (error) {

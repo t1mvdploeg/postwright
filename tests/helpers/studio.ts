@@ -14,7 +14,7 @@ export async function startStudio(options: { provider?: AiProvider } = {}) {
     dataDir,
     port: 0,
     routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir, provider: options.provider })],
-    static: [{ prefix: "/brand/", map: () => brandFolder(dataDir) }],
+    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
   });
   return {
     dataDir,

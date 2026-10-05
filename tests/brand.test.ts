@@ -36,7 +36,7 @@ async function start(brand?: Record<string, string>) {
   const s = await startServer({
     dataDir,
     routes: brandRoutes({ dataDir }),
-    static: [{ prefix: "/brand/", map: () => brandFolder(dataDir) }],
+    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
   });
   close = s.close;
   return s;
