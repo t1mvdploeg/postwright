@@ -5,8 +5,10 @@
 import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
+import { ApiError, response, route, type Project, type Route } from "./http.js";
 import { path as inside, reason, serialize, writeJsonAtomic } from "./files.js";
-import { checkTemplate, type TemplateProposal } from "../web/studio/own-template.js";
+import { saveOwnTemplate } from "./template-store.js";
+import { checkTemplate, type TemplateFile, type TemplateProposal } from "../web/studio/own-template.js";
 
 export const proposalDir = (projectDir: string) => join(projectDir, "template-input", "proposal");
 
@@ -73,4 +75,32 @@ export async function discardProposal(projectDir: string): Promise<void> {
   await serialize(`template-proposal:${projectDir}`, () =>
     rm(proposalDir(projectDir), { recursive: true, force: true }),
   );
+}
+
+/**
+ * Keeps the proposal: it is checked once more, gets an id and the time from the server, is saved
+ * as an own template, and the proposal is removed. At most 30 templates per project.
+ */
+export async function applyProposal(project: Project): Promise<TemplateFile> {
+  return serialize(`template-apply:${project.dir}`, async () => {
+    const state = await checkProposal(project.dir);
+    if (state.state === "none") throw new ApiError(409, "There is no template proposal to use");
+    if (state.state === "invalid") throw new ApiError(409, `The proposal is not valid: ${state.problems[0]}`);
+    const file = await saveOwnTemplate(project.dir, state.template);
+    await discardProposal(project.dir);
+    return file;
+  });
+}
+
+export function templateProposalRoutes(): Route[] {
+  return [
+    route("GET", "/api/template-proposal", async (c) => checkProposal((await c.project()).dir)),
+    route("POST", "/api/template-proposal/apply", async (c) =>
+      response({ status: 201, body: await applyProposal(await c.project()) }),
+    ),
+    route("DELETE", "/api/template-proposal", async (c) => {
+      await discardProposal((await c.project()).dir);
+      return { ok: true };
+    }),
+  ];
 }

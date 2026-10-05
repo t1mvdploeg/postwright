@@ -2,13 +2,13 @@
 // the planner and the ideas. (The routes for the input material, the generation and the
 // proposal have their own sections further down.)
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { plusDays } from "../src/web/studio/calendar.js";
 import { sampleProvider } from "../src/server/ai/sample.js";
 import type { AiProvider } from "../src/server/ai/provider.js";
 import type { IdeasPrompt } from "../src/server/ideas.js";
-import { exampleTemplate, writeOwn } from "./helpers/template.js";
+import { exampleTemplate, saved, writeOwn, writeTemplateProposal } from "./helpers/template.js";
 import { startTemplates } from "./helpers/templates-api.js";
 
 const studios: Array<{ close: () => Promise<void> }> = [];
@@ -110,5 +110,113 @@ describe("an own template in ideas and in the planner", () => {
     expect(ids.slice(0, 9)).toContain("statement");
     expect(ids).toHaveLength(10);
     expect(seen!.templates[9]).toEqual({ id: "own-0123abcd", name: "Quote card", goal: "A quote." });
+  });
+});
+
+describe("the proposal routes", () => {
+  const proposal = (dir: string, template: unknown = exampleTemplate(), extras?: unknown) =>
+    writeTemplateProposal(dir, template, extras);
+
+  it("says none, then ready with the notes and whether it is a sample, then invalid with every problem", async () => {
+    const { call, projectDir } = await start();
+    expect((await call("/api/template-proposal")).body).toEqual({ state: "none" });
+    proposal(projectDir, exampleTemplate(), { notes: ["From the old posts."], sample: true });
+    const ready = await call("/api/template-proposal");
+    expect(ready.body).toMatchObject({
+      state: "ready",
+      notes: ["From the old posts."],
+      sample: true,
+      template: { name: "Statement" },
+    });
+    proposal(projectDir, { ...exampleTemplate(), css: ".a { color: red; }", tree: [{ tag: "script" }] });
+    const invalid = await call("/api/template-proposal");
+    expect(invalid.body.state).toBe("invalid");
+    expect(invalid.body.problems).toHaveLength(2);
+    expect(invalid.body.problems.join("\n")).toMatch(/colour "red"/);
+  });
+
+  it("is invalid for an id of its own, for text that is not JSON, and for extras that do not fit", async () => {
+    const { call, projectDir } = await start();
+    proposal(projectDir, saved(exampleTemplate()));
+    expect((await call("/api/template-proposal")).body.problems[0]).toMatch(/must not have them/);
+    const dir = proposal(projectDir);
+    writeFileSync(join(dir, "template.json"), "{ nope");
+    expect((await call("/api/template-proposal")).body).toEqual({
+      state: "invalid",
+      problems: ["template.json: not valid JSON"],
+    });
+    proposal(projectDir, exampleTemplate(), { notes: "x", unknown: true });
+    expect((await call("/api/template-proposal")).body.problems[0]).toMatch(/^extras\.json: /);
+  });
+
+  it("applies a proposal: the server makes the id, the proposal goes, and the template is in the list", async () => {
+    const { call, projectDir } = await start();
+    proposal(projectDir);
+    const r = await call("/api/template-proposal/apply", "POST", {});
+    expect(r.status).toBe(201);
+    expect(r.body.id).toMatch(/^own-[0-9a-f]{8}$/);
+    expect(r.body).toMatchObject({ name: "Statement", kind: "image" });
+    expect(existsSync(join(projectDir, "template-input", "proposal"))).toBe(false);
+    expect((await call("/api/template-proposal")).body).toEqual({ state: "none" });
+    expect((await call("/api/templates")).body.templates.map((t: any) => t.id)).toEqual([r.body.id]);
+    expect((await call("/api/template-proposal/apply", "POST", {})).status).toBe(409);
+  });
+
+  it("does not apply a proposal that is not valid, and leaves it in place", async () => {
+    const { call, projectDir } = await start();
+    proposal(projectDir, { ...exampleTemplate(), css: ".a { background: url(x); }" });
+    const r = await call("/api/template-proposal/apply", "POST", {});
+    expect(r.status).toBe(409);
+    expect(r.body.error).toMatch(/not valid: css rule 1 \(\.a\) \(background\): url\(\) is not allowed/);
+    expect((await call("/api/templates")).body.templates).toEqual([]);
+    expect((await call("/api/template-proposal")).body.state).toBe("invalid");
+  });
+
+  it("says 409 at 30 templates, and keeps the proposal", async () => {
+    const { call, projectDir } = await start();
+    for (let i = 0; i < 30; i++) writeOwn(projectDir, exampleTemplate(), `own-${String(i).padStart(8, "0")}`);
+    proposal(projectDir);
+    const r = await call("/api/template-proposal/apply", "POST", {});
+    expect(r.status).toBe(409);
+    expect(r.body.error).toBe("A project can have at most 30 own templates; delete one first");
+    expect((await call("/api/template-proposal")).body.state).toBe("ready");
+  });
+
+  it("discards, also when there is nothing to discard", async () => {
+    const { call, projectDir } = await start();
+    proposal(projectDir);
+    expect((await call("/api/template-proposal", "DELETE")).status).toBe(200);
+    expect((await call("/api/template-proposal")).body).toEqual({ state: "none" });
+    expect((await call("/api/template-proposal", "DELETE")).status).toBe(200);
+  });
+
+  it("works from generation to a saved template, per project", async () => {
+    const { call } = await start();
+    await call("/api/projects", "POST", { name: "Beta" });
+    await call("/api/template-input", "PUT", { texts: "A post", brief: "", kind: "image", formats: ["li-square"] });
+    expect((await call("/api/template-generate", "POST", {})).body).toMatchObject({ state: "ready", sample: true });
+    expect((await call("/api/template-proposal", "GET", undefined, "beta")).body).toEqual({ state: "none" });
+    const kept = await call("/api/template-proposal/apply", "POST", {});
+    expect(kept.status).toBe(201);
+    expect(kept.body.name).toBe("Sample template");
+    expect((await call("/api/templates", "GET", undefined, "beta")).body.templates).toEqual([]);
+  });
+
+  it("applies a template that a post can then use, and an idea too", async () => {
+    const { call, projectDir } = await start();
+    proposal(projectDir);
+    const kept = await call("/api/template-proposal/apply", "POST", {});
+    const post = await call("/api/posts", "POST", {
+      title: "A post",
+      kind: "image",
+      template: kept.body.id,
+      formats: ["li-square"],
+      content: { headline: "A *b*" },
+      brandVersion: "v1",
+    });
+    expect(post.status).toBe(201);
+    expect((await call("/api/ideas", "POST", { date: "2026-10-12", title: "I", template: kept.body.id })).status).toBe(
+      201,
+    );
   });
 });
