@@ -5,12 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { startServer } from "../src/server/http.js";
+import { ruw } from "./helpers/ruw.js";
 import { MerkSchema, laadMerk, merkMap, merkRoutes } from "../src/server/merk.js";
 import { contrastVerhouding } from "../src/web/marketing/kleur.js";
 import { controleer } from "../src/web/marketing/merkcontrole.js";
 import { sjabloon, standaardInhoud } from "../src/web/marketing/sjablonen.js";
 
 const INGEBOUWD = "src/web/marketing/merk";
+const GEHEIM = "dit-hoort-er-niet-uit-te-komen";
 const ingebouwd = JSON.parse(readFileSync(join(INGEBOUWD, "merk.json"), "utf8"));
 
 let sluit: (() => Promise<void>) | undefined;
@@ -22,6 +24,8 @@ afterEach(async () => {
 /** Een server met de merkroute en de merkbestanden, op een verse datamap; `brand` zet bestanden in data/brand. */
 async function start(brand?: Record<string, string>) {
   const dataDir = join(mkdtempSync(join(tmpdir(), "pw-merk-")), "data");
+  mkdirSync(dataDir, { recursive: true });
+  writeFileSync(join(dataDir, "geheim.json"), GEHEIM);
   if (brand) {
     mkdirSync(join(dataDir, "brand", "logo"), { recursive: true });
     for (const [pad, inhoud] of Object.entries(brand)) writeFileSync(join(dataDir, "brand", pad), inhoud);
@@ -105,10 +109,21 @@ describe("GET /api/merk", () => {
     expect((await fetch(`${url}/api/merk`)).status).toBe(500);
   });
 
-  it("laat geen bestanden buiten de merkmap uit", async () => {
+  it("laat geen bestanden buiten de merkmap uit, ook niet als ze er echt staan", async () => {
+    // `start` zet `geheim.json` direct naast data/brand; zonder de bewaking zou `..%2f` het geven.
     const { url } = await start({ "merk.json": JSON.stringify(eigenMerk), "logo/x.svg": "<svg/>" });
-    expect((await fetch(`${url}/marketing/merk/..%2F..%2Fgeheim.json`)).status).toBe(404);
-    expect((await fetch(`${url}/marketing/merk/%2e%2e/merk.json`)).status).toBe(404);
+    for (const pad of [
+      "/marketing/merk/..%2fgeheim.json",
+      "/marketing/merk/..%2Fgeheim.json",
+      "/marketing/merk/logo/..%2f..%2fgeheim.json",
+      "/marketing/merk/%2e%2e%2fgeheim.json",
+      "/marketing/merk/../geheim.json",
+    ]) {
+      const r = await ruw(url, { pad });
+      expect(r.status, pad).toBe(404);
+      expect(r.tekst, pad).not.toContain(GEHEIM);
+    }
+    expect((await ruw(url, { pad: "/marketing/merk/logo/x.svg" })).status).toBe(200);
   });
 });
 

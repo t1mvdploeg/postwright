@@ -2,7 +2,12 @@ import { maakMarketingRoutes } from "./api-marketing.js";
 import { startServer } from "./http.js";
 import { merkMap, merkRoutes } from "./merk.js";
 
-const poort = Number(process.env.PORT ?? 4173);
+const poortTekst = process.env.PORT ?? "4173";
+const poort = Number(poortTekst);
+if (!/^\d+$/.test(poortTekst) || poort > 65535) {
+  console.error(`PORT must be a whole number between 0 and 65535, not "${poortTekst}".`);
+  process.exit(1);
+}
 const dataDir = process.env.POSTWRIGHT_DATA_DIR ?? "./data";
 
 try {

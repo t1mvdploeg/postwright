@@ -74,9 +74,14 @@ export interface ServerOpties {
 }
 
 const MAX_BODY = 1_000_000;
+/** Zoveel bytes boven de grens lezen we nog weg (zonder te bewaren) voordat de verbinding dichtgaat. */
+const AFVOER_BYTES = 8 * 1024 * 1024;
 const STANDAARD_WEBDIR = fileURLToPath(new URL("../web", import.meta.url));
 const CSP =
-  "default-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; style-src 'self' 'unsafe-inline'";
+  "default-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; style-src 'self' 'unsafe-inline'; " +
+  "frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'";
+/** Een SVG die rechtstreeks wordt geopend (en dus als pagina geldt) mag geen script draaien; als `<img>` of via `<use>` telt dit niet. */
+const SVG_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -98,7 +103,10 @@ function stuur(
   extra: Record<string, string> = {},
 ) {
   const headers: Record<string, string> = { "content-type": type, "x-content-type-options": "nosniff", ...extra };
-  if (type.startsWith("text/html")) headers["content-security-policy"] = CSP;
+  if (type.startsWith("text/html")) {
+    headers["content-security-policy"] = CSP;
+    headers["x-frame-options"] = "SAMEORIGIN";
+  } else if (type.startsWith("image/svg+xml")) headers["content-security-policy"] ??= SVG_CSP;
   res.writeHead(status, headers);
   res.end(body);
 }
@@ -108,17 +116,28 @@ function stuurJson(res: ServerResponse, status: number, data: unknown) {
 }
 
 function maakCtx(req: IncomingMessage, url: URL, params: Record<string, string>): Ctx {
-  const lees = async (maxBytes = MAX_BODY) => {
-    const blokken: Buffer[] = [];
-    let totaal = 0;
-    // Bij te veel bytes lezen we de rest weg zonder te bewaren, zodat het antwoord de client bereikt.
-    for await (const blok of req) {
-      totaal += (blok as Buffer).length;
-      if (totaal <= maxBytes) blokken.push(blok as Buffer);
-    }
-    if (totaal > maxBytes) throw new ApiFout(413, "Verzoek te groot");
-    return Buffer.concat(blokken);
-  };
+  const lees = (maxBytes = MAX_BODY) =>
+    new Promise<Buffer>((klaar, fout) => {
+      const blokken: Buffer[] = [];
+      let totaal = 0;
+      // Een aanvraag die in de kop al zegt te groot te zijn, wordt niet bewaard.
+      let afgewezen = Number(req.headers["content-length"]) > maxBytes;
+      if (afgewezen) fout(new ApiFout(413, "Verzoek te groot"));
+      req.on("data", (blok: Buffer) => {
+        totaal += blok.length;
+        if (!afgewezen && totaal <= maxBytes) return void blokken.push(blok);
+        if (!afgewezen) {
+          afgewezen = true;
+          blokken.length = 0;
+          fout(new ApiFout(413, "Verzoek te groot"));
+        }
+        // Even doorlezen zonder te bewaren, zodat de 413 de client bereikt (die is nog aan het schrijven);
+        // wie daarna nog doorgaat, krijgt de verbinding dicht.
+        if (totaal > maxBytes + AFVOER_BYTES) req.destroy();
+      });
+      req.on("end", () => klaar(Buffer.concat(blokken)));
+      req.on("error", fout);
+    });
   return {
     params,
     url,
@@ -202,32 +221,48 @@ async function bestand(req: IncomingMessage, res: ServerResponse, naam: string, 
   }
 }
 
+function fouten(res: ServerResponse, fout: unknown) {
+  console.error(fout);
+  if (!res.headersSent) stuurJson(res, 500, { fout: "Interne fout" });
+  else res.destroy();
+}
+
 export async function startServer(o: ServerOpties): Promise<{ url: string; sluit(): Promise<void> }> {
   await mkdir(o.dataDir, { recursive: true });
   const webDir = o.webDir ?? STANDAARD_WEBDIR;
   const server = createServer((req, res) => {
-    // Alleen verzoeken die vanaf de eigen pagina komen: dat houdt DNS-rebinding en
-    // cross-site verzoeken van een andere website buiten de deur.
-    const { port } = server.address() as { port: number };
-    const toegestaan = [`127.0.0.1:${port}`, `localhost:${port}`];
-    const origin = req.headers.origin;
-    if (
-      !toegestaan.includes(req.headers.host ?? "") ||
-      (origin !== undefined && !toegestaan.some((h) => origin === `http://${h}`))
-    ) {
-      return stuurJson(res, 403, { fout: "Verboden" });
+    // Geen enkele synchrone fout in de afhandeling mag het proces beëindigen.
+    try {
+      // Alleen verzoeken die vanaf de eigen pagina komen: dat houdt DNS-rebinding en
+      // cross-site verzoeken van een andere website buiten de deur.
+      const { port } = server.address() as { port: number };
+      const toegestaan = [`127.0.0.1:${port}`, `localhost:${port}`];
+      const origin = req.headers.origin;
+      if (
+        !toegestaan.includes(req.headers.host ?? "") ||
+        (origin !== undefined && !toegestaan.some((h) => origin === `http://${h}`))
+      ) {
+        return stuurJson(res, 403, { fout: "Verboden" });
+      }
+      // Alleen een pad: `//` en `//host/pad` zijn geen pad en worden niet stilletjes gelezen als URL met een andere host.
+      const doel = req.url ?? "/";
+      let url: URL;
+      try {
+        if (!doel.startsWith("/") || doel.startsWith("//")) throw new Error("geen pad");
+        url = new URL(doel, `http://127.0.0.1:${port}`);
+      } catch {
+        return stuurJson(res, 400, { fout: "Ongeldig verzoek" });
+      }
+      const eigen = o.statisch?.find((x) => url.pathname.startsWith(x.prefix));
+      const klaar = url.pathname.startsWith("/api/")
+        ? api(req, res, url, o.routes)
+        : eigen
+          ? bestand(req, res, url.pathname.slice(eigen.prefix.length), eigen.map())
+          : bestand(req, res, url.pathname, webDir, true);
+      klaar.catch((fout) => fouten(res, fout));
+    } catch (fout) {
+      fouten(res, fout);
     }
-    const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
-    const eigen = o.statisch?.find((x) => url.pathname.startsWith(x.prefix));
-    const klaar = url.pathname.startsWith("/api/")
-      ? api(req, res, url, o.routes)
-      : eigen
-        ? bestand(req, res, url.pathname.slice(eigen.prefix.length), eigen.map())
-        : bestand(req, res, url.pathname, webDir, true);
-    klaar.catch((fout) => {
-      console.error(fout);
-      if (!res.headersSent) stuurJson(res, 500, { fout: "Interne fout" });
-    });
   });
   await new Promise<void>((klaar, fout) => {
     server.once("error", fout);
