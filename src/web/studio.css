@@ -2086,3 +2086,34 @@ textarea[readonly] {
 .project-picker select {
   width: 100%;
 }
+
+.studio-input-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-s);
+}
+
+.studio-input-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--r3);
+}
+
+.studio-proposal-posts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: var(--r3);
+}
+
+#brand-proposal h3 {
+  margin-top: var(--r5);
+}
+
+/* The sample posts are square: a box as wide as the preview is tall leaves no empty strip. */
+.studio-proposal-posts .studio-preview {
+  max-width: 260px;
+}
