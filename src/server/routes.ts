@@ -2,7 +2,7 @@
 // uploaded images in the data folder; the studio renders, exports (PNG, PDF, ZIP) and
 // builds the calendar export itself in the browser.
 import { ApiError, response, route, type Ctx, type Route } from "./http.js";
-import { readJson, path, serialize, type Storage } from "./files.js";
+import { readJson, path, reason, serialize, type Storage } from "./files.js";
 import {
   StorageError,
   saveSettingsFile,
@@ -166,7 +166,7 @@ export async function readCustomMoments(o: Storage): Promise<Moment[]> {
     if (!r.success) throw new Error(firstZodError(r.error));
     return r.data.map((m) => ({ ...m, kind: "custom" as const }));
   } catch (e) {
-    throw new ApiError(500, `marketing/moments.json cannot be read: ${e instanceof Error ? e.message : String(e)}`);
+    throw new ApiError(500, `marketing/moments.json cannot be read: ${reason(e)}`);
   }
 }
 

@@ -12,6 +12,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   listFolder,
   readJson,
+  reason,
   path,
   writeBytesAtomic,
   writeJsonAtomic,
@@ -73,7 +74,7 @@ async function readChecked<T>(
   try {
     x = await readJson<unknown>(p);
   } catch (e) {
-    throw new StorageError(500, `${name} cannot be read: ${e instanceof Error ? e.message : String(e)}`);
+    throw new StorageError(500, `${name} cannot be read: ${reason(e)}`);
   }
   if (x !== null && !matches(x)) throw new StorageError(500, `${name} cannot be read: expected ${expected}`);
   return x as T | null;
@@ -213,13 +214,13 @@ export async function loadSettingsFile(o: Storage): Promise<Settings> {
     text = await readFile(path(o, FOLDER, "settings.json"), "utf8");
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === "ENOENT") return defaults;
-    throw unreadable(e instanceof Error ? e.message : String(e));
+    throw unreadable(reason(e));
   }
   let saved: unknown;
   try {
     saved = JSON.parse(text);
   } catch (e) {
-    throw unreadable(e instanceof Error ? e.message : String(e));
+    throw unreadable(reason(e));
   }
   if (typeof saved !== "object" || saved === null || Array.isArray(saved)) throw unreadable("expected an object");
   const custom = saved as Record<string, unknown>;
