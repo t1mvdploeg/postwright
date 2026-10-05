@@ -15,7 +15,7 @@ import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.
 import { ongedekteGetallen } from "../src/web/marketing/getallen.js";
 import { startStudio } from "./helpers/studio.js";
 
-const MERK = { merknaam: "Testmerk", toon: ["Be friendly."] };
+const MERK = { merknaam: "Testmerk" };
 const FEIT = {
   id: "f-00000000-0000-4000-8000-000000000001",
   tekst: "Orders over 12 units ship free.",
@@ -190,7 +190,7 @@ describe("AnthropicProvider (met een nepclient)", () => {
     expect(p.model).toBe("claude-sonnet-5-5");
     expect(p.output_config.format.type).toBe("json_schema");
     expect(p.system).toContain("Testmerk");
-    expect(p.system).toContain("Be friendly.");
+    expect(p.system).toContain("Tone: plain and calm");
     expect(p.system).toContain("use only the facts provided");
     // De opdracht bevat de feiten, maar niet het merk.
     expect(p.messages[0].content).toContain(FEIT.tekst);
@@ -250,7 +250,7 @@ describe("routes", () => {
     velden: [],
     feiten: [],
   };
-  const live = (gedrag: () => Promise<any>): AiProvider => ({
+  const live = (gedrag: (o: any) => Promise<any>): AiProvider => ({
     naam: "anthropic",
     model: "claude-sonnet-5-5",
     marketingTekst: gedrag,
@@ -311,6 +311,26 @@ describe("routes", () => {
     );
     expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(502);
     expect(regels(dataDir)[0]).toMatchObject({ ok: false, usd: 2 });
+  });
+
+  it("het merk van de gebruiker (data/brand/merk.json) geeft de merknaam aan de schrijfhulp en wordt zo geserveerd", async () => {
+    const gezien: string[] = [];
+    const spy = live(async (o: MarketingOpdracht) => {
+      gezien.push(o.merk.merknaam);
+      return { voorstel: { varianten: [] }, model: "claude-sonnet-5-5", usage: LEGE_USAGE, duurMs: 1 };
+    });
+    const { vraag, dataDir, basis } = await start(spy);
+    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    expect(gezien).toEqual(["Postwright"]); // het ingebouwde merk
+    const ingebouwd = JSON.parse(readFileSync(new URL("../src/web/marketing/merk/merk.json", import.meta.url), "utf8"));
+    const eigen = JSON.stringify({ ...ingebouwd, naam: "Eigenmerk", versie: "eigen-9" });
+    mkdirSync(join(dataDir, "brand"), { recursive: true });
+    writeFileSync(join(dataDir, "brand", "merk.json"), eigen);
+    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    expect(gezien).toEqual(["Postwright", "Eigenmerk"]);
+    const geserveerd = await fetch(`${basis}/marketing/merk/merk.json`);
+    expect(geserveerd.status).toBe(200);
+    expect(await geserveerd.text()).toBe(eigen);
   });
 
   it.each([

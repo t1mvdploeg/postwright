@@ -148,16 +148,15 @@ describe("schrijfhulp", () => {
 });
 
 describe("instructie en schema", () => {
-  it("neemt de merknaam en de toonregels van het merk over en houdt de regel over de feiten overeind", () => {
-    const tekst = marketingInstructie({ merknaam: "Voorbeeldmerk", toon: ["Be warm.", "Never shout."] });
+  it("neemt de merknaam van het merk over en houdt de regel over de feiten overeind", () => {
+    const tekst = marketingInstructie({ merknaam: "Voorbeeldmerk" });
     expect(tekst).toContain("Voorbeeldmerk");
-    expect(tekst).toContain("Tone: Be warm. Never shout.");
+    expect(tekst).toContain("Tone: plain and calm");
     expect(tekst).toContain("use only the facts provided");
-    expect(marketingInstructie({ merknaam: "X", toon: [] })).toContain("Tone: Plain and calm");
   });
 
   it("de voorbeeldgever voldoet aan het antwoordschema", async () => {
-    const o: MarketingOpdracht = { taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "", huidig: { velden: {}, posttekst: "", altTekst: "" }, feiten: [], velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }], merk: { merknaam: "X", toon: [] } };
+    const o: MarketingOpdracht = { taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "", huidig: { velden: {}, posttekst: "", altTekst: "" }, feiten: [], velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }], merk: { merknaam: "X" } };
     const a = await voorbeeldProvider.marketingTekst(o);
     expect(a.voorstel.varianten).toHaveLength(3);
     expect(MarketingVoorstelSchema.safeParse(a.voorstel).success).toBe(true);

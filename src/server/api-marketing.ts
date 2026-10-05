@@ -1,7 +1,6 @@
 // De routes van de studio, allemaal onder `/api/`. De server bewaart recepten, lijsten,
 // instellingen en geüploade beelden in de datamap; de studio rendert, exporteert (PNG, PDF, ZIP) en
 // maakt de agenda-export zelf in de browser.
-import { readFile } from "node:fs/promises";
 import { ApiFout, antwoord, route, type Ctx, type Route } from "./http.js";
 import { leesJson, pad, serialiseer, type Opslag } from "../data/bestanden.js";
 import {
@@ -16,7 +15,7 @@ import {
   type Campagne, type Feit, type Geschiedenisregel, type Idee, type Post, type PostInvoer, type PostSamenvatting, type Tekst, type TekstInvoer,
 } from "../model/marketing-schema.js";
 import { STARTFEITEN, STARTPOSTS, STARTTEKSTEN, type Startfeit } from "../model/marketing-startvulling.js";
-import { SchrijfhulpVerzoekSchema, type MarketingOpdracht, type PromptMerk } from "../model/marketing-schrijfhulp.js";
+import { SchrijfhulpVerzoekSchema, type MarketingOpdracht } from "../model/marketing-schrijfhulp.js";
 import { IdeeenVerzoekSchema, ruimIdeeenOp, type IdeeenOpdracht } from "../model/marketing-ideeen.js";
 import { alleMomenten, type Moment } from "../model/marketing-momenten.js";
 import { resultatenPerSjabloon } from "../model/marketing-resultaten.js";
@@ -32,6 +31,7 @@ import { echteDatum, komendeWeken, plusDagen } from "../web/marketing/kalender.j
 import { ongedekteGetallen } from "../web/marketing/getallen.js";
 import { AiFout, type AiProvider, type AiResultaat } from "./ai/provider.js";
 import { aiStand, kiesProvider } from "./ai/kies.js";
+import { laadMerk } from "./merk.js";
 import { boek, kostenUsd, maandtotaalUsd } from "./ai/verbruik.js";
 import { z } from "zod";
 
@@ -110,12 +110,6 @@ export async function leesEigenMomenten(o: Opslag): Promise<Moment[]> {
     throw new ApiFout(500, `marketing/momenten.json is niet te lezen: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
-
-/**
- * Wat de AI-instructies van het merk nodig hebben. Tijdelijk een vaste waarde: de merktaak vervangt hem
- * door het geladen merk (de merknaam en de toonregels uit `merk.json`).
- */
-const MERK_VOOR_PROMPT: PromptMerk = { merknaam: "Postwright", toon: [] };
 
 /** `provider`: de AI die de routes gebruiken; zonder gebruiken ze `kiesProvider()` (sleutel uit de omgeving). */
 export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider }): Route[] {
@@ -213,7 +207,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
   async function vulPosts(): Promise<number> {
     const [bestaand, feiten, instellingen, merk] = await Promise.all([
       lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten"), laadInstellingen(),
-      readFile(new URL("../web/marketing/merk/merk.json", import.meta.url), "utf8").then((t) => JSON.parse(t) as { versie: string }),
+      laadMerk(o.dataDir),
     ]);
     let nieuw = 0;
     for (const s of STARTPOSTS) {
@@ -229,7 +223,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         geschiedenis: [{ op: nu.toISOString(), wie: "", wat: "aangemaakt" }], aangemaakt: nu.toISOString(), gewijzigd: nu.toISOString(),
       };
       if (s.inDagen !== undefined) {
-        const c = controleer({ post, sjabloon: sj, instellingen, feiten, vandaag: vandaagAmsterdam(nu), merkVersie: merk.versie });
+        const c = controleer({ post, sjabloon: sj, instellingen, feiten, vandaag: vandaagAmsterdam(nu), merkVersie: merk.versie, merk });
         post.controle = { fouten: c.fouten, letOp: c.letOp, op: nu.toISOString() };
         if (c.fouten === 0) {
           post.status = "gepland";
@@ -284,10 +278,11 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     }
     const bruikbaar = feiten as Feit[];
 
+    const merk = await laadMerk(o.dataDir);
     const opdracht: MarketingOpdracht = {
       taak: verzoek.taak, sjabloon: verzoek.sjabloon, velden: verzoek.velden, kanaal: verzoek.kanaal,
       toelichting: verzoek.toelichting, huidig: verzoek.huidig, feiten: bruikbaar.map((f) => ({ id: f.id, tekst: f.tekst, bron: f.bron.verwijzing })),
-      merk: MERK_VOOR_PROMPT,
+      merk: { merknaam: merk.naam },
     };
     const resultaat = await aiHulp("De schrijfhulp", `schrijfhulp:${verzoek.taak}`, () => provider.marketingTekst(opdracht));
 
@@ -603,7 +598,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         ],
         campagne: campagne ? { naam: campagne.naam, doel: campagne.doel } : null,
         resultaten: resultatenPerSjabloon(posts, plusDagen(vandaag, -182)),
-        merk: MERK_VOOR_PROMPT,
+        merk: { merknaam: (await laadMerk(o.dataDir)).naam },
       };
       const r = await aiHulp("De ideeënhulp", `ideeen:${van}..${v.tot}`, () => provider.marketingIdeeen(opdracht));
       return { voorstellen: ruimIdeeenOp(r.voorstel, opdracht), model: r.model, van, voorbeeld: provider.naam === "voorbeeld" };

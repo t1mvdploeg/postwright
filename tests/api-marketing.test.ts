@@ -508,3 +508,25 @@ describe("opgeslagen instellingen die er niet goed uitzien", () => {
     expect(r.body).not.toHaveProperty("schrijfhulp");
   });
 });
+
+describe("merk en bewaarde posts", () => {
+  it("geeft een post met een oude merkVersie ongewijzigd terug nadat het merk in data/brand een andere versie kreeg", async () => {
+    const studio = await startStudio();
+    try {
+      const maak = await fetch(`${studio.basis}${API}/posts`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(recept({ merkVersie: "oud-1.0" })),
+      });
+      expect(maak.status).toBe(201);
+      const post = await maak.json();
+      const ingebouwd = JSON.parse(readFileSync(new URL("../src/web/marketing/merk/merk.json", import.meta.url), "utf8"));
+      mkdirSync(join(studio.dataDir, "brand"), { recursive: true });
+      writeFileSync(join(studio.dataDir, "brand", "merk.json"), JSON.stringify({ ...ingebouwd, versie: "nieuw-2.0" }));
+      expect((await (await fetch(`${studio.basis}/api/merk`)).json()).versie).toBe("nieuw-2.0");
+      const r = await fetch(`${studio.basis}${API}/posts/${post.id}`);
+      expect(r.status).toBe(200);
+      expect(await r.json()).toMatchObject({ id: post.id, merkVersie: "oud-1.0", titel: post.titel });
+    } finally {
+      await studio.sluit();
+    }
+  });
+});

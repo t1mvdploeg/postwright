@@ -16,7 +16,7 @@ export async function haalAiStand() {
 
 /** De vaste balk boven voorbeeldantwoorden, en het etiket bij elk voorstel. */
 export function voorbeeldBalk() {
-  return el("p", { class: "studio-waarschuwing", role: "status", text: "No API key active. These are sample answers." });
+  return el("p", { class: "studio-waarschuwing studio-voorbeeldbalk", role: "status", text: "No API key active. These are sample answers." });
 }
 export function voorbeeldEtiket() {
   return el("span", { class: "studio-etiket", text: "Sample" });

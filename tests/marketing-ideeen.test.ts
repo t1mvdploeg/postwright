@@ -17,7 +17,7 @@ const OPDRACHT: IdeeenOpdracht = {
   sjablonen: [{ id: "stelling", naam: "Stelling", doel: "" }, { id: "vraag", naam: "Vraag", doel: "" }],
   feiten: [{ id: "f-00000000-0000-4000-8000-000000000001", tekst: "The minimum hourly rate is € 14,99.", soort: "extern" }],
   momenten: [{ sleutel: "aanmelden-overgang", datum: "2026-11-01", titel: "Registration", zin: "Registration is open from 1 November to 31 December 2026." }],
-  bestaand: [], campagne: null, resultaten: [], merk: { merknaam: "Testmerk", toon: [] },
+  bestaand: [], campagne: null, resultaten: [], merk: { merknaam: "Testmerk" },
 };
 const idee = (x: Partial<{ datum: string; titel: string; toelichting: string; sjabloon: string; kop: string; feiten: string[]; moment: string }>) =>
   ({ datum: "2026-10-06", titel: "Een idee", toelichting: "", sjabloon: "stelling", kop: "Een *kop.*", feiten: [], moment: "", ...x });
@@ -64,10 +64,10 @@ describe("voorbeeldgever en instructie", () => {
     expect(r.usage).toEqual(LEGE_USAGE);
   });
 
-  it("neemt de merknaam en de toonregels van het merk over en houdt de regel over de feiten overeind", () => {
-    const tekst = ideeenInstructie({ merknaam: "Voorbeeldmerk", toon: ["Be warm."] });
+  it("neemt de merknaam van het merk over en houdt de regel over de feiten overeind", () => {
+    const tekst = ideeenInstructie({ merknaam: "Voorbeeldmerk" });
     expect(tekst).toContain("Voorbeeldmerk");
-    expect(tekst).toContain("Tone: Be warm.");
+    expect(tekst).toContain("Tone: plain and calm");
     expect(tekst).toContain("use only the facts provided");
   });
 });

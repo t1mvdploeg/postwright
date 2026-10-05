@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { maakMarketingRoutes } from "../../src/server/api-marketing.js";
 import { startServer } from "../../src/server/http.js";
+import { merkMap, merkRoutes } from "../../src/server/merk.js";
 import type { AiProvider } from "../../src/server/ai/provider.js";
 
 export async function startStudio(opties: { provider?: AiProvider } = {}) {
@@ -12,7 +13,8 @@ export async function startStudio(opties: { provider?: AiProvider } = {}) {
   const s = await startServer({
     dataDir,
     poort: 0,
-    routes: maakMarketingRoutes({ dataDir, provider: opties.provider }),
+    routes: [...merkRoutes({ dataDir }), ...maakMarketingRoutes({ dataDir, provider: opties.provider })],
+    statisch: [{ prefix: "/marketing/merk/", map: () => merkMap(dataDir) }],
   });
   return {
     dataDir,

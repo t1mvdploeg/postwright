@@ -929,6 +929,10 @@ textarea[readonly] { background: var(--achtergrond); color: var(--tekst-zwak); }
 
 .studio-waarschuwing { color: var(--waarschuwing); font-weight: 600; }
 
+/* Voorbeeldantwoorden van de AI: een vaste balk boven de voorstellen en een etiket bij elk voorstel. */
+.studio-voorbeeldbalk { margin: var(--r2) 0; padding: var(--r2) var(--r3); border: 1px solid var(--waarschuwing); border-left-width: 4px; border-radius: var(--r2); background: var(--kaart); font-size: var(--t-s); line-height: 1.55; }
+.studio-etiket { display: inline-block; margin-left: 6px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--op-inkt); background: var(--waarschuwing); white-space: nowrap; vertical-align: middle; }
+
 .studio-signaal { border-left: 4px solid var(--waarschuwing); }
 
 .studio-filters { display: flex; flex-wrap: wrap; gap: var(--r3) var(--r4); align-items: end; margin-bottom: var(--r3); }

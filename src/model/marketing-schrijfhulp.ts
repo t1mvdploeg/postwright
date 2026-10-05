@@ -59,24 +59,20 @@ export const MarketingVoorstelSchema = z.object({
 });
 export type MarketingVoorstel = z.infer<typeof MarketingVoorstelSchema>;
 
-/** Wat de instructies van het merk nodig hebben: de naam en de toonregels (één regel per punt). */
+/** Wat de instructies van het merk nodig hebben: de naam. */
 export interface PromptMerk {
   merknaam: string;
-  toon: string[];
 }
 
-const STANDAARD_TOON =
-  "Plain and calm, no exclamation marks, no superlatives and no promises such as guaranteed or flawless. Shorter is better.";
-
-export function toonRegel(merk: PromptMerk): string {
-  return `Tone: ${merk.toon.length ? merk.toon.join(" ") : STANDAARD_TOON}`;
-}
+/** De toon is voor elk merk gelijk: het merk (`merk.json`) heeft geen toonregels. */
+export const TOON_REGEL =
+  "Tone: plain and calm, no exclamation marks, no superlatives and no promises such as guaranteed or flawless. Shorter is better.";
 
 export function marketingInstructie(merk: PromptMerk): string {
   return (
     `You write social media copy for ${merk.merknaam}. You write for LinkedIn and similar channels, for the audience the facts describe. ` +
     "Write in English unless the facts are in another language.\n" +
-    `${toonRegel(merk)}\n` +
+    `${TOON_REGEL}\n` +
     "Facts: use only the facts provided. Do not state any number, amount, percentage, customer name or result that does not " +
     "appear verbatim in one of those facts. If no fact is provided, write without numbers. List the ids of the facts you use in " +
     "`gebruikteFeiten`.\n" +
