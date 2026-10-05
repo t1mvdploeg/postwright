@@ -1,5 +1,7 @@
 // Building recipes and sending them to the server, and the time helpers.
 import { describe, it, expect } from "vitest";
+import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import {
   ideaToRecipe,
   readableMoment,
@@ -19,6 +21,32 @@ describe("time", () => {
     expect(localToday(new Date("2026-10-01T23:30:00Z"))).toBe("2026-10-01");
     expect(localToday(new Date("2026-12-31T23:59:59Z"))).toBe("2026-12-31");
     expect(localToday(new Date("2027-01-01T00:00:00Z"))).toBe("2027-01-01");
+  });
+
+  it("corrects the offset in a zone with daylight saving time (run in a child process: the suite runs in UTC)", () => {
+    const module = (name: string) =>
+      pathToFileURL(new URL(`../src/web/studio/${name}.js`, import.meta.url).pathname).href;
+    const script = `
+      const { withOffset } = await import(${JSON.stringify(module("recipe"))});
+      const { rescheduleToDay } = await import(${JSON.stringify(module("calendar"))});
+      console.log(JSON.stringify([
+        withOffset("2026-12-01T09:00"),
+        withOffset("2026-07-01T09:00"),
+        withOffset("2026-10-25T01:30"),
+        rescheduleToDay("2026-10-20T08:30:00+02:00", "2026-11-03"),
+      ]));`;
+    const out = execFileSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
+      env: { ...process.env, TZ: "Europe/Amsterdam" },
+      encoding: "utf8",
+    });
+    expect(JSON.parse(out)).toEqual([
+      "2026-12-01T09:00:00+01:00",
+      "2026-07-01T09:00:00+02:00",
+      // An hour before the change to winter time: still +02:00, which needs the second pass.
+      "2026-10-25T01:30:00+02:00",
+      // Same clock time across the change from summer to winter time.
+      "2026-11-03T08:30:00+01:00",
+    ]);
   });
 
   it("converts a datetime-local value to a timestamp with offset and back", () => {
