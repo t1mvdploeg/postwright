@@ -2,10 +2,12 @@
 // uploaded images in the folder of the project the request is about (`data/projects/<slug>/marketing/`); the studio renders, exports (PNG, PDF, ZIP) and
 // builds the calendar export itself in the browser.
 import { ApiError, response, route, type Ctx, type Route } from "./http.js";
-import { readJson, path, reason, serialize, type Storage } from "./files.js";
+import { readJson, path, reason, type Storage } from "./files.js";
 import {
   StorageError,
   saveSettingsFile,
+  readGlobalCap,
+  saveGlobalCap,
   saveMedia,
   validListId,
   loadSettingsFile,
@@ -68,10 +70,10 @@ import { runCheck } from "../web/studio/brand-check.js";
 // 2026-02-30 through).
 import { realDate, upcomingWeeks, plusDays } from "../web/studio/calendar.js";
 import { uncoveredNumbers } from "../web/studio/numbers.js";
-import { AiError, type AiProvider, type AiResult } from "./ai/provider.js";
+import type { AiProvider, AiResult } from "./ai/provider.js";
 import { aiMode, chooseProvider } from "./ai/choose.js";
 import { loadBrand, type Brand } from "./brand.js";
-import { assertBookable, book, costUsd, monthTotalUsd, type UsageEntry } from "./ai/usage.js";
+import { runPaid } from "./ai/guard.js";
 import { z } from "zod";
 
 /** Largest upload: a screenshot or photo. */
@@ -178,8 +180,18 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   /** The storage of the project this request is about. */
   const store = async (c: Ctx): Promise<Storage> => ({ dir: (await c.project()).dir });
   const provider = o.provider ?? chooseProvider();
-  /** The settings; an unreadable file becomes a 500 with its name (never silently the default). */
-  const loadSettings = (s: Storage) => loadSettingsFile(s).catch(toApiError);
+  /**
+   * The settings of the project, with the cap that is the same for all projects. An unreadable
+   * file becomes a 500 with its name (never silently the default).
+   */
+  const loadSettings = async (s: Storage): Promise<Settings> => {
+    try {
+      const settings = await loadSettingsFile(s);
+      return { ...settings, writingHelp: { ...settings.writingHelp, capUsdPerMonth: await readGlobalCap(o.dataDir) } };
+    } catch (e) {
+      return toApiError(e);
+    }
+  };
 
   function postId(c: Ctx): string {
     const id = c.params.id;
@@ -344,60 +356,33 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   }
 
   /**
-   * One AI call of the studio (writing help or ideas): switch, monthly cap, provider and
-   * booking. One call at a time for both, otherwise fast clicks read the same amount and
-   * together exceed the cap. The cap applies only to the live provider; the sample provider
-   * costs nothing. Every call is booked, a failed one too (with the tokens already spent).
-   * The cap fails closed: the usage file must be appendable before the call, and the cost of
-   * a call that could not be booked is kept in memory and counted with what the file says.
+   * One AI call of the studio (writing help or ideas): the switch of the project, then the
+   * guard (monthly cap, one call at a time, booking). The cap applies only to the live
+   * provider; the sample provider costs nothing.
    */
-  const unbooked = new Map<string, number>(); // UTC month -> dollars spent but not in the file
-  async function bookCounted(line: UsageEntry) {
-    try {
-      await book(o.dataDir, line);
-    } catch (e) {
-      const month = line.timestamp.slice(0, 7);
-      unbooked.set(month, (unbooked.get(month) ?? 0) + line.usd);
-      throw e;
-    }
-  }
   async function aiHelp<T>(
     s: Storage,
     name: string,
     task: string,
     call: () => Promise<AiResult<T>>,
   ): Promise<AiResult<T>> {
-    return serialize("marketing-ai", async () => {
-      const currentSettings = await loadSettings(s);
-      if (!currentSettings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
-      const cap = currentSettings.writingHelp.capUsdPerMonth;
-      if (provider.name === "anthropic") {
-        const now = new Date();
-        const total = (await monthTotalUsd(o.dataDir, now)) + (unbooked.get(now.toISOString().slice(0, 7)) ?? 0);
-        if (total >= cap) throw new ApiError(429, `The monthly cap for AI help ($${cap}) has been reached`);
-        await assertBookable(o.dataDir);
-      }
-      const modelName = aiMode(provider).model ?? "sample";
-      let result: AiResult<T>;
-      try {
-        result = await call();
-      } catch (error) {
-        const usd = error instanceof AiError && error.usage ? costUsd(modelName, error.usage) : 0;
-        await bookCounted({ timestamp: new Date().toISOString(), model: modelName, task, usd, ok: false });
-        throw new ApiError(
-          502,
-          `${name} did not give a usable answer: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      await bookCounted({
-        timestamp: new Date().toISOString(),
-        model: result.model,
+    const settings = await loadSettings(s);
+    if (!settings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
+    const result = await runPaid(
+      {
+        dataDir: o.dataDir,
+        cap: () => readGlobalCap(o.dataDir).catch(toApiError),
+        label: name,
         task,
-        usd: costUsd(result.model, result.usage),
-        ok: true,
-      });
-      return result;
-    });
+        model: aiMode(provider).model ?? "sample",
+        capped: provider.name === "anthropic",
+      },
+      async () => {
+        const r = await call();
+        return { value: r, model: r.model, usage: r.usage };
+      },
+    );
+    return result.value;
   }
 
   async function writingHelp(s: Storage, request: z.infer<typeof WritingHelpRequestSchema>) {
@@ -768,6 +753,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       const i = validate(SettingsSchema, await c.readJson());
       // Read first: a file that cannot be read is reported and not silently overwritten.
       await loadSettings(s);
+      await saveGlobalCap(o.dataDir, i.writingHelp.capUsdPerMonth).catch(toApiError);
       await saveSettingsFile(s, i);
       return i;
     }),

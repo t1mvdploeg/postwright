@@ -122,6 +122,14 @@ export async function prepareData(
     );
   }
   await writeJsonAtomic(join(dir, "project.json"), { name: "Postwright", created: new Date().toISOString() });
+  // The cap is one setting for all projects now: take the one of the old settings file along.
+  const oldSettings = await readJson<{ writingHelp?: { capUsdPerMonth?: unknown } }>(
+    join(dir, "marketing", "settings.json"),
+  ).catch(() => null);
+  const cap = oldSettings?.writingHelp?.capUsdPerMonth;
+  if (typeof cap === "number" && Number.isFinite(cap) && cap >= 0 && cap <= 1000) {
+    await writeJsonAtomic(join(dataDir, "settings.json"), { capUsdPerMonth: cap });
+  }
 }
 
 function firstIssue(error: z.ZodError): string {
