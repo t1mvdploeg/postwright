@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/t1mvdploeg/postwright/actions/workflows/test.yml"><img src="https://github.com/t1mvdploeg/postwright/actions/workflows/test.yml/badge.svg" alt="tests"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A5%2022-339933" alt="Node 22 or later">
+  <img src="https://img.shields.io/badge/node-%E2%89%A5%2022.2-339933" alt="Node 22.2 or later">
   <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence">
 </p>
 
@@ -23,7 +23,7 @@ It runs on your own computer: no account, nothing to host.
 
 ## Quick start
 
-You need Node 22 or later.
+You need Node 22.2 or later.
 
 ```bash
 npm install
