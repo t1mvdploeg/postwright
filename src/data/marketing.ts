@@ -56,36 +56,51 @@ export function nieuwPostId(): string {
   return `p-${randomUUID()}`;
 }
 
-export async function leesPost(o: Opslag, id: string): Promise<Post | null> {
-  if (!POST_ID.test(id)) return null;
-  return leesJson<Post>(postPad(o, id));
+/**
+ * Leest een JSON-bestand van de studio. Staat er iets in wat geen JSON is of niet de verwachte vorm
+ * heeft, dan volgt een 500 met de naam van het bestand, zodat de gebruiker weet wat hij moet nakijken.
+ */
+async function leesGecontroleerd<T>(
+  p: string,
+  naam: string,
+  verwacht: string,
+  klopt: (x: unknown) => boolean,
+): Promise<T | null> {
+  let x: unknown;
+  try {
+    x = await leesJson<unknown>(p);
+  } catch (e) {
+    throw new MarketingOpslagFout(500, `${naam} is niet te lezen: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (x !== null && !klopt(x)) throw new MarketingOpslagFout(500, `${naam} is niet te lezen: verwacht ${verwacht}`);
+  return x as T | null;
 }
 
-/**
- * Alle posts, nieuwste wijziging eerst. Een onleesbaar bestand wordt overgeslagen in plaats van de
- * hele lijst te laten vallen.
- */
-export async function lijstPosts(o: Opslag): Promise<Post[]> {
-  const namen = (await lijstMap(pad(o, MAP, "posts"))).filter((n) => n.endsWith(".json"));
-  const posts = await Promise.all(
-    namen.map(async (n) => {
-      const id = n.slice(0, -5);
-      if (!POST_ID.test(id)) return null;
-      try {
-        const p = await leesJson<Post>(postPad(o, id));
-        return p && p.id === id ? p : null;
-      } catch {
-        return null;
-      }
-    }),
+const isObject = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
+
+export async function leesPost(o: Opslag, id: string): Promise<Post | null> {
+  if (!POST_ID.test(id)) return null;
+  return leesGecontroleerd<Post>(
+    postPad(o, id),
+    `${MAP}/posts/${id}.json`,
+    "een post met dit id",
+    (x) => isObject(x) && x.id === id && typeof x.versie === "number" && typeof x.gewijzigd === "string",
   );
+}
+
+/** Alle posts, nieuwste wijziging eerst. Een onleesbaar postbestand laat de lijst falen met zijn naam: een post mag niet stil verdwijnen. */
+export async function lijstPosts(o: Opslag): Promise<Post[]> {
+  const namen = (await lijstMap(pad(o, MAP, "posts"))).filter(
+    (n) => n.endsWith(".json") && POST_ID.test(n.slice(0, -5)),
+  );
+  const posts = await Promise.all(namen.map((n) => leesPost(o, n.slice(0, -5))));
   return posts.filter((p): p is Post => p !== null).sort((a, b) => b.gewijzigd.localeCompare(a.gewijzigd));
 }
 
 /** Schrijft een nieuwe post; faalt als het id al bestaat (kan alleen bij een UUID-botsing). */
 export async function maakPost(o: Opslag, post: Post): Promise<Post> {
   return serialiseer(`marketing-post:${post.id}`, async () => {
-    if (await leesJson(postPad(o, post.id))) throw new MarketingOpslagFout(409, "Deze post bestaat al");
+    if (await leesPost(o, post.id)) throw new MarketingOpslagFout(409, "Deze post bestaat al");
     await schrijfJsonAtomisch(postPad(o, post.id), post);
     return post;
   });
@@ -120,9 +135,8 @@ export async function werkPostBij(
 
 export async function wisPost(o: Opslag, id: string): Promise<boolean> {
   return serialiseer(`marketing-post:${id}`, async () => {
-    const p = postPad(o, id);
-    if (!(await leesJson(p))) return false;
-    await verwijder(p);
+    if (!(await leesPost(o, id))) return false;
+    await verwijder(postPad(o, id));
     return true;
   });
 }
@@ -147,7 +161,13 @@ export function geldigLijstId(lijst: LijstNaam, id: string): boolean {
 }
 
 export async function leesLijst<T extends { id: string }>(o: Opslag, lijst: LijstNaam): Promise<T[]> {
-  return (await leesJson<T[]>(pad(o, MAP, `${lijst}.json`))) ?? [];
+  const regels = await leesGecontroleerd<T[]>(
+    pad(o, MAP, `${lijst}.json`),
+    `${MAP}/${lijst}.json`,
+    "een lijst van objecten met een id",
+    (x) => Array.isArray(x) && x.every((r) => isObject(r) && typeof r.id === "string"),
+  );
+  return regels ?? [];
 }
 
 /** Lezen en schrijven van een lijst in één slot, zodat twee gelijktijdige wijzigingen elkaar niet wissen. */

@@ -44,6 +44,7 @@ import {
   type Feit,
   type Geschiedenisregel,
   type Idee,
+  type MarketingInstellingen,
   type Post,
   type PostInvoer,
   type PostSamenvatting,
@@ -67,12 +68,12 @@ import { echteDatum, komendeWeken, plusDagen } from "../web/marketing/kalender.j
 import { ongedekteGetallen } from "../web/marketing/getallen.js";
 import { AiFout, type AiProvider, type AiResultaat } from "./ai/provider.js";
 import { aiStand, kiesProvider } from "./ai/kies.js";
-import { laadMerk } from "./merk.js";
+import { laadMerk, type Merk } from "./merk.js";
 import { boek, kostenUsd, maandtotaalUsd } from "./ai/verbruik.js";
 import { z } from "zod";
 
 /** Grootste upload: een schermafbeelding of foto. */
-export const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
+const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 /** Hoeveel regels `geschiedenis` bijhoudt; de oudste vallen eraf. */
 const MAX_GESCHIEDENIS = 100;
 
@@ -258,13 +259,8 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
    * overgeslagen. De ingeplande post krijgt een echte controle (dezelfde als in de browser, zonder de
    * overloopmeting); de concepten staan er zonder: de editor controleert ze bij het openen.
    */
-  async function vulPosts(): Promise<number> {
-    const [bestaand, feiten, instellingen, merk] = await Promise.all([
-      lijstPosts(gedeeld),
-      leesLijst<Feit>(gedeeld, "feiten"),
-      laadInstellingen(),
-      laadMerk(o.dataDir),
-    ]);
+  async function vulPosts(instellingen: MarketingInstellingen, merk: Merk): Promise<number> {
+    const [bestaand, feiten] = await Promise.all([lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten")]);
     let nieuw = 0;
     for (const s of STARTPOSTS) {
       const sj = sjabloonVan(s.sjabloon);
@@ -331,8 +327,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
    * Eén AI-aanroep van de studio (schrijfhulp of ideeën): schakelaar, maandplafond, provider en boeking.
    * Eén aanroep tegelijk voor beide, anders lezen snelle klikken hetzelfde bedrag en komen ze samen over
    * het plafond. Het plafond geldt alleen voor de live-provider; de voorbeeldgever kost niets. Elke
-   * aanroep wordt geboekt, ook een mislukte (met de tokens die al verbruikt zijn). Een ApiFout uit
-   * `roep` gaat ongeboekt door.
+   * aanroep wordt geboekt, ook een mislukte (met de tokens die al verbruikt zijn).
    */
   async function aiHulp<T>(naam: string, taak: string, roep: () => Promise<AiResultaat<T>>): Promise<AiResultaat<T>> {
     return serialiseer("marketing-ai", async () => {
@@ -348,7 +343,6 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       try {
         resultaat = await roep();
       } catch (fout) {
-        if (fout instanceof ApiFout) throw fout;
         const usd = fout instanceof AiFout && fout.usage ? kostenUsd(modelNaam, fout.usage) : 0;
         await boek(o.dataDir, { tijdstip: new Date().toISOString(), model: modelNaam, taak, usd, ok: false });
         throw new ApiFout(
@@ -380,6 +374,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     const bruikbaar = feiten as Feit[];
 
     const merk = await laadMerk(o.dataDir);
+    const instellingen = await laadInstellingen();
     const opdracht: MarketingOpdracht = {
       taak: verzoek.taak,
       sjabloon: verzoek.sjabloon,
@@ -388,7 +383,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       toelichting: verzoek.toelichting,
       huidig: verzoek.huidig,
       feiten: bruikbaar.map((f) => ({ id: f.id, tekst: f.tekst, bron: f.bron.verwijzing })),
-      merk: { merknaam: merk.naam },
+      merk: { merknaam: merk.naam, verbodenWoorden: instellingen.verbodenWoorden },
     };
     const resultaat = await aiHulp("De schrijfhulp", `schrijfhulp:${verzoek.taak}`, () =>
       provider.marketingTekst(opdracht),
@@ -414,7 +409,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
   const gebruiktIn = async (veld: "campagne" | "feiten", id: string) =>
     (await lijstPosts(gedeeld)).filter((p) => (veld === "campagne" ? p.campagne === id : p.feiten.includes(id))).length;
 
-  return [
+  const routes: Route[] = [
     // -----------------------------------------------------------------------------------------
     // Posts
     // -----------------------------------------------------------------------------------------
@@ -681,6 +676,9 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     // met precies dezelfde tekst (of dezelfde titel) al staat, blijft zoals het is, ook een feit dat de
     // gebruiker heeft ingetrokken. Twee keer klikken voegt dus niets dubbel toe.
     route("POST", "/api/startvulling", async () => {
+      // Instellingen en merk eerst: zijn die kapot, dan is er nog niets geschreven.
+      const instellingen = await laadInstellingen();
+      const merk = await laadMerk(o.dataDir);
       const nu = new Date().toISOString();
       const vul = <B extends { tekst: string }, T extends { id: string; tekst: string }>(
         lijst: "feiten" | "teksten",
@@ -709,7 +707,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         aangemaakt: nu,
         gewijzigd: nu,
       }));
-      const posts = await vulPosts();
+      const posts = await vulPosts(instellingen, merk);
       return { feiten, teksten, posts };
     }),
 
@@ -719,6 +717,8 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     route("GET", "/api/instellingen", async () => laadInstellingen()),
     route("PUT", "/api/instellingen", async (c) => {
       const i = valideer(MarketingInstellingenSchema, await c.leesJson());
+      // Eerst lezen: een bestand dat niet te lezen is, wordt gemeld en niet stilletjes overschreven.
+      await laadInstellingen();
       await bewaarMarketingInstellingen(gedeeld, i);
       return i;
     }),
@@ -841,7 +841,10 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         ],
         campagne: campagne ? { naam: campagne.naam, doel: campagne.doel } : null,
         resultaten: resultatenPerSjabloon(posts, plusDagen(vandaag, -182)),
-        merk: { merknaam: (await laadMerk(o.dataDir)).naam },
+        merk: {
+          merknaam: (await laadMerk(o.dataDir)).naam,
+          verbodenWoorden: (await laadInstellingen()).verbodenWoorden,
+        },
       };
       const r = await aiHulp("De ideeënhulp", `ideeen:${van}..${v.tot}`, () => provider.marketingIdeeen(opdracht));
       return {
@@ -960,4 +963,15 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       });
     }),
   ];
+  // Een bestand dat de gebruiker kapot heeft gemaakt, komt overal als leesbare fout met zijn naam terug.
+  return routes.map((r) => ({
+    ...r,
+    handler: async (c: Ctx) => {
+      try {
+        return await r.handler(c);
+      } catch (e) {
+        return naarApiFout(e);
+      }
+    },
+  }));
 }

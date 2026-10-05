@@ -1,7 +1,7 @@
 // De AI van de studio: de keuze tussen Claude en de voorbeeldgever, de kosten en het maandplafond, en
 // wat de routes ervan laten zien. Er gaat geen enkele aanroep naar het netwerk.
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AnthropicProvider, STANDAARD_MODEL, type MaakClient } from "../src/server/ai/anthropic.js";
@@ -15,7 +15,7 @@ import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.
 import { ongedekteGetallen } from "../src/web/marketing/getallen.js";
 import { startStudio } from "./helpers/studio.js";
 
-const MERK = { merknaam: "Testmerk" };
+const MERK = { merknaam: "Testmerk", verbodenWoorden: ["gegarandeerd", "nr. 1"] };
 const FEIT = {
   id: "f-00000000-0000-4000-8000-000000000001",
   tekst: "Orders over 12 units ship free.",
@@ -151,11 +151,51 @@ describe("kosten en verbruik", () => {
       expect(await maandtotaalUsd(d, new Date("2026-09-01T00:00:00Z"))).toBeCloseTo(5);
     });
 
-    it("slaat een halve regel over in plaats van te blokkeren", async () => {
+    const bestandPad = (d: string) => join(d, "ai-usage.jsonl");
+    const NU = new Date("2026-10-05T12:00:00Z");
+
+    it("negeert alleen een laatste, onafgemaakte regel (een gecrasht proces)", async () => {
       const d = nieuw();
       await boek(d, regel("2026-10-01T00:00:00Z", 2));
-      await import("node:fs/promises").then((f) => f.appendFile(join(d, "ai-usage.jsonl"), '{"tijdstip":"2026-10-0'));
-      expect(await maandtotaalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBeCloseTo(2);
+      appendFileSync(bestandPad(d), '{"tijdstip":"2026-10-0');
+      expect(await maandtotaalUsd(d, NU)).toBeCloseTo(2);
+    });
+
+    it("boek begint op een nieuwe regel als het bestand niet op een regeleinde eindigt", async () => {
+      const d = nieuw();
+      await boek(d, regel("2026-10-01T00:00:00Z", 2));
+      appendFileSync(bestandPad(d), '{"tijdstip":"2026-10-0');
+      await boek(d, regel("2026-10-02T00:00:00Z", 3));
+      const lijnen = readFileSync(bestandPad(d), "utf8").split("\n");
+      // De nieuwe boeking staat heel op een eigen regel, niet vastgeplakt aan de halve.
+      expect(JSON.parse(lijnen[2])).toMatchObject({ usd: 3 });
+      expect(lijnen[3]).toBe("");
+    });
+
+    it("weigert (500) een onleesbare regel midden in het bestand, met bestand en regelnummer", async () => {
+      const d = nieuw();
+      await boek(d, regel("2026-10-01T00:00:00Z", 2));
+      appendFileSync(bestandPad(d), "{kapot\n");
+      await boek(d, regel("2026-10-02T00:00:00Z", 3));
+      await expect(maandtotaalUsd(d, NU)).rejects.toMatchObject({
+        status: 500,
+        message: expect.stringMatching(/ai-usage\.jsonl.*regel 2\b/),
+      });
+    });
+
+    it.each([
+      ["usd als tekst", '{"tijdstip":"2026-10-01T00:00:00Z","usd":"99"}'],
+      ["usd ontbreekt", '{"tijdstip":"2026-10-01T00:00:00Z"}'],
+      ["usd is null", '{"tijdstip":"2026-10-01T00:00:00Z","usd":null}'],
+      ["geen tijdstip", '{"usd":1}'],
+      ["geen object", "[1]"],
+    ])("weigert (500) een regel met %s, ook als hij de laatste is", async (_naam, inhoud) => {
+      const d = nieuw();
+      writeFileSync(bestandPad(d), inhoud + "\n");
+      await expect(maandtotaalUsd(d, NU)).rejects.toMatchObject({
+        status: 500,
+        message: expect.stringMatching(/ai-usage\.jsonl.*regel 1\b/),
+      });
     });
   });
 });
@@ -262,15 +302,106 @@ describe("routes", () => {
       .split("\n")
       .map((l) => JSON.parse(l));
 
-  it("GET /api/ai geeft de stand, en de sleutel staat in geen enkel antwoord", async () => {
+  it("GET /api/ai geeft de stand zonder de sleutel", async () => {
     const zonder = await start();
     expect((await zonder.vraag("/api/ai")).body).toEqual({ stand: "voorbeeld", model: null });
     const geheim = await start(kiesProvider({ ANTHROPIC_API_KEY: "sk-test-geheim" }));
     const ai = await geheim.vraag("/api/ai");
     expect(ai.body).toEqual({ stand: "live", model: STANDAARD_MODEL });
-    const instellingen = await geheim.vraag("/api/instellingen");
-    expect(instellingen.status).toBe(200);
-    for (const r of [ai, instellingen]) expect(r.tekst).not.toContain("sk-test-geheim");
+    expect(ai.tekst).not.toContain("sk-test-geheim");
+  });
+
+  it("een mislukte aanroep met een echte client lekt de sleutel nergens: niet in het antwoord, het verbruiksbestand of de log", async () => {
+    const SLEUTEL = "sk-ant-test-0123456789-geheim";
+    // De SDK krijgt de sleutel echt mee; het "netwerk" geeft een fout terug die de sleutel in zijn tekst heeft
+    // (de ergste soort: een client die de kop terugspeelt). Wat de studio doorgeeft, mag hem niet bevatten.
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const waarschuw = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const gezienKoppen: Array<Record<string, string>> = [];
+    try {
+      const origineel = globalThis.fetch;
+      globalThis.fetch = (async (input: any, init?: any) => {
+        const adres = String(input?.url ?? input);
+        if (!adres.includes("api.anthropic.com")) return origineel(input, init);
+        gezienKoppen.push(Object.fromEntries(new Headers(init?.headers ?? input?.headers).entries()));
+        return new Response(
+          JSON.stringify({ type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }),
+          {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      }) as typeof fetch;
+      try {
+        // Na de omleiding gemaakt: de SDK onthoudt de `fetch` van het moment dat de client wordt gebouwd.
+        const provider = kiesProvider({ ANTHROPIC_API_KEY: SLEUTEL });
+        expect(provider.naam).toBe("anthropic");
+        const { vraag, dataDir } = await start(provider);
+        const r = await vraag("/api/schrijfhulp", verzoek);
+        expect(r.status).toBe(502);
+        // De aanroep ging echt met de sleutel de deur uit (dus de test toetst iets) ...
+        expect(gezienKoppen.length).toBeGreaterThan(0);
+        expect(JSON.stringify(gezienKoppen)).toContain(SLEUTEL);
+        // ... en hij staat nergens waar de gebruiker of een logbestand hem ziet.
+        expect(r.tekst).not.toContain(SLEUTEL);
+        expect(readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")).not.toContain(SLEUTEL);
+        const uitvoer = JSON.stringify([...log.mock.calls, ...waarschuw.mock.calls], (_k, v) =>
+          v instanceof Error ? { naam: v.name, bericht: v.message, stack: v.stack } : v,
+        );
+        expect(uitvoer).not.toContain(SLEUTEL);
+      } finally {
+        globalThis.fetch = origineel;
+      }
+    } finally {
+      log.mockRestore();
+      waarschuw.mockRestore();
+    }
+  });
+
+  it("een beschadigd verbruiksbestand weigert een live aanroep met een 500, zonder de provider aan te roepen", async () => {
+    const aanroepen: number[] = [];
+    const { vraag, dataDir } = await start(
+      live(async () => {
+        aanroepen.push(1);
+        return { voorstel: { varianten: [] }, model: "claude-sonnet-5-5", usage: LEGE_USAGE, duurMs: 1 };
+      }),
+    );
+    writeFileSync(
+      join(dataDir, "ai-usage.jsonl"),
+      `{"tijdstip":"${new Date().toISOString()}","usd":"99"}\n{"tijdstip":"x"}{"tijdstip"\n`,
+    );
+    const r = await vraag("/api/schrijfhulp", verzoek);
+    expect(r.status).toBe(500);
+    expect(r.body.fout).toContain("ai-usage.jsonl");
+    expect(aanroepen).toHaveLength(0);
+  });
+
+  it("de verboden woorden uit de instellingen gaan als verbod naar het model, in beide opdrachten", async () => {
+    const gezien: Array<{ taak: string; verboden: string[] }> = [];
+    const spy = live(async (o: any) => {
+      gezien.push({ taak: o.van ? "ideeen" : "schrijfhulp", verboden: o.merk.verbodenWoorden });
+      return {
+        voorstel: o.van ? { ideeen: [] } : { varianten: [] },
+        model: "claude-sonnet-5-5",
+        usage: LEGE_USAGE,
+        duurMs: 1,
+      };
+    });
+    const { vraag } = await start(spy);
+    await vraag(
+      "/api/instellingen",
+      { ...STANDAARD_MARKETING_INSTELLINGEN, verbodenWoorden: ["wonderbaarlijk", "nr. 1"] },
+      "PUT",
+    );
+    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    expect(
+      (await vraag("/api/ideeen/voorstellen", { van: "2099-01-01", tot: "2099-01-05", aantal: 1, kanaal: "linkedin" }))
+        .status,
+    ).toBe(200);
+    expect(gezien).toEqual([
+      { taak: "schrijfhulp", verboden: ["wonderbaarlijk", "nr. 1"] },
+      { taak: "ideeen", verboden: ["wonderbaarlijk", "nr. 1"] },
+    ]);
   });
 
   it("de voorbeeldgever antwoordt met voorbeeld: true, zonder plafond, en boekt $ 0", async () => {

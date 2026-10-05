@@ -43,7 +43,7 @@ const OPDRACHT: IdeeenOpdracht = {
   bestaand: [],
   campagne: null,
   resultaten: [],
-  merk: { merknaam: "Testmerk" },
+  merk: { merknaam: "Testmerk", verbodenWoorden: [] },
 };
 const idee = (
   x: Partial<{
@@ -146,10 +146,11 @@ describe("voorbeeldgever en instructie", () => {
   });
 
   it("neemt de merknaam van het merk over en houdt de regel over de feiten overeind", () => {
-    const tekst = ideeenInstructie({ merknaam: "Voorbeeldmerk" });
+    const tekst = ideeenInstructie({ merknaam: "Voorbeeldmerk", verbodenWoorden: ["gegarandeerd", "nr. 1"] });
     expect(tekst).toContain("Voorbeeldmerk");
     expect(tekst).toContain("Tone: plain and calm");
     expect(tekst).toContain("use only the facts provided");
+    expect(tekst).toContain('["gegarandeerd","nr. 1"]');
   });
 });
 

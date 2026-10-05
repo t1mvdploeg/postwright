@@ -206,10 +206,12 @@ describe("schrijfhulp", () => {
 
 describe("instructie en schema", () => {
   it("neemt de merknaam van het merk over en houdt de regel over de feiten overeind", () => {
-    const tekst = marketingInstructie({ merknaam: "Voorbeeldmerk" });
+    const tekst = marketingInstructie({ merknaam: "Voorbeeldmerk", verbodenWoorden: ["gegarandeerd", "nr. 1"] });
     expect(tekst).toContain("Voorbeeldmerk");
     expect(tekst).toContain("Tone: plain and calm");
     expect(tekst).toContain("use only the facts provided");
+    expect(tekst).toContain('["gegarandeerd","nr. 1"]');
+    expect(marketingInstructie({ merknaam: "X", verbodenWoorden: [] })).not.toContain("Forbidden");
   });
 
   it("de voorbeeldgever voldoet aan het antwoordschema", async () => {
@@ -221,7 +223,7 @@ describe("instructie en schema", () => {
       huidig: { velden: {}, posttekst: "", altTekst: "" },
       feiten: [],
       velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }],
-      merk: { merknaam: "X" },
+      merk: { merknaam: "X", verbodenWoorden: [] },
     };
     const a = await voorbeeldProvider.marketingTekst(o);
     expect(a.voorstel.varianten).toHaveLength(3);

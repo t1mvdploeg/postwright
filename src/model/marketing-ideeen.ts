@@ -4,7 +4,7 @@
 // verzoek, geen grens.
 import { z } from "zod";
 import { CAMPAGNE_ID, KANALEN } from "./marketing-schema.js";
-import { TOON_REGEL, type PromptMerk } from "./marketing-schrijfhulp.js";
+import { TOON_REGEL, verbodenRegel, type PromptMerk } from "./marketing-schrijfhulp.js";
 import type { ResultaatRegel } from "./marketing-resultaten.js";
 import { ongedekteGetallen } from "../web/marketing/getallen.js";
 // Maand 13 of dag 0 geeft in JavaScript een ongeldige Date; 2026-02-30 rolt stil door naar 2 maart.
@@ -77,6 +77,7 @@ export function ideeenInstructie(merk: PromptMerk): string {
     "`sleutel` of a moment from `momenten` if the idea builds on it, otherwise an empty string).\n" +
     "Moments are dates that mean something to the audience. Build on them around that date.\n" +
     `${TOON_REGEL}\n` +
+    verbodenRegel(merk.verbodenWoorden) +
     "Facts: use only the facts provided. Do not state any number, amount, percentage, date, customer name or result that does not " +
     "appear verbatim in a fact or moment provided. Without a fitting fact, write without numbers.\n" +
     "`resultaten` shows which templates ran before; use it as direction, not as a rule.\n" +

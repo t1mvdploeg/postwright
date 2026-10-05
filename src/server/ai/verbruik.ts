@@ -2,6 +2,7 @@
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { pad } from "../../data/bestanden.js";
+import { ApiFout } from "../http.js";
 import type { Usage } from "./provider.js";
 
 /**
@@ -40,13 +41,24 @@ export interface VerbruikRegel {
 
 const bestand = (dataDir: string) => pad({ dir: dataDir }, "ai-usage.jsonl");
 
+/** Zet de regel achter de bestaande. Eindigt het bestand niet op een regeleinde (een gecrasht proces), dan begint de nieuwe regel op een eigen regel. */
 export async function boek(dataDir: string, regel: VerbruikRegel): Promise<void> {
   const p = bestand(dataDir);
   await mkdir(dirname(p), { recursive: true, mode: 0o700 });
-  await appendFile(p, JSON.stringify(regel) + "\n", { mode: 0o600 });
+  const bestaand = await readFile(p, "utf8").catch((e) => {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return "";
+    throw e;
+  });
+  const begin = bestaand && !bestaand.endsWith("\n") ? "\n" : "";
+  await appendFile(p, begin + JSON.stringify(regel) + "\n", { mode: 0o600 });
 }
 
-/** Alles wat in de maand van `nu` (UTC) is geboekt, ook de mislukte aanroepen: die kostten tokens. */
+/**
+ * Alles wat in de maand van `nu` (UTC) is geboekt, ook de mislukte aanroepen: die kostten tokens. Het
+ * plafond mag nooit te laag tellen, dus een regel die niet te lezen is, of waarvan `usd` geen getal is,
+ * geeft een 500 (de live-aanroep wordt dan geweigerd). Alleen een laatste regel zonder regeleinde, het
+ * spoor van een gecrasht proces, wordt genegeerd.
+ */
 export async function maandtotaalUsd(dataDir: string, nu: Date): Promise<number> {
   let tekst: string;
   try {
@@ -56,16 +68,22 @@ export async function maandtotaalUsd(dataDir: string, nu: Date): Promise<number>
     throw e;
   }
   const maand = nu.toISOString().slice(0, 7);
+  const lijnen = tekst.split("\n");
   let som = 0;
-  for (const lijn of tekst.split("\n")) {
+  for (const [i, lijn] of lijnen.entries()) {
     if (!lijn.trim()) continue;
-    let r: Partial<VerbruikRegel>;
+    const onleesbaar = () =>
+      new ApiFout(500, `ai-usage.jsonl: regel ${i + 1} is onleesbaar; herstel of verwijder die regel`);
+    let r: Partial<VerbruikRegel> | null;
     try {
       r = JSON.parse(lijn);
     } catch {
-      continue; // een halve regel na een gecrasht proces telt niet en blokkeert niets
+      if (i === lijnen.length - 1) continue; // de laatste regel zonder regeleinde: een afgebroken schrijfactie
+      throw onleesbaar();
     }
-    if (typeof r.tijdstip === "string" && r.tijdstip.slice(0, 7) === maand && typeof r.usd === "number") som += r.usd;
+    if (typeof r !== "object" || r === null || typeof r.tijdstip !== "string" || !Number.isFinite(r.usd))
+      throw onleesbaar();
+    if (r.tijdstip.slice(0, 7) === maand) som += r.usd as number;
   }
   return som;
 }
