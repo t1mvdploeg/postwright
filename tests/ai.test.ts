@@ -368,7 +368,7 @@ describe("routes", () => {
     );
     writeFileSync(
       join(dataDir, "ai-usage.jsonl"),
-      `{"timestamp":"${new Date().toISOString()}","usd":"99"}\n{"tijdstip":"x"}{"tijdstip"\n`,
+      `{"timestamp":"${new Date().toISOString()}","usd":"99"}\n{"timestamp":"x"}{"timestamp"\n`,
     );
     const r = await ask("/api/writing-help", request);
     expect(r.status).toBe(500);

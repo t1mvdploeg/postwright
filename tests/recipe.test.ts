@@ -100,8 +100,8 @@ describe("ideaToRecipe", () => {
     const r = ideaToRecipe(
       {
         template: "statement",
-        title: "Explain the Wtta",
-        headline: "The Wtta is coming. *Are you ready?*",
+        title: "Explain the launch",
+        headline: "The launch is coming. *Are you ready?*",
         facts: ["f-1"],
         campaign: null,
       },
@@ -109,13 +109,13 @@ describe("ideaToRecipe", () => {
     );
     expect(r).toMatchObject({
       template: "statement",
-      title: "Explain the Wtta",
+      title: "Explain the launch",
       facts: ["f-1"],
       campaign: null,
       formats: ["li-square"],
       brandVersion: "m",
     });
-    expect(r.content.headline).toBe("The Wtta is coming. *Are you ready?*");
+    expect(r.content.headline).toBe("The launch is coming. *Are you ready?*");
   });
   it("puts the headline on the cover of a carousel and leaves an empty headline the default", () => {
     const r = ideaToRecipe({ template: "carousel", title: "Series", headline: "Four *steps.*" });
