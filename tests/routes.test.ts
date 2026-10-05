@@ -637,7 +637,7 @@ describe("overview: rhythm, moments and results", () => {
     const before = (await ask(`${API}/overview`)).body.openIdeas;
     const future = "2099-01-01";
     expect((await ask(`${API}/ideas`, { body: { date: future, title: "Without post" } })).status).toBe(201);
-    // An open idea from last month does not get lost: it counts (final review, A7).
+    // An open idea from last month does not get lost: it counts.
     expect((await ask(`${API}/ideas`, { body: { date: "2020-01-06", title: "Left behind" } })).status).toBe(201);
     const withExistingPost = await newPost();
     expect(
@@ -656,7 +656,7 @@ describe("overview: rhythm, moments and results", () => {
     expect(after - before).toBe(3);
   });
 
-  it("still names an archived post as the last publication (final review, A4)", async () => {
+  it("still names an archived post as the last publication", async () => {
     const p = await newPost({ title: "Published and then archived" });
     const published = (await ask(`${API}/posts/${p.id}/status`, { body: { target: "published" } })).body;
     expect((await ask(`${API}/posts/${p.id}/status`, { body: { target: "archived" } })).status).toBe(200);

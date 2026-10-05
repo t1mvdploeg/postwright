@@ -261,11 +261,11 @@ describe("buildImage", () => {
     expect(withValue.html).toContain('src="data:image/png;base64,AAAA"');
     const free = buildImage({
       template: "product-image",
-      content: { image: "https://evil.nl/x.png" },
+      content: { image: "https://evil.io/x.png" },
       format: "li-square",
       brand,
     });
-    expect(free.html).not.toContain("evil.nl");
+    expect(free.html).not.toContain("evil.io");
     expect(free.html).toContain("Choose a screenshot");
   });
 

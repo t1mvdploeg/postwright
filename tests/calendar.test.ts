@@ -62,10 +62,10 @@ describe("upcomingWeeks", () => {
 describe("choosePeriod", () => {
   const empty = { from: null, to: null };
   it("first click start, second click end, also in reverse order", () => {
-    const een = choosePeriod(empty, "2026-10-14");
-    expect(een).toEqual({ from: "2026-10-14", to: null });
-    expect(choosePeriod(een, "2026-10-20")).toEqual({ from: "2026-10-14", to: "2026-10-20" });
-    expect(choosePeriod(een, "2026-10-02")).toEqual({ from: "2026-10-02", to: "2026-10-14" });
+    const first = choosePeriod(empty, "2026-10-14");
+    expect(first).toEqual({ from: "2026-10-14", to: null });
+    expect(choosePeriod(first, "2026-10-20")).toEqual({ from: "2026-10-14", to: "2026-10-20" });
+    expect(choosePeriod(first, "2026-10-02")).toEqual({ from: "2026-10-02", to: "2026-10-14" });
   });
   it("a click on a whole period starts over; shift extends, also across a month boundary", () => {
     const integer = { from: "2026-10-14", to: "2026-10-20" };
@@ -97,7 +97,7 @@ describe("workdayCount", () => {
   });
 });
 
-// One version of the date helpers for server and browser (final review, A9).
+// One version of the date helpers for server and browser.
 describe("realDate and plusDays", () => {
   it("lets only existing calendar dates through", () => {
     expect(realDate("2026-02-28")).toBe(true);

@@ -46,8 +46,8 @@ describe("POST /sample-content", () => {
   const get = async (path: string) => (await fetch(studio.base + path)).json();
 
   it("fills in as draft and adds nothing twice on a second go", async () => {
-    const een = await (await post("/api/sample-content")).json();
-    expect(een).toEqual({ facts: SAMPLE_FACTS.length, snippets: SAMPLE_SNIPPETS.length, posts: SAMPLE_POSTS.length });
+    const first = await (await post("/api/sample-content")).json();
+    expect(first).toEqual({ facts: SAMPLE_FACTS.length, snippets: SAMPLE_SNIPPETS.length, posts: SAMPLE_POSTS.length });
     const two = await (await post("/api/sample-content")).json();
     expect(two).toEqual({ facts: 0, snippets: 0, posts: 0 });
     const facts: Fact[] = (await get("/api/facts")).facts;
@@ -77,8 +77,8 @@ describe("POST /sample-content", () => {
     const fact = (await get("/api/facts")).facts.find((f: Fact) => f.id === statistic.facts[0]);
     expect(fact.text).toBe(SAMPLE_FACTS[0].text);
     // A sample post is an ordinary post: it can be fetched with its history.
-    const een = await get(`/api/posts/${scheduled[0].id}`);
-    expect(een.history.map((g: { what: string }) => g.what)).toEqual([
+    const first = await get(`/api/posts/${scheduled[0].id}`);
+    expect(first.history.map((g: { what: string }) => g.what)).toEqual([
       "created",
       expect.stringMatching(/^scheduled for /),
     ]);

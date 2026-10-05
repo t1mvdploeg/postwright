@@ -21,7 +21,7 @@ describe("resultsPerTemplate", () => {
     expect(r).toEqual([{ template: "statement", posts: 2, impressions: 150, comments: 3, clicks: 2 }]);
   });
 
-  it("counts an archived post too: archiving keeps publication and result (final review, A4)", () => {
+  it("counts an archived post too: archiving keeps publication and result", () => {
     const r = resultsPerTemplate(
       [
         post("statement", "2026-09-01T08:00:00Z", { impressions: 100, comments: 3, clicks: 1, on: "x" }),

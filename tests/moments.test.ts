@@ -136,9 +136,9 @@ describe("routes moments", () => {
   it("gives the moments in a period and makes a draft fact of one once", async () => {
     const list = (await (await get("/api/moments?from=2026-04-22&to=2026-04-22")).json()).moments;
     expect(list.map((x: Moment) => x.key)).toEqual(["2026-04-22"]);
-    const een = await post("/api/moments/2026-04-22/fact");
-    expect(een.status).toBe(201);
-    const fact = await een.json();
+    const first = await post("/api/moments/2026-04-22/fact");
+    expect(first.status).toBe(201);
+    const fact = await first.json();
     expect(fact).toMatchObject({
       text: "Earth Day: Share one concrete thing you do, not a promise.",
       kind: "external",
@@ -164,9 +164,9 @@ describe("routes moments", () => {
 
   it("gives an active fact back, but refuses with 409 if the fact is withdrawn", async () => {
     const path = "/api/moments/2026-09-30/fact";
-    const een = await post(path);
-    expect(een.status).toBe(201);
-    const fact = await een.json();
+    const first = await post(path);
+    expect(first.status).toBe(201);
+    const fact = await first.json();
     const set = (status: string) =>
       fetch(`${studio.base}/api/facts/${fact.id}`, {
         method: "PUT",

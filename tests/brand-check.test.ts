@@ -29,7 +29,7 @@ describe("caption", () => {
     expect(lengthFor("x", "Read more: https://example.com/?utm_source=x&utm_medium=social")).toBe(
       "Read more: ".length + 23,
     );
-    expect(lengthFor("linkedin", "https://a.nl")).toBe(12);
+    expect(lengthFor("linkedin", "https://a.io")).toBe(12);
   });
 
   it("gives an error just above the limit and not at it", () => {
@@ -65,7 +65,7 @@ describe("caption", () => {
     expect(addUtm("javascript:alert(1)", { source: "x" })).toBeNull();
     expect(addUtm("http://example.com", { source: "x" })).toBeNull();
     expect(addUtm("not a url", {})).toBeNull();
-    expect(linksWithoutUtm("a https://a.nl/?utm_source=x b https://b.nl/c")).toEqual(["https://b.nl/c"]);
+    expect(linksWithoutUtm("a https://a.io/?utm_source=x b https://b.io/c")).toEqual(["https://b.io/c"]);
   });
 
   it("splits at the fold", () => {
@@ -79,9 +79,9 @@ describe("caption", () => {
 describe("setUtmContent", () => {
   it("puts utm_content only in links with utm_source and leaves punctuation outside", () => {
     const t =
-      "See https://example.com/?utm_source=linkedin. And https://example.org/path, also (https://x.nl/?utm_source=x&utm_content=old).";
+      "See https://example.com/?utm_source=linkedin. And https://example.org/path, also (https://x.io/?utm_source=x&utm_content=old).";
     expect(setUtmContent(t, "p-1")).toBe(
-      "See https://example.com/?utm_source=linkedin&utm_content=p-1. And https://example.org/path, also (https://x.nl/?utm_source=x&utm_content=p-1).",
+      "See https://example.com/?utm_source=linkedin&utm_content=p-1. And https://example.org/path, also (https://x.io/?utm_source=x&utm_content=p-1).",
     );
   });
   it("leaves text without links, empty text and broken links alone", () => {
@@ -90,8 +90,8 @@ describe("setUtmContent", () => {
     expect(setUtmContent(undefined, "p-1")).toBe("");
   });
   it("is idempotent", () => {
-    const een = setUtmContent("https://a.nl/?utm_source=x", "p-1");
-    expect(setUtmContent(een, "p-1")).toBe(een);
+    const first = setUtmContent("https://a.io/?utm_source=x", "p-1");
+    expect(setUtmContent(first, "p-1")).toBe(first);
   });
 });
 

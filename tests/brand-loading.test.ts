@@ -39,6 +39,6 @@ describe("brand loading", () => {
     vi.stubGlobal("fetch", async () => {
       throw new Error("must not");
     });
-    expect(await loadMedia(["../secret.png", "https://evil.nl/x.png"])).toEqual({});
+    expect(await loadMedia(["../secret.png", "https://evil.io/x.png"])).toEqual({});
   });
 });

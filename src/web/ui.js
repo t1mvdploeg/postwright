@@ -291,7 +291,7 @@ function derivedTableLabel(control) {
 
 /**
  * Sets (or removes) the tab stop and the region role of a scroll container. What this
- * function added itself, it also removes itself (`data-regio-afgeleid`); an aria-label or
+ * function added itself, it also removes itself (`data-region-derived`); an aria-label or
  * role that the page set itself is left untouched.
  */
 function setTableScrollTabstop(control, narrow) {

@@ -347,7 +347,7 @@ describe("POST /ideas/suggestions", () => {
     expect(fake.seen).toBeNull();
   });
 
-  it("gives the model only usable facts, and the campaign with name and goal (final review, C3)", async () => {
+  it("gives the model only usable facts, and the campaign with name and goal", async () => {
     await setAiHelp(true, 1000);
     const fact = async (text: string, status: string, validUntil: string | null = null) => {
       const r = await ask(`${API}/facts`, {
