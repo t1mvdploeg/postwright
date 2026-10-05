@@ -3,6 +3,7 @@
 // browser.
 import { template as templateOf, defaultContent, fieldsOf } from "./templates.js";
 import { titleFrom } from "./brand-check.js";
+import { takeOver } from "./slides.js";
 
 const LOCAL_DATE = new Intl.DateTimeFormat("sv-SE");
 
@@ -133,22 +134,6 @@ export function moveSlide(slides, index, direction) {
   const [slide] = slides.splice(index, 1);
   slides.splice(target, 0, slide);
   return target;
-}
-
-const MEDIA_ID = /^[0-9a-f]{32}\.(png|jpg|webp)$/;
-
-/**
- * Values that fit in `fields`: same id, a choice only as an option, an image only as a
- * media id.
- */
-function takeOver(source, fields, target) {
-  for (const v of fields) {
-    const w = source?.[v.id];
-    if (typeof w !== "string" || !w.trim()) continue;
-    if (v.kind === "choice" && !v.options.some((o) => o.value === w)) continue;
-    if (v.kind === "media" && !MEDIA_ID.test(w)) continue;
-    target[v.id] = w;
-  }
 }
 
 /**
