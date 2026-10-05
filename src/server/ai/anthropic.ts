@@ -14,7 +14,7 @@ export const DEFAULT_MODEL = "claude-sonnet-5-5";
 // Generous: with adaptive thinking the thinking tokens count towards max_tokens, and a
 // truncated response is unusable.
 const MAX_TOKENS = 16_000;
-const TIMEOUT_MS = 240_000;
+const TIMEOUT_MS = 90_000;
 
 /** The part of `client.messages` that is used here; this lets a test pass in a fake client. */
 export type ClientFactory = Pick<Anthropic["messages"], "create">;
