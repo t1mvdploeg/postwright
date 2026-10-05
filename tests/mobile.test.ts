@@ -21,6 +21,10 @@ beforeAll(async () => {
   const json = { "content-type": "application/json" };
   await fetch(`${studio.base}/api/sample-content`, { method: "POST", headers: json, body: "{}" });
   postId = (await (await fetch(`${studio.base}/api/posts`)).json()).posts[0].id;
+  // A proposal for the Templates screen to show: without an API key it is the fixed sample.
+  const input = { texts: "A post", brief: "Bold statements", kind: "image", formats: ["li-square", "story"] };
+  await fetch(`${studio.base}/api/template-input`, { method: "PUT", headers: json, body: JSON.stringify(input) });
+  await fetch(`${studio.base}/api/template-generate`, { method: "POST", headers: json, body: "{}" });
 });
 afterAll(async () => {
   await studio?.close();
@@ -33,6 +37,7 @@ const SCREENS = () => [
   ["planner", "planning"],
   ["editor", `editor/${postId}`],
   ["brand kit", "brand-kit"],
+  ["templates, with a proposal showing", "templates"],
   ["fact bank", "facts"],
   ["snippets", "snippets"],
   ["settings", "settings"],

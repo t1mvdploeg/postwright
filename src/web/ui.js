@@ -303,13 +303,14 @@ export async function confirmDialog(question, options = {}) {
   return confirmed === true;
 }
 
-/** Asks for one line of text. Returns the trimmed text, or `null` on cancel or Escape. */
+/** Asks for one line of text, starting from `options.value`. Returns the trimmed text, or `null` on cancel or Escape. */
 export async function textDialog(title, label, options = {}) {
   return dialog({
     title,
     confirmText: options.confirmText ?? "Create",
     buildContent: (form) => {
       const input = el("input", { type: "text", id: "dialog-text", maxlength: String(options.maxLength ?? 60) });
+      input.value = options.value ?? "";
       form.prepend(el("div", { class: "field" }, [el("label", { for: "dialog-text", text: label }), input]));
       queueMicrotask(() => input.focus());
       // An empty name keeps the dialog open.

@@ -2586,8 +2586,23 @@ textarea[readonly] {
   gap: var(--r3);
 }
 
-#brand-proposal h3 {
+#brand-proposal h3,
+#template-proposal h3 {
   margin-top: var(--r5);
+}
+
+/* The previews of a template proposal have the shape of their format, so they are as wide as they are drawn. */
+#template-proposal .studio-proposal-posts .studio-preview {
+  max-width: none;
+}
+
+#template-create h2 + .help-text {
+  margin-bottom: var(--r4);
+}
+
+.studio-section-title {
+  margin: var(--r5) 0 var(--r3);
+  font-size: var(--t-l);
 }
 
 /* The sample posts are square: a box as wide as the preview is tall leaves no empty strip. */

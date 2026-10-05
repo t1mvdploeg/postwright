@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { startStudio } from "./helpers/studio.js";
-import { carouselExample, exampleTemplate, writeOwn } from "./helpers/template.js";
+import { carouselExample, exampleTemplate, writeOwn, writeTemplateProposal } from "./helpers/template.js";
 
 const browser: Browser | null = await chromium.launch({ channel: "chrome" }).catch((error: Error) => {
   if (process.env.CI) throw error;
@@ -179,6 +179,23 @@ describe.skipIf(!browser)("own templates in the studio", () => {
       expect(await editor.locator("#notices").innerText()).toContain("unknown template (own-deadbeef)");
     } finally {
       await editor.close();
+    }
+  });
+
+  it("shows the findings of a proposal whose text does not fit a format, and still lets the user decide", async () => {
+    const long = { ...exampleTemplate(), name: "Too much", formats: ["li-link"] };
+    long.fields[3].max = 400;
+    long.fields[3].defaultValue = "A very long text that goes on and on. ".repeat(10).trim();
+    writeTemplateProposal(studio.projectDir, long, { notes: [] });
+    const page = await open("templates");
+    try {
+      await page.waitForSelector("#template-proposal:not([hidden])");
+      await page.waitForFunction(() => /Problem:/.test(document.getElementById("template-proposal")?.innerText ?? ""));
+      const card = await page.locator("#template-proposal").innerText();
+      expect(card).toContain("You can still use the template");
+      expect(await page.getByRole("button", { name: "Use this template" }).isEnabled()).toBe(true);
+    } finally {
+      await page.close();
     }
   });
 });

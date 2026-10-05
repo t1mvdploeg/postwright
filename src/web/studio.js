@@ -32,6 +32,7 @@ const NAV_GROUPS = [
     "Your foundation",
     [
       ["brand-kit", "Brand kit"],
+      ["templates", "Templates"],
       ["facts", "Fact bank"],
       ["snippets", "Snippets"],
     ],
@@ -50,6 +51,7 @@ const SCREEN_LEDE = {
   facts: "A source behind every claim.",
   snippets: "Openers, closers and hashtags to reuse.",
   "brand-kit": "The essentials that make every post look like the brand.",
+  templates: "The layouts you start a post from, and your own, made from your old posts.",
   settings: "Your company profile, channels, writing help and the spending cap.",
 };
 // The icon per screen, the same sprite as the rest of the tool (/icons.svg).
@@ -61,6 +63,7 @@ const SCREEN_ICON = {
   facts: "shield",
   snippets: "text",
   "brand-kit": "palette",
+  templates: "layers",
   settings: "settings",
 };
 const MODULES = {
@@ -71,6 +74,7 @@ const MODULES = {
   facts: () => import("/studio/facts.js"),
   snippets: () => import("/studio/snippets.js"),
   "brand-kit": () => import("/studio/brand-kit.js"),
+  templates: () => import("/studio/template-list.js"),
   settings: () => import("/studio/settings.js"),
 };
 
