@@ -1,6 +1,22 @@
 # Postwright phase 4: handover for finishing the work
 
-Read this first. Branch `fase-4` holds the finished server side of phase 4 (tasks 1-11) and task 12 (the "Create a brand kit" screen, in the current studio). One task remains: 13 (finishing).
+Read this first. Branch `fase-4` holds all of phase 4: the server side (tasks 1-11), the "Create a brand kit" screen (task 12), the restyle of the studio after the warm studio mockup, and the finishing (task 13). Section 0 says what is left for the owner.
+
+## 0. Finished, and what is left
+
+Task 13 is done, apart from the steps that need the owner:
+
+- Fresh clone of `fase-4`: `npm ci`, typecheck and format check green; all tests pass as a normal user. Four tests that rely on file permissions fail when run as root (root ignores `chmod`); that is the environment, not the code.
+- Browser walk-through against the fake client: projects (create, keep facts apart, a removed project folder falls back to Postwright without an error), the brand kit screen (uploads, refusals, generate, proposal, apply, phone width), route B (prompt download, a hand-made proposal, a missing logo shown with its field, the same message from `npm run brand:check`).
+- Review: one fix, a brand's font name is now kept to plain characters everywhere (`fontFamilyName` in `templates.js`), so it cannot break out of the CSS.
+- README rewritten with new screenshots.
+
+Left for the owner:
+
+1. **The real-key trial** (section 5, step 3.7): one generation with `ANTHROPIC_API_KEY`, which costs money. It also settles the live-API unknowns in section 6.
+2. **Merging `fase-4` into `main`**: nothing has been merged.
+
+The sections below are kept for reference.
 
 ## 1. Status
 
