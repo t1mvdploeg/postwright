@@ -12,10 +12,7 @@ import { formaat as formaatVan, vormVan } from "./formaten.js";
 import { BASIS_CSS } from "./sjabloon-css.js";
 import stelling from "./sjablonen/stelling.js";
 import vraag from "./sjablonen/vraag.js";
-import uitkomst from "./sjablonen/uitkomst.js";
 import werkroute from "./sjablonen/werkroute.js";
-import loonstrook from "./sjablonen/loonstrook.js";
-import merkverhaal from "./sjablonen/merkverhaal.js";
 import productbeeld from "./sjablonen/productbeeld.js";
 import cijfer from "./sjablonen/cijfer.js";
 import linkvoorbeeld from "./sjablonen/linkvoorbeeld.js";
@@ -25,8 +22,15 @@ import carrousel from "./sjablonen/carrousel.js";
 
 /** Alle sjablonen, in de volgorde van de galerij. */
 export const SJABLONEN = [
-  stelling, vraag, uitkomst, werkroute, loonstrook, merkverhaal, productbeeld, cijfer,
-  carrousel, linkvoorbeeld, profielbanner, bedrijfsomslag,
+  stelling,
+  vraag,
+  werkroute,
+  productbeeld,
+  cijfer,
+  carrousel,
+  linkvoorbeeld,
+  profielbanner,
+  bedrijfsomslag,
 ];
 
 const PER_ID = new Map(SJABLONEN.map((s) => [s.id, s]));
@@ -63,7 +67,7 @@ export function metNadruk(tekst) {
  * Zet de nadruk om een selectie (`begin`..`eind`) en haalt een eerdere nadruk weg: er is er
  * precies één. Witruimte aan de randen van de selectie blijft búiten de sterretjes staan; een
  * dubbelklik op Windows neemt de spatie na het woord mee, en die mag niet verdwijnen
- * (reviewbevinding 5). Geeft null bij een lege selectie of alleen witruimte.
+ *. Geeft null bij een lege selectie of alleen witruimte.
  */
 export function nadrukOmSelectie(tekst, begin, eind) {
   const waarde = String(tekst ?? "");
@@ -84,31 +88,30 @@ export function zonderNadruk(tekst) {
 
 /** Elke rem wordt pixels: één rem is een honderdachtste van de breedte, zoals in de kit. */
 export function remNaarPx(css, breedte) {
-  return css.replace(/(-?\d*\.?\d+)rem\b/g, (_, n) => `${Number((Number(n) * breedte / 108).toFixed(3))}px`);
+  return css.replace(/(-?\d*\.?\d+)rem\b/g, (_, n) => `${Number(((Number(n) * breedte) / 108).toFixed(3))}px`);
 }
 
 /** De standaardwaarden van een sjabloon (of van één diasoort van de carrousel). */
 export function standaardInhoud(s, diaSoort = null) {
-  const velden = diaSoort ? s.dias.find((d) => d.soort === diaSoort)?.velden ?? [] : s.velden;
+  const velden = diaSoort ? (s.dias.find((d) => d.soort === diaSoort)?.velden ?? []) : s.velden;
   return Object.fromEntries(velden.map((v) => [v.id, v.standaard ?? ""]));
 }
 
 /** De velden van een sjabloon of diasoort. */
 export function veldenVan(s, diaSoort = null) {
-  return diaSoort ? s.dias.find((d) => d.soort === diaSoort)?.velden ?? [] : s.velden;
+  return diaSoort ? (s.dias.find((d) => d.soort === diaSoort)?.velden ?? []) : s.velden;
 }
 
-/** De kit-iconen die de sjablonen gebruiken, als symbolen in het beeld zelf (zelfde paden als de kit). */
-const SYMBOLEN = '<svg class="symbolen" aria-hidden="true">'
-  + '<symbol id="pijl" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>'
-  + '<symbol id="vink" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>'
-  + '<symbol id="document" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Zm0 0v6h6M8 13h8m-8 4h5"/></symbol>'
-  + '<symbol id="let-op" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5m0 3.4v.1"/></symbol>'
-  + '<symbol id="streep" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>'
-  + "</svg>";
+/** De iconen die de sjablonen gebruiken, als symbolen in het beeld zelf. */
+const SYMBOLEN =
+  '<svg class="symbolen" aria-hidden="true">' +
+  '<symbol id="pijl" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>' +
+  '<symbol id="vink" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>' +
+  "</svg>";
 
 /** De route: de zigzag van de W uit het logo op grote schaal, als watermerk (zelfde pad als merk/motieven/route.svg). */
-const ROUTE = '<svg class="route" viewBox="5.5 7.5 21 17" aria-hidden="true"><path d="M7 9l5 14 4-10 4 10 5-14"/></svg>';
+const ROUTE =
+  '<svg class="route" viewBox="5.5 7.5 21 17" aria-hidden="true"><path d="M7 9l5 14 4-10 4 10 5-14"/></svg>';
 
 /** De naam van een lettertypefamilie als CSS-tekenreeks; aanhalingstekens en backslashes vallen weg. */
 const lettertypeNaam = (familie) => String(familie).replace(/["\\]/g, "");
@@ -117,7 +120,10 @@ const lettertypeNaam = (familie) => String(familie).replace(/["\\]/g, "");
 function merkCss(merk) {
   const variabelen = [
     ...Object.entries(merk.css).map(([k, v]) => `${k}: ${v};`),
-    ...Object.entries(merk.gronden).flatMap(([g, k]) => [`--grond-${g}: ${k.achtergrond};`, `--grond-${g}-tekst: ${k.tekst};`]),
+    ...Object.entries(merk.gronden).flatMap(([g, k]) => [
+      `--grond-${g}: ${k.achtergrond};`,
+      `--grond-${g}-tekst: ${k.tekst};`,
+    ]),
   ].join(" ");
   return `${merk.lettertypeCss ?? ""}
 .merk { ${variabelen} font-family: "${lettertypeNaam(merk.lettertype.familie)}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--inkt); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
@@ -153,14 +159,18 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
     eigenCss = `${s.css ?? ""}\n${soort.css ?? ""}`;
     const stappen = lijst.filter((d) => s.dias.find((x) => x.soort === d.soort)?.telt);
     diaInfo = {
-      index: dia, aantal: lijst.length,
-      stap: stappen.indexOf(huidige) + 1, stappen: stappen.length,
+      index: dia,
+      aantal: lijst.length,
+      stap: stappen.indexOf(huidige) + 1,
+      stappen: stappen.length,
     };
   }
-  const v = Object.fromEntries(velden.map((veld) => {
-    const w = waarden[veld.id];
-    return [veld.id, typeof w === "string" ? w : String(veld.standaard ?? "")];
-  }));
+  const v = Object.fromEntries(
+    velden.map((veld) => {
+      const w = waarden[veld.id];
+      return [veld.id, typeof w === "string" ? w : String(veld.standaard ?? "")];
+    }),
+  );
   // Een keuzeveld kan alleen een van zijn opties zijn; alles anders wordt de standaard. Zo komt
   // een keuzewaarde (die als klassenaam in de markup belandt) nooit ongecontroleerd in het beeld.
   for (const veld of velden) {
@@ -168,7 +178,9 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
   }
 
   const c = {
-    formaat: f, vorm, dia: diaInfo,
+    formaat: f,
+    vorm,
+    dia: diaInfo,
     t: (naam) => metNadruk(v[naam]),
     e: (naam) => escapeHtml(v[naam]),
     leeg: (naam) => !String(v[naam] ?? "").trim(),
@@ -177,7 +189,8 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
       if (!bron) throw new Error(`Onbekende logostand: ${stand}`);
       return bron;
     },
-    logo: (stand, klasse = "logo") => `<img class="${klasse}" src="${c.logoBron(stand)}" alt="${escapeHtml(merk.naam)}">`,
+    logo: (stand, klasse = "logo") =>
+      `<img class="${klasse}" src="${c.logoBron(stand)}" alt="${escapeHtml(merk.naam)}">`,
     /** De website van het merk zonder protocol, voor een voetregel. */
     merkUrl: escapeHtml(merk.url.replace(/^https?:\/\//, "").replace(/\/$/, "")),
     /** Een voetregelveld; leeg betekent de website van het merk. */
@@ -185,7 +198,7 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
     /** Een geüpload beeld als data-URI; alleen id's die de server uitdeelde, dus geen vrije URL. */
     media: (naam) => {
       const id = v[naam];
-      return /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id) ? media[id] ?? null : null;
+      return /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id) ? (media[id] ?? null) : null;
     },
     icoon: (naam) => `<svg class="icoon"><use href="#${naam}"/></svg>`,
     route: () => ROUTE,
@@ -200,5 +213,5 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
 
 /** Hoeveel beelden een recept in één formaat oplevert (een carrousel: één per dia). */
 export function aantalBeelden(s, dias) {
-  return s.soort === "carrousel" ? (dias.length || s.standaardDias.length) : 1;
+  return s.soort === "carrousel" ? dias.length || s.standaardDias.length : 1;
 }

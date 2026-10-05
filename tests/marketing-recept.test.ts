@@ -1,6 +1,16 @@
 // Marketingstudio — recepten opbouwen en naar de server sturen, en de tijdhulpjes.
 import { describe, it, expect } from "vitest";
-import { ideeNaarRecept, leesbaarMoment, metOffset, naarInvoer, naarLokaal, nieuwRecept, vandaagAmsterdam, verplaatsDia, zetOm } from "../src/web/marketing/recept.js";
+import {
+  ideeNaarRecept,
+  leesbaarMoment,
+  metOffset,
+  naarInvoer,
+  naarLokaal,
+  nieuwRecept,
+  vandaagAmsterdam,
+  verplaatsDia,
+  zetOm,
+} from "../src/web/marketing/recept.js";
 import { sjabloon, type Dia } from "../src/web/marketing/sjablonen.js";
 import { PostInvoerSchema } from "../src/model/marketing-schema.js";
 
@@ -30,7 +40,8 @@ describe("tijd", () => {
         expect(naarLokaal("2026-12-01T08:00:00Z")).toBe("2026-12-01T09:00");
       }
     } finally {
-      if (tz === undefined) delete process.env.TZ; else process.env.TZ = tz;
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
     }
   });
 
@@ -42,10 +53,13 @@ describe("tijd", () => {
 
 describe("recepten", () => {
   it("maakt een nieuw recept met de standaardinhoud en de formaten die aan staan", () => {
-    const r = nieuwRecept("stelling", { formatenAan: ["li-vierkant", "li-staand", "li-link"], merkVersie: "postwright-1.0" });
+    const r = nieuwRecept("stelling", {
+      formatenAan: ["li-vierkant", "li-staand", "li-link"],
+      merkVersie: "postwright-1.0",
+    });
     expect(r.formaten).toEqual(["li-vierkant", "li-staand"]);
     expect(r.inhoud.ondergrond).toBe("accent");
-    expect(r.titel).toBe("Genoeg gezien. Nu bent u aan zet.");
+    expect(r.titel).toBe("On-brand posts, without the design tool.");
     expect(nieuwRecept("linkvoorbeeld", { formatenAan: [] }).formaten).toEqual(["li-link"]);
     const c = nieuwRecept("carrousel", { formatenAan: ["li-carrousel"] });
     expect(c.dias).toHaveLength(6);
@@ -55,7 +69,11 @@ describe("recepten", () => {
 
   it("stuurt alleen velden die het sjabloon kent, en dat komt door het serverschema", () => {
     const s = sjabloon("stelling")!;
-    const r = { ...nieuwRecept("stelling", { formatenAan: ["li-vierkant"], merkVersie: "postwright-1.0" }), inhoud: { kop: "Een *kop*", vreemd: "weg" }, posttekst: { linkedin: "Tekst", x: "  " } };
+    const r = {
+      ...nieuwRecept("stelling", { formatenAan: ["li-vierkant"], merkVersie: "postwright-1.0" }),
+      inhoud: { kop: "Een *kop*", vreemd: "weg" },
+      posttekst: { linkedin: "Tekst", x: "  " },
+    };
     const invoer = naarInvoer(r, s, { fouten: 0, letOp: 1, op: "2026-10-01T10:00:00.000Z" });
     expect(invoer.inhoud).not.toHaveProperty("vreemd");
     expect(invoer.inhoud.kop).toBe("Een *kop*");
@@ -63,13 +81,21 @@ describe("recepten", () => {
     expect(invoer.posttekst).toEqual({ linkedin: "Tekst" });
     expect(PostInvoerSchema.safeParse(invoer).success).toBe(true);
     const c = sjabloon("carrousel")!;
-    const ci = naarInvoer(nieuwRecept("carrousel", { formatenAan: ["li-carrousel"], merkVersie: "postwright-1.0" }), c, null);
+    const ci = naarInvoer(
+      nieuwRecept("carrousel", { formatenAan: ["li-carrousel"], merkVersie: "postwright-1.0" }),
+      c,
+      null,
+    );
     expect(ci.dias).toHaveLength(6);
     expect(PostInvoerSchema.safeParse(ci).success).toBe(true);
   });
 
   it("verplaatst dia's binnen de lijst", () => {
-    const dias: Dia[] = [{ soort: "omslag", inhoud: {} }, { soort: "stap", inhoud: { kop: "a" } }, { soort: "slot", inhoud: {} }];
+    const dias: Dia[] = [
+      { soort: "omslag", inhoud: {} },
+      { soort: "stap", inhoud: { kop: "a" } },
+      { soort: "slot", inhoud: {} },
+    ];
     expect(verplaatsDia(dias, 1, -1)).toBe(0);
     expect(dias.map((d) => d.soort)).toEqual(["stap", "omslag", "slot"]);
     expect(verplaatsDia(dias, 0, -1)).toBe(0);
@@ -79,8 +105,24 @@ describe("recepten", () => {
 
 describe("ideeNaarRecept", () => {
   it("vult de kop, feiten, campagne en titel in", () => {
-    const r = ideeNaarRecept({ sjabloon: "stelling", titel: "Wtta uitleggen", kop: "De Wtta komt. *Bent u klaar?*", feiten: ["f-1"], campagne: null }, { formatenAan: ["li-vierkant"], merkVersie: "m" });
-    expect(r).toMatchObject({ sjabloon: "stelling", titel: "Wtta uitleggen", feiten: ["f-1"], campagne: null, formaten: ["li-vierkant"], merkVersie: "m" });
+    const r = ideeNaarRecept(
+      {
+        sjabloon: "stelling",
+        titel: "Wtta uitleggen",
+        kop: "De Wtta komt. *Bent u klaar?*",
+        feiten: ["f-1"],
+        campagne: null,
+      },
+      { formatenAan: ["li-vierkant"], merkVersie: "m" },
+    );
+    expect(r).toMatchObject({
+      sjabloon: "stelling",
+      titel: "Wtta uitleggen",
+      feiten: ["f-1"],
+      campagne: null,
+      formaten: ["li-vierkant"],
+      merkVersie: "m",
+    });
     expect(r.inhoud.kop).toBe("De Wtta komt. *Bent u klaar?*");
   });
   it("zet bij een carrousel de kop op de omslag en laat een lege kop de standaard", () => {
@@ -93,15 +135,38 @@ describe("ideeNaarRecept", () => {
 });
 
 describe("zetOm", () => {
-  const stelling = { ...nieuwRecept("stelling"), titel: "Mijn post", inhoud: { ...nieuwRecept("stelling").inhoud, ondergrond: "accent", kop: "Mijn *kop.*", tekst: "Mijn tekst." }, posttekst: { linkedin: "Hallo" }, feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://postwright.example/" };
+  const stelling = {
+    ...nieuwRecept("stelling"),
+    titel: "Mijn post",
+    inhoud: { ...nieuwRecept("stelling").inhoud, ondergrond: "accent", kop: "Mijn *kop.*", tekst: "Mijn tekst." },
+    posttekst: { linkedin: "Hallo" },
+    feiten: ["f-1"],
+    campagne: "c-1",
+    altTekst: "Alt",
+    link: "https://postwright.example/",
+  };
   it("neemt velden met dezelfde naam over; keuzes alleen als het daar een optie is", () => {
-    const r = zetOm(stelling, "merkverhaal");
-    expect(r).toMatchObject({ sjabloon: "merkverhaal", titel: "Mijn post (Merkverhaal)", feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://postwright.example/" });
+    const r = zetOm(stelling, "vraag");
+    expect(r).toMatchObject({
+      sjabloon: "vraag",
+      titel: "Mijn post (Vraag en antwoord)",
+      feiten: ["f-1"],
+      campagne: "c-1",
+      altTekst: "Alt",
+      link: "https://postwright.example/",
+    });
     expect(r.inhoud.kop).toBe("Mijn *kop.*");
     expect(r.inhoud.tekst).toBe("Mijn tekst.");
     expect(r.inhoud).not.toHaveProperty("ondergrond");
-    expect(zetOm({ ...stelling, inhoud: { ...stelling.inhoud, ondergrond: "licht" } }, "carrousel").dias[0].inhoud.ondergrond).toBe("inkt");
-    expect(zetOm(stelling, "carrousel").dias[0].inhoud).toMatchObject({ ondergrond: "accent", kop: "Mijn *kop.*", tekst: "Mijn tekst." });
+    expect(
+      zetOm({ ...stelling, inhoud: { ...stelling.inhoud, ondergrond: "licht" } }, "carrousel").dias[0].inhoud
+        .ondergrond,
+    ).toBe("inkt");
+    expect(zetOm(stelling, "carrousel").dias[0].inhoud).toMatchObject({
+      ondergrond: "accent",
+      kop: "Mijn *kop.*",
+      tekst: "Mijn tekst.",
+    });
   });
   it("haalt uit een carrousel de omslag en kopieert de posttekst los van het origineel", () => {
     const c = { ...nieuwRecept("carrousel"), titel: "Reeks" };
@@ -113,7 +178,11 @@ describe("zetOm", () => {
     expect(stelling.posttekst.linkedin).toBe("Hallo");
   });
   it("neemt alleen een geldig media-id over", () => {
-    const p = { ...nieuwRecept("productbeeld"), titel: "x", inhoud: { ...nieuwRecept("productbeeld").inhoud, beeld: "javascript:alert(1)" } };
+    const p = {
+      ...nieuwRecept("productbeeld"),
+      titel: "x",
+      inhoud: { ...nieuwRecept("productbeeld").inhoud, beeld: "javascript:alert(1)" },
+    };
     expect(zetOm(p, "productbeeld").inhoud.beeld).toBe(nieuwRecept("productbeeld").inhoud.beeld);
   });
 });

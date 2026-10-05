@@ -13,12 +13,29 @@ export interface ControlePost {
   feiten?: string[];
   merkVersie?: string;
 }
-/** `soort`: bij "voorbeelddossier" eist de controle dat de post het voorbeelddossier noemt. */
-export interface ControleFeit { id: string; tekst: string; soort?: string; status: string; geldigVan: string | null; geldigTot: string | null }
-export interface Overloop { formaat: string; dia?: number | null; veld: string; veldId?: string | null; soort: "buiten-beeld" | "overlap" | "veilige-zone"; reden?: string; met?: string }
+export interface ControleFeit {
+  id: string;
+  tekst: string;
+  soort?: string;
+  status: string;
+  geldigVan: string | null;
+  geldigTot: string | null;
+}
+export interface Overloop {
+  formaat: string;
+  dia?: number | null;
+  veld: string;
+  veldId?: string | null;
+  soort: "buiten-beeld" | "overlap" | "veilige-zone";
+  reden?: string;
+  met?: string;
+}
 
 export function bevatWoord(tekst: unknown, woord: unknown): boolean;
-export function tekstenVan(post: ControlePost, s: Sjabloon): Array<{ waar: string; veld: string | null; dia: number | null; kanaal?: string; tekst: string }>;
+export function tekstenVan(
+  post: ControlePost,
+  s: Sjabloon,
+): Array<{ waar: string; veld: string | null; dia: number | null; kanaal?: string; tekst: string }>;
 export function feitBruikbaar(f: ControleFeit, vandaag: string): boolean;
 export function controleer(invoer: {
   post: ControlePost;
