@@ -17,13 +17,15 @@ Spec: `docs/superpowers/specs/2026-10-05-multi-slide-posts-design.md`.
 
 ## Checked
 
-- Full suite green: 50 files, 1024 tests.
-- Browser pass by hand: add, move and change template, save and reload; ZIP contents; phone width of 390 px without horizontal scroll; library badge; no console errors.
+- Full suite green: 50 files, 1026 tests.
+- Browser pass with a playwright script against a copy of the data: add, move and change template, save and reload; ZIP contents; phone width of 390 px without horizontal scroll; library badge; no console errors.
 
 ## Open
 
-1. Merge into `main` and push; ask Tim first.
+1. Merge into `main` and push; needs the owner's go-ahead.
 2. The automatic title does not follow when another slide is moved to position 1.
-3. In the slide's template select, the choice resets when you type in a field.
+3. The template selects of Add slide and Change template reset when you type in a field: both are rebuilt on each keystroke.
 4. A loaded post with a format that not every slide shares shows that format as a checked, disabled box.
-5. Out of scope on purpose: AI ideas still become a one-slide post; a carousel template (built in or own) as a slide; slide numbers ("1/4") or a step chain across templates; one PDF per LinkedIn format (one is enough to post).
+5. The format checkboxes are not redrawn after a save; this only shows when the server narrowed the formats.
+6. The missing-template brand-check finding has no field, so "Go to" only switches slide.
+7. Out of scope on purpose: AI ideas still become a one-slide post; a carousel template (built in or own) as a slide; slide numbers ("1/4") or a step chain across templates; one PDF per LinkedIn format (one is enough to post).

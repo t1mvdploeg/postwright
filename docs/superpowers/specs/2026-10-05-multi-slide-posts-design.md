@@ -25,7 +25,7 @@ type Post = {
 
 ## One helper for "the images of a post"
 
-`imagesOf(post)` in `src/web/studio/recipe.js` returns, per slide, the arguments `buildImage` needs except format, brand and media:
+`imagesOf(post)` in `src/web/studio/slides.js` returns, per slide, the arguments `buildImage` needs except format, brand and media:
 
 - image post: `[{ template: post.template, content: post.content }, ...post.moreSlides]`, each with its `slide` index;
 - carousel: one entry per carousel slide, `{ template: post.template, slides: post.slides, slide: i }`.
@@ -34,7 +34,7 @@ Export, brand check, overflow measurement, the feed preview and thumbnails go th
 
 ## Formats
 
-A post can only have formats that every slide's template has. `sharedFormats(templateIds)` (in `recipe.js`) returns the intersection.
+A post can only have formats that every slide's template has. `sharedFormats(templateIds)` (in `slides.js`) returns the intersection.
 
 - Editor: the format checkboxes are slide 1's template's formats; one that not all slides share is disabled, with the note "not in every slide".
 - "Add slide" and "Change template" offer every image template (no carousel templates) that shares at least one format with the post. Choosing one narrows the post's formats to the shared ones, and a notice names what was dropped ("Story is off: Question has no Story format"). A new Statement post has Story on by default, and Question has no Story; a stricter rule would hide Question until you unticked Story yourself.
