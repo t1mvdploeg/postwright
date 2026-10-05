@@ -1,26 +1,15 @@
-// Brand kit: the brand book in the tool. Colours with contrast, logos
-// (SVG and PNG), the route motif and the rules. Everything comes from the active brand
+// Brand kit: the brand book of the project, and the place to create a new brand kit. Colours with
+// contrast, logos, the route motif and the rules come from the active brand of the project
 // (`brand.json` and the files next to it, see `src/server/brand.ts`).
 import { el, notice, projectHeaders } from "/ui.js";
 import { asDataUri } from "/studio/brand.js";
-import { contrastOn } from "/studio/color.js";
 import { slugOf } from "/studio/formats.js";
 import { download } from "/studio/render.js";
+import { colorsView, contrastView, logosView } from "/studio/brand-views.js";
+import { createBlock } from "/studio/brand-create.js";
+import { proposalBlock } from "/studio/brand-preview.js";
 
 const FOLDER = "/brand";
-
-/** Which ground a logo variant belongs on, derived from the variant's name. */
-function groundFor(mode) {
-  if (/on-ink|^white$/.test(mode)) return "ink";
-  if (/on-accent/.test(mode)) return "accent";
-  return "light";
-}
-
-/** The route motif of the brand as a data URI; null when the brand has none. */
-async function motifSource() {
-  const r = await fetch(`${FOLDER}/motifs/route.svg`, { headers: projectHeaders() }).catch(() => null);
-  return r?.ok ? asDataUri(new Blob([await r.arrayBuffer()], { type: "image/svg+xml" })) : null;
-}
 
 /** An SVG as a PNG with the longest side at `side` pixels, transparent. */
 async function svgToPng(path, side = 2048) {
@@ -37,69 +26,42 @@ async function svgToPng(path, side = 2048) {
   );
 }
 
+/** The route motif of the brand as a data URI; null when the brand has none. */
+async function motifSource() {
+  const r = await fetch(`${FOLDER}/motifs/route.svg`, { headers: projectHeaders() }).catch(() => null);
+  return r?.ok ? asDataUri(new Blob([await r.arrayBuffer()], { type: "image/svg+xml" })) : null;
+}
+
 export async function show(container, ctx) {
   const m = ctx.brand;
-  const colors = el(
-    "div",
-    { class: "studio-colors" },
-    m.colors.map((k) =>
-      el("div", { class: "studio-color" }, [
-        el("span", { class: "studio-swatch", style: `background:${k.hex}` }),
-        el("b", { text: k.name }),
-        el("code", { text: k.hex }),
-        el("span", { class: "help-text", text: k.usage }),
-      ]),
-    ),
-  );
-  const contrast = el("div", { class: "table-scroll" }, [
-    el("table", { class: "list" }, [
-      el("thead", {}, [
-        el(
-          "tr",
-          {},
-          ["Ground", "Text on the ground"].map((t) => el("th", { scope: "col", text: t })),
-        ),
-      ]),
-      el(
-        "tbody",
-        {},
-        Object.keys(m.grounds).map((g) => {
-          const c = contrastOn(m, g);
-          return el("tr", {}, [
-            el("td", { text: { light: "Light", ink: "Ink", accent: "Accent" }[g] ?? g }),
-            el("td", { text: `${c.ratio}:1 ${c.ratio >= c.threshold ? "✓" : "✗"}` }),
-          ]);
-        }),
-      ),
-    ]),
-  ]);
+  const motifUrl = await motifSource();
+  if (!ctx.valid()) return;
 
-  const logos = el(
-    "div",
-    { class: "studio-file-grid" },
-    // The loaded brand already has every logo as a data URL (see brand.js), so there is no
-    // folder for it.
-    Object.entries(m.logos).map(([mode, source]) => {
+  const logos = logosView(m, (mode, source) => {
+    const isPng = source.startsWith("data:image/png");
+    const name = `${slugOf(m.name)}-${mode}`;
+    const row = [
+      el("a", {
+        class: "button-link small",
+        href: source,
+        download: `${name}.${isPng ? "png" : "svg"}`,
+        text: isPng ? "PNG" : "SVG",
+      }),
+    ];
+    if (!isPng) {
       const png = el("button", { type: "button", class: "secondary small", text: "PNG" });
       png.addEventListener("click", async () => {
         try {
-          download(await svgToPng(source), `${slugOf(m.name)}-${mode}.png`, "image/png");
+          download(await svgToPng(source), `${name}.png`, "image/png");
         } catch (e) {
           notice(e.message, "error");
         }
       });
-      return el("figure", { class: "studio-file" }, [
-        el("div", { class: `studio-file-image ground-${groundFor(mode)}` }, [el("img", { src: source, alt: "" })]),
-        el("figcaption", { text: mode }),
-        el("div", { class: "button-row" }, [
-          el("a", { class: "button-link small", href: source, download: `${slugOf(m.name)}-${mode}.svg`, text: "SVG" }),
-          png,
-        ]),
-      ]);
-    }),
-  );
+      row.push(png);
+    }
+    return el("div", { class: "button-row" }, row);
+  });
 
-  const motifUrl = await motifSource();
   const motifCard = motifUrl
     ? el("section", { class: "card" }, [
         el("h2", { text: "Route motif" }),
@@ -113,21 +75,26 @@ export async function show(container, ctx) {
       ])
     : null;
 
+  const proposal = proposalBlock(ctx);
+  const create = createBlock(ctx, { onProposal: proposal.refresh });
+
   container.replaceChildren(
     ...[
       el("section", { class: "page-intro" }, [
         el("div", {}, [
           el("p", { class: "intro-label", text: `Brand version ${m.version}` }),
           el("p", {
-            text: `The brand the studio works from: ${m.name}. Put your own brand in data/projects/<slug>/brand/ (brand.json with the files next to it); the studio then uses that instead of this one.`,
+            text: `The brand this project works from: ${m.name}. Create a new brand kit below, or put your own brand.json and files in the brand folder of this project.`,
           }),
         ]),
       ]),
+      create,
+      proposal.element,
       el("section", { class: "card" }, [
         el("h2", { text: "Colours" }),
-        colors,
+        colorsView(m),
         el("h3", { text: "Contrast per ground (WCAG: headline 3:1, text 4.5:1)" }),
-        contrast,
+        contrastView(m),
       ]),
       el("section", { class: "card" }, [
         el("h2", { text: "Logos" }),

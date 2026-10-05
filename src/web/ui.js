@@ -53,7 +53,10 @@ export async function api(path, options = {}) {
     method: options.method ?? "GET",
     headers: { "content-type": "application/json", ...projectHeaders() },
   };
-  if (options.body !== undefined) init.body = JSON.stringify(options.body);
+  if (options.raw) {
+    init.body = options.raw;
+    init.headers["content-type"] = options.raw.type || "application/octet-stream";
+  } else if (options.body !== undefined) init.body = JSON.stringify(options.body);
   if (options.signal) init.signal = options.signal;
   // A network error (TypeError; an AbortError stays as it is) or a gateway error without a
   // JSON response gets a readable message instead of the bare "Failed to fetch"/"Error 502".

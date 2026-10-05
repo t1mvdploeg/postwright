@@ -1,6 +1,6 @@
 # Postwright phase 4: handover for finishing the work
 
-Read this first. Branch `fase-4` holds the finished server side of phase 4 (tasks 1-11). Two tasks remain: 12 (the "Create a brand kit" screen) and 13 (finishing).
+Read this first. Branch `fase-4` holds the finished server side of phase 4 (tasks 1-11) and task 12 (the "Create a brand kit" screen, in the current studio). One task remains: 13 (finishing).
 
 ## 1. Status
 
@@ -30,9 +30,11 @@ Read this first. Branch `fase-4` holds the finished server side of phase 4 (task
 - Never run the server on the repo's own `data/`; use a temporary data folder (`POSTWRIGHT_DATA_DIR`) and a free port.
 - Write the test first and watch it fail. No abstraction the task does not ask for.
 
-## 3. Open decision for the owner (ask before starting task 12)
+## 3. Decision for task 12 (settled)
 
-Task 12 can go into the current studio (`src/web/studio/…`, the code below) or into a new frontend that another tool is building. The server routes of tasks 5-11 are the interface either way. Ask which one, and do not start task 12 before the answer. If the new frontend is chosen, use section 4 as the list of what the screen must do, not as code to paste.
+The owner chose the current studio. Task 12 is built there as described in section 4, and walked through in a browser against the fake client (uploads, refusals, generate, proposal, apply, phone width). The studio will later be restyled after a mockup; the routes stay the interface.
+
+The original question, kept for reference: Task 12 can go into the current studio (`src/web/studio/…`, the code below) or into a new frontend that another tool is building. The server routes of tasks 5-11 are the interface either way. Ask which one, and do not start task 12 before the answer. If the new frontend is chosen, use section 4 as the list of what the screen must do, not as code to paste.
 
 ## 4. Task 12: the "Create a brand kit" screen
 
