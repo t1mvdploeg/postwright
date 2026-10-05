@@ -41,6 +41,18 @@ import {
   moveSlide,
   convert,
 } from "/studio/recipe.js";
+import {
+  MAX_SLIDES,
+  pagesOf,
+  fromPages,
+  imagesOf,
+  sharedFormats,
+  slideTemplates,
+  narrowFormats,
+  changeSlideTemplate,
+  mediaIdsOf,
+  pdfFormat,
+} from "/studio/slides.js";
 import { writingHelpPanel } from "/studio/writing-help-ui.js";
 import { KINDS as SNIPPET_KINDS } from "/studio/snippets.js";
 import { STATUSES as FACT_STATUSES } from "/studio/facts.js";
@@ -108,8 +120,10 @@ function showGallery(container, ctx) {
 async function showEditor(container, ctx, begin) {
   const s = templateOf(begin.template);
   if (!s) throw new Error(`This recipe uses an unknown template (${begin.template})`);
+  const carousel = s.kind === "carousel";
   const state = {
     post: structuredClone(begin),
+    pages: carousel ? [] : pagesOf(begin),
     format: begin.formats[0],
     view: "image",
     slide: 0,
@@ -152,8 +166,14 @@ async function showEditor(container, ctx, begin) {
   Object.assign(state, { facts, campaigns, snippets, mediaList });
 
   const slides = () => state.post.slides ?? [];
-  const currentContent = () => (s.kind === "carousel" ? (slides()[state.slide]?.content ?? {}) : state.post.content);
-  const currentFields = () => (s.kind === "carousel" ? fieldsOf(s, slides()[state.slide]?.kind) : s.fields);
+  /** The template of a slide of an image post (undefined when its own template is gone); the carousel otherwise. */
+  const slideTemplate = (i = state.slide) => (carousel ? s : templateOf(state.pages[i]?.template));
+  /** The post as it is now, with the slides of an image post folded back in. */
+  const postNow = () => (carousel ? state.post : { ...state.post, ...fromPages(state.pages) });
+  const slideCount = () => (carousel ? slides().length : state.pages.length);
+  const currentContent = () =>
+    carousel ? (slides()[state.slide]?.content ?? {}) : (state.pages[state.slide]?.content ?? {});
+  const currentFields = () => (carousel ? fieldsOf(s, slides()[state.slide]?.kind) : (slideTemplate()?.fields ?? []));
   const campaignName = () => state.campaigns.find((c) => c.id === state.post.campaign)?.utmCampaign ?? "";
 
   // ---------------- build ----------------
@@ -200,33 +220,10 @@ async function showEditor(container, ctx, begin) {
     changed(false);
   });
 
+  const formatOptions = el("div", { class: "studio-choice-options" });
   const formatChoice = el("fieldset", { class: "studio-choice", id: "field-formats" }, [
     el("legend", { text: "Formats" }),
-    el(
-      "div",
-      { class: "studio-choice-options" },
-      s.formats.map((f) => {
-        const control = el("input", {
-          type: "checkbox",
-          value: f,
-          ...(state.post.formats.includes(f) ? { checked: "" } : {}),
-        });
-        control.addEventListener("change", () => {
-          const chosen = new Set(state.post.formats);
-          if (control.checked) chosen.add(f);
-          else chosen.delete(f);
-          state.post.formats = s.formats.filter((x) => chosen.has(x));
-          if (!state.post.formats.includes(state.format)) state.format = state.post.formats[0] ?? s.formats[0];
-          renderTabs();
-          changed();
-        });
-        const off = !ctx.settings.formats.includes(f);
-        return el("label", { class: "studio-radio" }, [
-          control,
-          el("span", { text: `${formatOf(f).name}${off ? " (off in Settings)" : ""}` }),
-        ]);
-      }),
-    ),
+    formatOptions,
   ]);
 
   const campaignChoice = el("select", { id: "field-campaign" }, [
@@ -266,8 +263,8 @@ async function showEditor(container, ctx, begin) {
     text: "Copy the text from the image",
   });
   altFromImage.addEventListener("click", () => {
-    const i = s.kind === "carousel" ? (slides()[0]?.content ?? {}) : state.post.content;
-    altField.value = [s.name, withoutEmphasis(i.headline ?? ""), withoutEmphasis(i.text ?? "")]
+    const i = carousel ? (slides()[0]?.content ?? {}) : state.pages[0].content;
+    altField.value = [(slideTemplate(0) ?? s).name, withoutEmphasis(i.headline ?? ""), withoutEmphasis(i.text ?? "")]
       .filter(Boolean)
       .join(". ")
       .replace(/\.\./g, ".");
@@ -277,8 +274,9 @@ async function showEditor(container, ctx, begin) {
   const helpPanel = ctx.settings.writingHelp?.enabled
     ? writingHelpPanel({
         ctx,
-        template: s,
+        template: () => slideTemplate() ?? s,
         currentFields: () => currentFields(),
+        currentValues: () => currentContent(),
         currentPost: () => state.post,
         currentChannel: () => state.channel,
         apply: (fields) => {
@@ -300,17 +298,18 @@ async function showEditor(container, ctx, begin) {
       })
     : null;
 
+  // Their label and visibility depend on the slides and formats: renderExportButtons.
+  const pngButton = el("button", { type: "button", class: "secondary", onclick: () => exportAs("png") });
+  const pdfButton = el("button", {
+    type: "button",
+    class: "secondary",
+    text: "PDF for LinkedIn",
+    onclick: () => exportAs("pdf"),
+  });
   const exportButtons = el("div", { class: "button-row studio-export-buttons" }, [
-    el("button", {
-      type: "button",
-      class: "secondary",
-      text: s.kind === "carousel" ? "This slide as PNG" : "This format as PNG",
-      onclick: () => exportAs("png"),
-    }),
+    pngButton,
     el("button", { type: "button", class: "secondary", text: "Everything as ZIP", onclick: () => exportAs("zip") }),
-    s.kind === "carousel"
-      ? el("button", { type: "button", class: "secondary", text: "PDF for LinkedIn", onclick: () => exportAs("pdf") })
-      : null,
+    pdfButton,
   ]);
 
   const leftColumn = el(
@@ -318,7 +317,7 @@ async function showEditor(container, ctx, begin) {
     { class: "studio-column card", id: "editor-panel-fields", "aria-label": "Content" },
     [
       el("div", { class: "field" }, [el("label", { for: "field-title", text: "Title (studio only)" }), titleField]),
-      s.kind === "carousel" ? slideHolder : null,
+      slideHolder,
       fieldsHolder,
       helpPanel?.element ?? null,
       formatChoice,
@@ -472,6 +471,15 @@ async function showEditor(container, ctx, begin) {
 
   // ---------------- render ----------------
   function renderFields() {
+    if (!carousel && !slideTemplate()) {
+      fieldsHolder.replaceChildren(
+        el("p", {
+          class: "studio-warning",
+          text: "This slide's template no longer exists. Delete the slide to export the post.",
+        }),
+      );
+      return;
+    }
     fieldsHolder.replaceChildren(
       ...buildFields(currentFields(), currentContent(), {
         media: state.mediaList,
@@ -481,7 +489,7 @@ async function showEditor(container, ctx, begin) {
           // (otherwise everything was silently lost after the first save).
           currentContent()[id] = value;
           // An illustration change or media choice changes which fields matter; rebuild.
-          if (!state.titleManual && id === "headline" && (s.kind !== "carousel" || state.slide === 0)) {
+          if (!state.titleManual && id === "headline" && state.slide === 0) {
             state.post.title = withoutEmphasis(value).trim().slice(0, 120);
             titleField.value = state.post.title;
           }
@@ -504,8 +512,183 @@ async function showEditor(container, ctx, begin) {
     );
   }
 
+  function renderFormats() {
+    const own = carousel ? s.formats : (slideTemplate(0)?.formats ?? []);
+    const shared = carousel ? s.formats : sharedFormats(state.pages.map((p) => p.template));
+    formatOptions.replaceChildren(
+      ...own.map((f) => {
+        const off = !ctx.settings.formats.includes(f);
+        const notShared = !shared.includes(f);
+        const control = el("input", {
+          type: "checkbox",
+          value: f,
+          ...(state.post.formats.includes(f) ? { checked: "" } : {}),
+          ...(notShared ? { disabled: "" } : {}),
+        });
+        control.addEventListener("change", () => {
+          const chosen = new Set(state.post.formats);
+          if (control.checked) chosen.add(f);
+          else chosen.delete(f);
+          state.post.formats = own.filter((x) => chosen.has(x));
+          if (!state.post.formats.includes(state.format)) state.format = state.post.formats[0] ?? own[0];
+          renderTabs();
+          renderExportButtons();
+          changed();
+        });
+        const note = notShared ? " (not in every slide)" : off ? " (off in Settings)" : "";
+        return el("label", { class: "studio-radio" }, [control, el("span", { text: `${formatOf(f).name}${note}` })]);
+      }),
+    );
+  }
+
+  /** A slide with this template joins: keep only the formats it shares, and say what dropped. */
+  function joinFormats(templateId) {
+    const { formats, dropped } = narrowFormats(state.post.formats, templateId);
+    if (!dropped.length) return;
+    state.post.formats = formats;
+    if (!formats.includes(state.format)) state.format = formats[0];
+    const name = templateOf(templateId)?.name ?? templateId;
+    notice(
+      `${dropped.map((f) => formatOf(f).name).join(", ")} off: ${name} does not have ${dropped.length === 1 ? "it" : "them"}`,
+    );
+  }
+
   function renderSlides() {
-    if (s.kind !== "carousel") return;
+    if (carousel) renderCarouselSlides();
+    else renderPages();
+  }
+
+  function renderPages() {
+    const pages = state.pages;
+    const n = pages.length;
+    const i = state.slide;
+    const button = (text, action, off = false) =>
+      el("button", {
+        type: "button",
+        class: "secondary small",
+        text,
+        ...(off ? { disabled: "" } : {}),
+        onclick: action,
+      });
+    // A slide whose own template is gone must never become slide 1: slide 1 is the post's
+    // template, and the editor cannot open a post without one.
+    const leaderAfter = (from, to) => (to === 0 ? pages[from] : from === 0 ? pages[to] : pages[0]);
+    const canMove = (d) => i + d >= 0 && i + d < n && Boolean(templateOf(leaderAfter(i, i + d)?.template));
+    const choices = (id, label, exclude) =>
+      el(
+        "select",
+        { id, "aria-label": label },
+        slideTemplates(state.post.formats)
+          .filter((t) => t.id !== exclude)
+          .map((t) => el("option", { value: t.id, text: templateLabel(t) })),
+      );
+    const newChoice = choices("new-slide", "Template of the new slide", null);
+    const add = button(
+      "Add slide",
+      () => {
+        const t = templateOf(newChoice.value);
+        if (!t) return;
+        joinFormats(t.id);
+        pages.splice(i + 1, 0, { template: t.id, content: defaultContent(t) });
+        state.slide = i + 1;
+        renderAll();
+        changed();
+      },
+      n >= MAX_SLIDES,
+    );
+    const addRow = el("div", { class: "studio-slide-add" }, [newChoice, add]);
+    if (n === 1) {
+      slideHolder.replaceChildren(el("h2", { text: "Slides" }), addRow);
+      return;
+    }
+    const list = el(
+      "ol",
+      { class: "studio-slide-list", "aria-label": "Slides" },
+      pages.map((p, k) => {
+        const t = templateOf(p.template);
+        const name = t
+          ? `${t.name}${p.content?.headline ? `: ${withoutEmphasis(p.content.headline)}` : ""}`
+          : "Template missing";
+        const choose = el("button", {
+          type: "button",
+          class: `button-plain studio-slide${k === i ? " active" : ""}`,
+          "aria-current": k === i ? "true" : "false",
+          title: name,
+          text: `${k + 1}. ${name}`,
+        });
+        choose.addEventListener("click", () => {
+          state.slide = k;
+          renderAll();
+        });
+        return el("li", {}, [choose]);
+      }),
+    );
+    const missing = !slideTemplate(i);
+    const actions = el("div", { class: "studio-slide-actions", role: "group", "aria-label": `Slide ${i + 1}` }, [
+      missing
+        ? null
+        : button(
+            "↑ Up",
+            () => {
+              state.slide = moveSlide(pages, i, -1);
+              renderAll();
+              changed();
+            },
+            !canMove(-1),
+          ),
+      missing
+        ? null
+        : button(
+            "↓ Down",
+            () => {
+              state.slide = moveSlide(pages, i, 1);
+              renderAll();
+              changed();
+            },
+            !canMove(1),
+          ),
+      missing
+        ? null
+        : button(
+            "Duplicate",
+            () => {
+              pages.splice(i + 1, 0, structuredClone(pages[i]));
+              state.slide = i + 1;
+              renderAll();
+              changed();
+            },
+            n >= MAX_SLIDES,
+          ),
+      button(
+        "Delete",
+        () => {
+          pages.splice(i, 1);
+          state.slide = Math.min(i, pages.length - 1);
+          renderAll();
+          changed();
+        },
+        i === 0 && !templateOf(pages[1]?.template),
+      ),
+    ]);
+    const changeChoice = choices("slide-template", "Other template for this slide", pages[i].template);
+    const change = button("Change template", () => {
+      const id = changeChoice.value;
+      if (!id) return;
+      joinFormats(id);
+      pages[i] = changeSlideTemplate(pages[i], id);
+      renderAll();
+      changed();
+    });
+    slideHolder.replaceChildren(
+      el("h2", { text: "Slides" }),
+      list,
+      actions,
+      missing ? null : el("div", { class: "studio-slide-add" }, [changeChoice, change]),
+      addRow,
+    );
+  }
+
+  function renderCarouselSlides() {
     const list = el(
       "ol",
       { class: "studio-slide-list", "aria-label": "Slides" },
@@ -605,7 +788,7 @@ async function showEditor(container, ctx, begin) {
   }
 
   function renderTabs() {
-    const formats = state.post.formats.length ? state.post.formats : [s.formats[0]];
+    const formats = state.post.formats.length ? state.post.formats : [(slideTemplate(0) ?? s).formats[0]];
     formatTabs.replaceChildren(
       ...formats.map((f, i) => {
         const active = f === state.format;
@@ -639,10 +822,7 @@ async function showEditor(container, ctx, begin) {
 
   function currentImage() {
     return buildImage({
-      template: s.id,
-      content: state.post.content,
-      slides: state.post.slides,
-      slide: state.slide,
+      ...imagesOf(postNow())[state.slide],
       format: state.format,
       brand: ctx.brand,
       media: state.media,
@@ -654,18 +834,8 @@ async function showEditor(container, ctx, begin) {
       renderFeed();
       return;
     }
-    let image;
-    try {
-      image = currentImage();
-    } catch (e) {
-      notice(e.message, "error");
-      return;
-    }
-    const i = currentContent();
-    const label = `Preview ${formatOf(state.format).name}${s.kind === "carousel" ? `, slide ${state.slide + 1}` : ""}: ${[withoutEmphasis(i.headline ?? ""), withoutEmphasis(i.text ?? "")].filter(Boolean).join(" ")}`;
-    showPreview(preview, image, { maxHeight: 560, label });
-    renderZones();
-    if (s.kind === "carousel") {
+    // The nav first: it also has to lead away from a slide that cannot be drawn.
+    if (slideCount() > 1) {
       slideNav.replaceChildren(
         el("button", {
           type: "button",
@@ -677,19 +847,35 @@ async function showEditor(container, ctx, begin) {
             renderAll();
           },
         }),
-        el("span", { text: `Slide ${state.slide + 1} of ${slides().length}` }),
+        el("span", { text: `Slide ${state.slide + 1} of ${slideCount()}` }),
         el("button", {
           type: "button",
           class: "secondary small",
           text: "Next slide →",
-          ...(state.slide >= slides().length - 1 ? { disabled: "" } : {}),
+          ...(state.slide >= slideCount() - 1 ? { disabled: "" } : {}),
           onclick: () => {
             state.slide += 1;
             renderAll();
           },
         }),
       );
+    } else slideNav.replaceChildren();
+    // A slide whose template is gone has no image; the fields column says why.
+    if (!carousel && !slideTemplate()) {
+      preview.replaceChildren();
+      return;
     }
+    let image;
+    try {
+      image = currentImage();
+    } catch (e) {
+      notice(e.message, "error");
+      return;
+    }
+    const i = currentContent();
+    const label = `Preview ${formatOf(state.format).name}${slideCount() > 1 ? `, slide ${state.slide + 1}` : ""}: ${[withoutEmphasis(i.headline ?? ""), withoutEmphasis(i.text ?? "")].filter(Boolean).join(" ")}`;
+    showPreview(preview, image, { maxHeight: 560, label });
+    renderZones();
   }
 
   // "Feed preview": an approximation of the post as it appears in a timeline, with the
@@ -715,9 +901,11 @@ async function showEditor(container, ctx, begin) {
             below ? el("span", { class: "studio-feed-more", text: " … more" }) : null,
           ]),
           imageHolder,
-          s.kind === "carousel"
+          carousel
             ? el("p", { class: "studio-feed-below", text: `Document · ${slides().length} pages` })
-            : null,
+            : slideCount() > 1
+              ? el("p", { class: "studio-feed-below", text: `${slideCount()} slides` })
+              : null,
         ],
       ),
       el("p", { class: "help-text", text: "Approximation: every platform shows it slightly differently." }),
@@ -726,15 +914,7 @@ async function showEditor(container, ctx, begin) {
     try {
       showPreview(
         imageHolder,
-        buildImage({
-          template: s.id,
-          content: state.post.content,
-          slides: state.post.slides,
-          slide: 0,
-          format: f,
-          brand: ctx.brand,
-          media: state.media,
-        }),
+        buildImage({ ...imagesOf(postNow())[0], format: f, brand: ctx.brand, media: state.media }),
         { maxHeight: 640 },
       );
     } catch (e) {
@@ -775,8 +955,8 @@ async function showEditor(container, ctx, begin) {
 
   function currentCheck() {
     state.report = runCheck({
-      post: state.post,
-      template: s,
+      post: postNow(),
+      template: slideTemplate(0) ?? s,
       settings: ctx.settings,
       facts: state.facts,
       today: localToday(),
@@ -1026,7 +1206,7 @@ async function showEditor(container, ctx, begin) {
       "select",
       { id: "field-convert" },
       allTemplates()
-        .filter((x) => x.id !== s.id)
+        .filter((x) => x.id !== state.pages[0]?.template && x.id !== s.id)
         .map((x) => el("option", { value: x.id, text: templateLabel(x) })),
     );
     const button = el("button", { type: "button", class: "secondary", text: "Convert" });
@@ -1036,7 +1216,7 @@ async function showEditor(container, ctx, begin) {
         const created = await ctx.api("/api/posts", {
           method: "POST",
           body: toInput(
-            convert(state.post, target.id, { enabledFormats: ctx.settings.formats, brandVersion: ctx.brand.version }),
+            convert(postNow(), target.id, { enabledFormats: ctx.settings.formats, brandVersion: ctx.brand.version }),
             target,
             null,
           ),
@@ -1272,11 +1452,19 @@ async function showEditor(container, ctx, begin) {
   }
 
   function renderAll() {
+    renderFormats();
     renderSlides();
     renderFields();
     renderTabs();
     renderPreview();
     renderCheck();
+    renderExportButtons();
+  }
+
+  /** The PNG button's label and the PDF button follow the slides and the formats. */
+  function renderExportButtons() {
+    pngButton.textContent = slideCount() > 1 ? "This slide as PNG" : "This format as PNG";
+    pdfButton.hidden = !pdfFormat(postNow());
   }
 
   // ---------------- behaviour ----------------
@@ -1293,27 +1481,18 @@ async function showEditor(container, ctx, begin) {
   }, 150);
 
   async function measureAll() {
-    const list = s.kind === "carousel" ? slides().map((_, i) => i) : [0];
+    const images = imagesOf(postNow());
+    const numbered = carousel || images.length > 1;
     const names = {};
     const out = [];
     for (const f of state.post.formats) {
-      for (const slide of list) {
-        const fields = s.kind === "carousel" ? fieldsOf(s, slides()[slide]?.kind) : s.fields;
+      for (const args of images) {
+        const fields = carousel ? fieldsOf(s, slides()[args.slide]?.kind) : (templateOf(args.template)?.fields ?? []);
         // "the headline", but "item 2": a numbered label has no article.
         for (const v of fields) names[v.id] = `${/\d$/.test(v.label) ? "" : "the "}${v.label.toLowerCase()}`;
         try {
-          const image = buildImage({
-            template: s.id,
-            content: state.post.content,
-            slides: state.post.slides,
-            slide,
-            format: f,
-            brand: ctx.brand,
-            media: state.media,
-          });
-          out.push(
-            ...(await measureOverflow(image, formatOf(f), { slide: s.kind === "carousel" ? slide : null, names })),
-          );
+          const image = buildImage({ ...args, format: f, brand: ctx.brand, media: state.media });
+          out.push(...(await measureOverflow(image, formatOf(f), { slide: numbered ? args.slide : null, names })));
         } catch {
           /* an image that cannot be built is already reported by renderPreview */
         }
@@ -1334,8 +1513,7 @@ async function showEditor(container, ctx, begin) {
   }
 
   async function loadImages() {
-    const ids = [state.post.content ?? {}, ...slides().map((d) => d.content ?? {})].flatMap((i) => Object.values(i));
-    state.media = { ...state.media, ...(await loadMedia(ids)) };
+    state.media = { ...state.media, ...(await loadMedia(mediaIdsOf(postNow()))) };
   }
 
   async function upload(fieldId) {
@@ -1379,7 +1557,11 @@ async function showEditor(container, ctx, begin) {
       // The check has to cover the latest content, including the overflow measurement.
       await measureAll();
       const u = currentCheck();
-      const input = toInput(state.post, s, { errors: u.errors, attention: u.attention, on: new Date().toISOString() });
+      const input = toInput(postNow(), slideTemplate(0) ?? s, {
+        errors: u.errors,
+        attention: u.attention,
+        on: new Date().toISOString(),
+      });
       const isNew = !state.post.id;
       const previousStatus = state.post.status;
       const response = isNew
@@ -1476,9 +1658,9 @@ async function showEditor(container, ctx, begin) {
     };
     try {
       exportStatus.textContent = "Exporting…";
-      if (kind === "png") await exportPng(state.post, ctx.brand, state.format, state.slide, campaignName());
-      else if (kind === "zip") await exportZip(state.post, ctx.brand, campaignName(), progress);
-      else await exportPdf(state.post, ctx.brand, campaignName(), progress);
+      if (kind === "png") await exportPng(postNow(), ctx.brand, state.format, state.slide, campaignName());
+      else if (kind === "zip") await exportZip(postNow(), ctx.brand, campaignName(), progress);
+      else await exportPdf(postNow(), ctx.brand, campaignName(), progress);
       exportStatus.textContent = "Done; the download has started.";
     } catch (e) {
       exportStatus.textContent = "";

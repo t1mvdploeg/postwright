@@ -1833,6 +1833,13 @@ textarea[readonly] {
 .studio-slide-add select {
   width: auto;
   flex: 1;
+  /* A long template name must not push the row wider than a phone. */
+  min-width: 0;
+}
+
+/* "Change template" above "Add slide". */
+.studio-slide-add + .studio-slide-add {
+  margin-top: var(--r2);
 }
 
 .studio-tabs {

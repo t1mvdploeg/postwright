@@ -36,11 +36,9 @@ const TASKS = [
   ["alt-text", "Alt-text"],
 ];
 
-/** The content already filled in on the post, for the task: only the fields the help knows. */
-function currentContent(post, fields, channel) {
-  const field = Object.fromEntries(
-    fields.map((v) => [v.id, String(post.content?.[v.id] ?? "")]).filter(([, t]) => t.trim()),
-  );
+/** The content already filled in on the slide, for the task: only the fields the help knows. */
+function currentContent(values, post, fields, channel) {
+  const field = Object.fromEntries(fields.map((v) => [v.id, String(values?.[v.id] ?? "")]).filter(([, t]) => t.trim()));
   return { fields: field, caption: post.caption?.[channel] ?? "", altText: post.altText ?? "" };
 }
 
@@ -48,6 +46,7 @@ export function writingHelpPanel({
   ctx,
   template,
   currentFields,
+  currentValues,
   currentPost,
   currentChannel,
   apply,
@@ -135,12 +134,12 @@ export function writingHelpPanel({
         headers: { "content-type": "application/json", ...projectHeaders() },
         body: JSON.stringify({
           task: task.value,
-          template: template.name,
+          template: template().name,
           fields,
           channel: currentChannel(),
           note: note.value,
           facts: post.facts ?? [],
-          current: currentContent(post, fields, currentChannel()),
+          current: currentContent(currentValues(), post, fields, currentChannel()),
         }),
       });
       const data = await r.json().catch(() => ({}));
