@@ -14,13 +14,15 @@ import {
   projectHeaders,
 } from "/ui.js";
 import {
-  TEMPLATES,
+  allTemplates,
   buildImage,
   template as templateOf,
+  templateLabel,
   defaultContent,
   fieldsOf,
   withoutEmphasis,
 } from "/studio/templates.js";
+import { observeThumbnails, templateCard } from "/studio/template-card.js";
 import { CHANNELS, format as formatOf } from "/studio/formats.js";
 import { showPreview } from "/studio/render.js";
 import { measureOverflow, removeMeasureFrames } from "/studio/overflow.js";
@@ -74,28 +76,16 @@ export async function show(container, ctx) {
 
 function showGallery(container, ctx) {
   ctx.setTitle("Editor");
-  const cards = TEMPLATES.map((s) => {
-    const f = s.formats[0];
-    const holder = el("div", { class: "studio-thumbnail", "aria-hidden": "true" });
-    const card = el("article", { class: "studio-template-card" }, [
-      holder,
-      el("div", { class: "studio-template-card-text" }, [
-        el("h2", { text: s.name }),
-        el("p", { text: s.goal }),
-        el("p", { class: "studio-format-list", text: s.formats.map((x) => formatOf(x).name).join(" · ") }),
-      ]),
+  const cards = allTemplates().map((s) =>
+    templateCard(s, [
       el("a", {
         class: "button",
         href: `#editor/new/${s.id}`,
         text: `Use ${s.name}`,
         "aria-label": `New post with template ${s.name}`,
       }),
-    ]);
-    // Render thumbnails only when they come into view: twelve full images at once is heavy.
-    card.dataset.template = s.id;
-    card.dataset.format = f;
-    return card;
-  });
+    ]),
+  );
   container.replaceChildren(
     el("section", { class: "page-intro" }, [
       el("div", {}, [
@@ -107,24 +97,7 @@ function showGallery(container, ctx) {
     ]),
     el("div", { class: "studio-gallery" }, cards),
   );
-  const observer = new IntersectionObserver(
-    (lines) => {
-      for (const r of lines) {
-        if (!r.isIntersecting) continue;
-        observer.unobserve(r.target);
-        const s = templateOf(r.target.dataset.template);
-        const image = buildImage({
-          template: s.id,
-          content: defaultContent(s),
-          format: r.target.dataset.format,
-          brand: ctx.brand,
-        });
-        showPreview(r.target.querySelector(".studio-thumbnail"), image, { maxHeight: 220 });
-      }
-    },
-    { rootMargin: "200px" },
-  );
-  for (const k of cards) observer.observe(k);
+  const observer = observeThumbnails(cards, ctx.brand);
   return { leave: () => observer.disconnect() };
 }
 
@@ -1052,7 +1025,9 @@ async function showEditor(container, ctx, begin) {
     const choice = el(
       "select",
       { id: "field-convert" },
-      TEMPLATES.filter((x) => x.id !== s.id).map((x) => el("option", { value: x.id, text: x.name })),
+      allTemplates()
+        .filter((x) => x.id !== s.id)
+        .map((x) => el("option", { value: x.id, text: templateLabel(x) })),
     );
     const button = el("button", { type: "button", class: "secondary", text: "Convert" });
     button.addEventListener("click", async () => {

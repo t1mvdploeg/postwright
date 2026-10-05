@@ -6,7 +6,7 @@
 // Suggestions only become ideas after a tick and "Add to planner"; nothing is stored
 // automatically.
 import { confirmDialog, el, notice, fieldError } from "/ui.js";
-import { TEMPLATES, template as templateOf, withoutEmphasis } from "/studio/templates.js";
+import { allTemplates, template as templateOf, templateLabel, withoutEmphasis } from "/studio/templates.js";
 import { ideaToRecipe, toInput } from "/studio/recipe.js";
 import { getAiMode, sampleBar, sampleLabel } from "/studio/writing-help-ui.js";
 
@@ -78,7 +78,7 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
   const note = el("textarea", { id: "idea-note", rows: "3", maxlength: "1000" });
   const template = el("select", { id: "idea-template" }, [
     el("option", { value: "", text: "No template yet" }),
-    ...TEMPLATES.map((s) => el("option", { value: s.id, text: s.name })),
+    ...allTemplates().map((s) => el("option", { value: s.id, text: templateLabel(s) })),
   ]);
   const headlineField = el("input", {
     type: "text",

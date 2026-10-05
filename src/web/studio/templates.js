@@ -20,6 +20,7 @@ import linkPreview from "./templates/link-preview.js";
 import profileBanner from "./templates/profile-banner.js";
 import companyCover from "./templates/company-cover.js";
 import carousel from "./templates/carousel.js";
+import { checkTemplate, compileTemplate } from "./own-template.js";
 
 /** All templates, in the order of the gallery. */
 export const TEMPLATES = [
@@ -36,9 +37,39 @@ export const TEMPLATES = [
 
 const BY_ID = new Map(TEMPLATES.map((s) => [s.id, s]));
 
-/** The template for an id, or null. */
+/** The own templates of the active project (see own-template.js), compiled; set by `registerOwnTemplates`. */
+let OWN = [];
+
+/**
+ * Registers the own templates of the project: the saved files from `GET /api/templates`. A file
+ * that `checkTemplate` refuses is skipped with a warning; the studio still works. Replaces what
+ * was registered before. A project switch reloads the page, so nothing leaks between projects.
+ */
+export function registerOwnTemplates(files) {
+  OWN = [];
+  for (const file of files ?? []) {
+    const checked = checkTemplate(file, { mode: "saved" });
+    if (!checked.ok) {
+      console.warn(`Own template skipped: ${checked.problems[0]}`);
+      continue;
+    }
+    OWN.push(compileTemplate(file));
+  }
+}
+
+/** All templates a user can pick: the built-in ones, then the own ones. `TEMPLATES` stays the built-in list. */
+export function allTemplates() {
+  return [...TEMPLATES, ...OWN];
+}
+
+/** The name of a template as a picker shows it: an own template says so. */
+export function templateLabel(s) {
+  return s.own ? `${s.name} (your template)` : s.name;
+}
+
+/** The template for an id (built-in or own), or null. */
 export function template(id) {
-  return BY_ID.get(id) ?? null;
+  return BY_ID.get(id) ?? OWN.find((s) => s.id === id) ?? null;
 }
 
 const ESCAPES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };

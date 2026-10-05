@@ -1,7 +1,7 @@
 // Library: all posts (recipes) as cards, with the status as tabs and further filters next to
 // the search.
 import { confirmDialog, el, emptyState, icon, notice } from "/ui.js";
-import { TEMPLATES, template as templateOf } from "/studio/templates.js";
+import { allTemplates, template as templateOf, templateLabel } from "/studio/templates.js";
 import { factUsable } from "/studio/brand-check.js";
 import { readableMoment, localToday } from "/studio/recipe.js";
 import { CHANNELS, FORMATS, channelsOf } from "/studio/formats.js";
@@ -62,7 +62,7 @@ export async function show(container, ctx) {
   ]);
   const templateFilter = el("select", { id: "filter-template", class: "small", "aria-label": "Template" }, [
     el("option", { value: "", text: "All templates" }),
-    ...TEMPLATES.map((s) => el("option", { value: s.id, text: s.name })),
+    ...allTemplates().map((s) => el("option", { value: s.id, text: templateLabel(s) })),
   ]);
   const search = el("input", {
     type: "search",

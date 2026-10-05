@@ -15,6 +15,7 @@ import {
   textDialog,
 } from "/ui.js";
 import { loadBrand } from "/studio/brand.js";
+import { registerOwnTemplates } from "/studio/templates.js";
 import { pickProject } from "/projects.js";
 
 const NAV_GROUPS = [
@@ -94,6 +95,7 @@ let active = null;
 let previousHash = "";
 let renderCounter = 0;
 let settingsPromise = null;
+let templatesPromise = null;
 
 /** `#editor/p-…` → { screen: "editor", parts: ["p-…"] }. Unknown becomes the overview. */
 export function readRoute(hash) {
@@ -180,6 +182,28 @@ function loadSettings(retry = false) {
   return settingsPromise;
 }
 
+/**
+ * The own templates of the project, registered with the template engine before a screen runs.
+ * A failing request does not stop the studio: the built-in templates are still there.
+ */
+function loadTemplates(retry = false) {
+  if (retry || !templatesPromise) {
+    const promise = api("/api/templates")
+      .then(({ templates }) => {
+        registerOwnTemplates(templates);
+        return templates;
+      })
+      .catch((e) => {
+        if (templatesPromise === promise) templatesPromise = null;
+        registerOwnTemplates([]);
+        notice(`Your own templates could not be loaded: ${e.message}`, "error");
+        return [];
+      });
+    templatesPromise = promise;
+  }
+  return templatesPromise;
+}
+
 /** Asks whether unsaved changes may be dropped. Resolves `true` when there are none. */
 async function confirmLeave() {
   if (!active?.hasUnsaved?.()) return true;
@@ -215,7 +239,7 @@ async function render() {
   contentEl.replaceChildren();
   mainEl.setAttribute("aria-busy", "true");
   try {
-    const [mod, brand, settings] = await Promise.all([MODULES[screen](), loadBrand(), loadSettings()]);
+    const [mod, brand, settings] = await Promise.all([MODULES[screen](), loadBrand(), loadSettings(), loadTemplates()]);
     if (my !== renderCounter) return;
     const ctx = {
       api,
@@ -242,6 +266,8 @@ async function render() {
         history.replaceState(null, "", hash);
         previousHash = hash;
       },
+      /** Fetches the own templates again and registers them (after one was kept, renamed or deleted). */
+      reloadTemplates: () => loadTemplates(true),
       reloadSettings: async () => {
         ctx.settings = await loadSettings(true);
         return ctx.settings;

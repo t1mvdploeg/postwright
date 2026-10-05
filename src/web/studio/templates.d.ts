@@ -86,6 +86,9 @@ export interface Image {
 
 export const TEMPLATES: Template[];
 export function template(id: string): Template | null;
+export function registerOwnTemplates(files: unknown[]): void;
+export function allTemplates(): Template[];
+export function templateLabel(s: Template): string;
 export function escapeHtml(text: unknown): string;
 export function fontFamilyName(name: string): string;
 export function countEmphasis(text: unknown): number;
