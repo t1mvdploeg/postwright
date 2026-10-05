@@ -1,4 +1,4 @@
-// Marketing studio: exporting: one PNG, all formats as a ZIP, and a carousel as a PDF.
+// Exporting: one PNG, all formats as a ZIP, and a carousel as a PDF.
 // Everything happens in the browser: no upload, no body limit, and what you download is
 // what the preview showed.
 import { buildImage, imageCount } from "/studio/templates.js";

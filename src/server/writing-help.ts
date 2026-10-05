@@ -1,4 +1,4 @@
-// Marketing studio: the writing help, three suggestions for a post. Its own small schema
+// The writing help, three suggestions for a post. Its own small schema
 // and its own instruction.
 //
 // The security boundary lives in the route (`routes.ts`), not in this instruction: the
@@ -61,7 +61,7 @@ export interface WritingTask {
 
 /**
  * The response schema. No records and no optional fields: structured outputs (Anthropic
- * and OpenRouter in strict mode) do not tolerate them. Whatever does not apply stays an
+ * in strict mode) do not tolerate them. Whatever does not apply stays an
  * empty string or empty list. The route limits the number of variants afterwards (three at
  * most).
  */

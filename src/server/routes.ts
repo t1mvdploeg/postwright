@@ -208,7 +208,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     },
   ): Route[] {
     const idFrom = (c: Ctx) => {
-      if (!validListId(list, c.params.id)) throw new ApiError(400, `Invalid ${options.name}-id`);
+      if (!validListId(list, c.params.id)) throw new ApiError(400, `Invalid ${options.name} id`);
       return c.params.id;
     };
     return [
@@ -341,11 +341,10 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   async function aiHelp<T>(name: string, task: string, call: () => Promise<AiResult<T>>): Promise<AiResult<T>> {
     return serialize("marketing-ai", async () => {
       const currentSettings = await loadSettings();
-      if (!currentSettings.writingHelp.enabled)
-        throw new ApiError(409, `${name} is off; set AI help on under Settings`);
+      if (!currentSettings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
       const cap = currentSettings.writingHelp.capUsdPerMonth;
       if (provider.name === "anthropic" && (await monthTotalUsd(o.dataDir, new Date())) >= cap) {
-        throw new ApiError(429, `The monthly cap for AI help ($ ${cap}) has been reached`);
+        throw new ApiError(429, `The monthly cap for AI help ($${cap}) has been reached`);
       }
       const modelName = aiMode(provider).model ?? "sample";
       let result: AiResult<T>;
@@ -657,7 +656,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         return n ? `This campaign belongs to ${n} post${n === 1 ? "" : "s"}; archive it instead of deleting it` : null;
       },
     }),
-    ...listRoutes<Text>("snippets", "/api/snippets", SnippetInputSchema, { name: "text" }),
+    ...listRoutes<Text>("snippets", "/api/snippets", SnippetInputSchema, { name: "snippet" }),
     ...listRoutes<Fact>("facts", "/api/facts", FactInputSchema, {
       name: "fact",
       isProtected: async (id) => {

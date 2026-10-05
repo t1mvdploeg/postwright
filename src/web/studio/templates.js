@@ -1,4 +1,4 @@
-// Marketing studio: the template engine. From a recipe (template + fields + format) to an
+// The template engine. From a recipe (template + fields + format) to an
 // HTML fragment plus CSS that the preview iframe and the export (foreignObject → canvas)
 // both use literally as is: what you see is what you download.
 //

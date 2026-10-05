@@ -1,4 +1,4 @@
-// Marketing studio: the writing help panel in the editor. The server loads the facts
+// The writing help panel in the editor. The server loads the facts
 // itself by id and checks every suggestion for numbers that are in no fact; such a
 // suggestion cannot be adopted here with a single click. Nothing is ever saved
 // automatically.

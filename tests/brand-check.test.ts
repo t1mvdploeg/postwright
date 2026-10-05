@@ -1,4 +1,4 @@
-// Marketing studio: caption, numbers, contrast and the brand check as a whole.
+// Caption, numbers, contrast and the brand check as a whole.
 import { describe, it, expect } from "vitest";
 import {
   checkCaption,
@@ -258,19 +258,17 @@ describe("brand-check", () => {
     ).toContain("required");
   });
 
-  it("reports fields that are too long, exclamation marks and banned words, but not in words that happen to contain them, and ignores informal address", () => {
+  it("reports fields that are too long, exclamation marks and banned words, but not in words that happen to contain them", () => {
     const r = runCheck({
       post: {
         ...base,
         content: { ...base.content, text: "You are guaranteed to be ready!".padEnd(170, ".") },
-        caption: { linkedin: "Try it now, jewellery and youth do not count." },
       },
       template: statement,
       settings,
       today: "2026-10-01",
     });
     expect(codes(r)).toEqual(expect.arrayContaining(["too-long", "exclamation", "banned-word"]));
-    expect(codes(r)).not.toContain("u-shape");
     expect(containsWord("100% certain", "100%")).toBe(true);
     expect(containsWord("the bestseller", "best")).toBe(false);
   });

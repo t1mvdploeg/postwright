@@ -1,8 +1,8 @@
-// Marketing studio: Snippets: reusable pieces for the caption (opening lines, closers,
+// Snippets: reusable pieces for the caption (opening lines, closers,
 // hashtag sets, the fixed "about us" text). Insertable in the editor with one choice.
 import { confirmDialog, el, emptyState, notice } from "/ui.js";
 
-const KINDS = {
+export const KINDS = {
   opening: "Opening lines",
   closer: "Closers with a call to action",
   hashtags: "Hashtag sets",

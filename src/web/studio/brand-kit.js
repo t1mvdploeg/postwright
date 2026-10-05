@@ -1,4 +1,4 @@
-// Marketing studio: Brand kit: the brand book in the tool. Colours with contrast, logos
+// Brand kit: the brand book in the tool. Colours with contrast, logos
 // (SVG and PNG), the route motif and the rules. Everything comes from the active brand
 // (`brand.json` and the files next to it, see `src/server/brand.ts`).
 import { el, notice } from "/ui.js";

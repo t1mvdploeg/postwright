@@ -1,4 +1,4 @@
-// Marketing studio: all formats and channels in one place. Platforms change their
+// All formats and channels in one place. Platforms change their
 // dimensions; then this is the only file that has to change. Pure (no DOM), so that vitest
 // tests it in Node.
 

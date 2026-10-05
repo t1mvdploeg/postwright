@@ -1,4 +1,4 @@
-// Marketing studio: shared field definitions for the templates, so that "ground" or
+// Shared field definitions for the templates, so that "ground" or
 // "footer" have the same name, the same options and the same help text everywhere.
 
 /** The brand's three grounds: light, ink and accent. The colours are in `brand.grounds`. */

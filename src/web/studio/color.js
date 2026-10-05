@@ -1,4 +1,4 @@
-// Marketing studio: contrast per WCAG 2.1. The colour pairs per ground are in the brand
+// Contrast per WCAG 2.1. The colour pairs per ground are in the brand
 // (`brand.grounds`), not here. Self-contained: the browser does not load server modules.
 
 function luminance(hex) {

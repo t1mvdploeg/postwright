@@ -12,7 +12,7 @@ export default {
   fields: [
     ground("ink"),
     line("number", "Number", "9", 14, { required: true, help: "Short: an amount, percentage or count." }),
-    line("unit", "With the number", "templates", 40),
+    line("unit", "Unit or label", "templates", 40),
     headline("Ready to use, *easy to make your own.*", 70),
     line("source", "Source", "Source: Postwright", 90, {
       required: true,

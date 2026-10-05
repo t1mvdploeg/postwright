@@ -1,4 +1,4 @@
-// Marketing studio: the overflow measurement. Whether a text block falls outside the
+// The overflow measurement. Whether a text block falls outside the
 // image, touches another text block or sits in a safe zone can only be seen in a real
 // layout. This module therefore renders every format at true size in a hidden iframe and
 // measures the elements with `data-field`. A scaled preview does not measure reliably

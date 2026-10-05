@@ -1,4 +1,4 @@
-// Marketing studio: the brand check. Automates the checklist for a post plus what the
+// The brand check. Automates the checklist for a post plus what the
 // studio itself knows: limits per channel, facts, alt text, UTM. Pure; the overflow
 // measurement (which needs a real browser) comes in as input.
 //

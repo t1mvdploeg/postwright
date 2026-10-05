@@ -1,4 +1,4 @@
-// Marketing studio: month grid, week numbers, rescheduling.
+// Month grid, week numbers, rescheduling.
 import { describe, it, expect } from "vitest";
 import {
   workdayCount,

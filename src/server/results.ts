@@ -1,4 +1,4 @@
-// Marketing studio: results per template, for the Overview and as direction for the ideas.
+// Results per template, for the Overview and as direction for the ideas.
 import type { Post } from "./schema.js";
 
 export interface ResultEntry {

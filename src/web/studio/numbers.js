@@ -1,4 +1,4 @@
-// Marketing studio: recognising numbers in a text, for the fact bank (no number in a post
+// Recognising numbers in a text, for the fact bank (no number in a post
 // without a fact with a source). Pure.
 //
 // Known limit, also explained in the interface: numbers in words ("eight percent") are not

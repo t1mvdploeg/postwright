@@ -1,4 +1,4 @@
-// Marketing studio: writing help. The writing help only works with active facts that the
+// Writing help. The writing help only works with active facts that the
 // server loads itself, checks every suggestion for numbers without a fact, books every
 // call and respects the monthly cap.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";

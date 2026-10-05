@@ -1,4 +1,4 @@
-// Marketing studio: Overview: what is on this week, what has been left behind, and where a
+// Overview: what is on this week, what has been left behind, and where a
 // post relies on a fact that is no longer correct. Also the rhythm (last publication,
 // empty weeks), the calendar of occasions and the manual results.
 import { el, emptyState, notice } from "/ui.js";

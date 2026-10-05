@@ -1,4 +1,4 @@
-// Marketing studio: a ZIP in the browser, without a dependency. PNGs and PDFs are already
+// A ZIP in the browser, without a dependency. PNGs and PDFs are already
 // compressed, so "stored" (method 0) is enough: local headers, the bytes, a central
 // directory and the end record. `fflate` is in package.json but is not served to the
 // browser (there is no bundler); the test deliberately unpacks this ZIP with fflate.

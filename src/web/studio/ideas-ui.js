@@ -1,4 +1,4 @@
-// Marketing studio: the idea planner in Planning: the idea panel (view an idea, edit it,
+// The idea planner in Planning: the idea panel (view an idea, edit it,
 // delete it or make a post of it) and the AI suggestions over a period. Planning
 // (planning.js) keeps track of the lists and the period and passes them in via hooks.
 //

@@ -1,4 +1,4 @@
-// Marketing studio: the format table and the file names.
+// The format table and the file names.
 import { describe, it, expect } from "vitest";
 import {
   FORMATS,

@@ -1,4 +1,4 @@
-// Marketing studio: Fact bank: the claims and numbers that may be used in marketing, each
+// Fact bank: the claims and numbers that may be used in marketing, each
 // with a source and validity. A new fact starts as a draft; only when the user has
 // reviewed it and sets it to "active" does it count in the numbers check.
 import { confirmDialog, el, emptyState, notice } from "/ui.js";
@@ -8,7 +8,7 @@ import { localToday } from "/studio/recipe.js";
 
 const KINDS = { product: "Product", company: "Company", external: "External" };
 const SOURCES = { site: "Own site or document", external: "External source (https)" };
-const STATUSES = { draft: "Draft", active: "Active", withdrawn: "Withdrawn" };
+export const STATUSES = { draft: "Draft", active: "Active", withdrawn: "Withdrawn" };
 
 export async function show(container, ctx) {
   let [{ facts }, { posts }] = await Promise.all([ctx.api("/api/facts"), ctx.api("/api/posts")]);

@@ -1,4 +1,4 @@
-// Marketing studio: the export modules that run in the browser: ZIP (stored), PDF from
+// The export modules that run in the browser: ZIP (stored), PDF from
 // JPEGs and the calendar export (.ics). All pure; tested here against the structure that
 // other programs read.
 import { describe, it, expect } from "vitest";

@@ -1,4 +1,4 @@
-// Marketing studio: results per template, for the Overview.
+// Results per template, for the Overview.
 import { describe, it, expect } from "vitest";
 import { resultsPerTemplate } from "../src/server/results.js";
 import type { Post } from "../src/server/schema.js";

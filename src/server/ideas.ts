@@ -1,4 +1,4 @@
-// Marketing studio: suggesting ideas for a period. Its own schema and instruction, like
+// Suggesting ideas for a period. Its own schema and instruction, like
 // the writing help (`writing-help.ts`). The boundary lives in the route and in `tidyIdeas`:
 // the server chooses what the model sees, and re-checks everything that comes back. An
 // instruction is a request, not a boundary.

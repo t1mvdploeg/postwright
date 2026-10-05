@@ -1,4 +1,4 @@
-// Marketing studio: the caption per channel: counting, limits, hashtags and UTM links.
+// The caption per channel: counting, limits, hashtags and UTM links.
 // Pure.
 //
 // The limits are those of the platforms themselves (checked on 24 September 2026). Where
@@ -176,7 +176,7 @@ export function checkCaption(channel, text) {
     off.push({
       level: "attention",
       code: "hashtag-duplicate",
-      text: `#${d} appears more than once in (${r.name})`,
+      text: `#${d} appears more than once (${r.name})`,
       channel,
     });
   for (const a of h.truncated)

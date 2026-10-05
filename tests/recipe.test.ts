@@ -1,4 +1,4 @@
-// Marketing studio: building recipes and sending them to the server, and the time helpers.
+// Building recipes and sending them to the server, and the time helpers.
 import { describe, it, expect } from "vitest";
 import {
   ideaToRecipe,

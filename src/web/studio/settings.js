@@ -1,4 +1,4 @@
-// Marketing studio: Settings: which channels and formats are on, the UTM default, the list
+// Settings: which channels and formats are on, the UTM default, the list
 // of banned words, default hashtags, the AI help (writing help and ideas) with its mode and
 // monthly cap, and the management of uploaded images.
 import { confirmDialog, el, notice } from "/ui.js";

@@ -1,4 +1,4 @@
-// Marketing studio: suggesting ideas for a period. The server chooses what the model sees
+// Suggesting ideas for a period. The server chooses what the model sees
 // and re-checks everything that comes back: dates within the period, existing templates,
 // only supplied facts and moments, and numbers without a source reported. Nothing is saved
 // automatically.
@@ -238,7 +238,7 @@ beforeEach(() => {
   });
 });
 
-describe("POST /ideas/suggestions", () => {
+describe("POST /api/ideas/suggest", () => {
   it("is off as long as the AI help is off", async () => {
     await setAiHelp(false);
     const from = plusDays(today(), 1);

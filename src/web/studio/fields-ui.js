@@ -1,4 +1,4 @@
-// Marketing studio: the input fields of a template (or slide kind) as a form. Every field
+// The input fields of a template (or slide kind) as a form. Every field
 // gets a fixed id (`field-<id>`), so that the brand check can set focus on it with one
 // click.
 import { el } from "/ui.js";

@@ -1,4 +1,4 @@
-// Marketing studio: the editor screen: the template gallery and the editor. On the left
+// The editor screen: the template gallery and the editor. On the left
 // the fields, in the middle the preview per format, on the right the brand check, the
 // caption and the status. On Save the recipe goes to the server, together with the outcome
 // of the check over exactly that content.
@@ -30,6 +30,8 @@ import {
   convert,
 } from "/studio/recipe.js";
 import { writingHelpPanel } from "/studio/writing-help-ui.js";
+import { KINDS as SNIPPET_KINDS } from "/studio/snippets.js";
+import { STATUSES as FACT_STATUSES } from "/studio/facts.js";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -784,7 +786,7 @@ async function showEditor(container, ctx, begin) {
             changed(false);
           });
           const expired = f.validUntil && f.validUntil < today;
-          const mode = f.status !== "active" ? f.status : expired ? "expired" : "";
+          const mode = f.status !== "active" ? FACT_STATUSES[f.status] : expired ? "Expired" : "";
           return el("label", { class: "studio-radio" }, [
             control,
             el("span", { text: f.text }),
@@ -795,16 +797,16 @@ async function showEditor(container, ctx, begin) {
       if (!state.facts.length)
         list.replaceChildren(
           el("p", { class: "help-text" }, [
-            "No facts yet. Without an active fact the brand check rejects every number and the post cannot be scheduled: in the ",
-            el("a", { href: "#facts", text: "facts" }),
-            " run the sample content first and set the facts to active.",
+            "No facts yet. Without an active fact the brand check rejects every number and the post cannot be scheduled. Open the ",
+            el("a", { href: "#facts", text: "Fact bank" }),
+            ", add the sample content and set the facts to active.",
           ]),
         );
       else if (!state.facts.some((f) => f.status === "active"))
         list.prepend(
           el("p", { class: "studio-warning" }, [
             "There is no active fact yet: the brand check rejects every number. Review the draft facts in the ",
-            el("a", { href: "#facts", text: "facts" }),
+            el("a", { href: "#facts", text: "Fact bank" }),
             " and set them to active.",
           ]),
         );
@@ -896,7 +898,9 @@ async function showEditor(container, ctx, begin) {
     tagButton.addEventListener("click", () => insert(ctx.settings.defaultHashtags));
     const fromBank = el("select", { "aria-label": "Insert text from the snippet bank" }, [
       el("option", { value: "", text: "From the snippet bank…" }),
-      ...state.snippets.map((t) => el("option", { value: t.id, text: `${t.kind}: ${t.name}` })),
+      ...state.snippets.map((t) =>
+        el("option", { value: t.id, text: `${SNIPPET_KINDS[t.kind] ?? t.kind}: ${t.name}` }),
+      ),
     ]);
     fromBank.addEventListener("change", () => {
       const t = state.snippets.find((x) => x.id === fromBank.value);

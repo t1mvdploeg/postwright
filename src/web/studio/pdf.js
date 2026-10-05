@@ -1,4 +1,4 @@
-// Marketing studio: a PDF from images, for a LinkedIn document post (carousel).
+// A PDF from images, for a LinkedIn document post (carousel).
 //
 // Why from images and not from HTML: a large `box-shadow` that falls over another element
 // becomes a grey block in Chrome's PDF output. The PDF is therefore made from images,

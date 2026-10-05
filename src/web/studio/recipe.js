@@ -1,4 +1,4 @@
-// Marketing studio: building and updating a recipe (the post as the server stores it),
+// Building and updating a recipe (the post as the server stores it),
 // plus the time helpers for planning and calendar. Pure, so that vitest tests it without a
 // browser.
 import { template as templateOf, defaultContent, fieldsOf } from "./templates.js";

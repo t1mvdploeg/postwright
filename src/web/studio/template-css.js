@@ -1,4 +1,4 @@
-// Marketing studio: the base layout of all templates. An image sits here in a foreignObject
+// The base layout of all templates. An image sits here in a foreignObject
 // or a scaled iframe instead of in a browser window of its own, therefore:
 //  - no `html { font-size: calc(100vw / 108) }`: `buildImage` converts every rem to pixels
 //    (width ÷ 108), because in a foreignObject the root is the <svg> element;

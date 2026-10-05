@@ -1,4 +1,4 @@
-// Marketing studio: the template engine: escaping, emphasis, rem to pixels, and every
+// The template engine: escaping, emphasis, rem to pixels, and every
 // template in every format. The injection tests run over every field of every template
 // (and every slide kind), so that a new template that puts raw input in the markup
 // somewhere goes red here immediately.

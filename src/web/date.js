@@ -25,17 +25,3 @@ export function plusDays(date, n) {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-
-const LOCAL_DAY = new Intl.DateTimeFormat("en-CA", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-/**
- * The local calendar day (YYYY-MM-DD) of an ISO timestamp; the list shows that day, so
- * filters use it too.
- */
-export function localDay(iso) {
-  return LOCAL_DAY.format(new Date(iso));
-}

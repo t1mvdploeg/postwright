@@ -1,4 +1,4 @@
-// Marketing studio: rendering in the browser:
+// Rendering in the browser:
 // preview in a sandboxed iframe, export via SVG foreignObject → canvas → PNG/JPEG. Both
 // get exactly the same HTML and CSS from `buildImage`.
 

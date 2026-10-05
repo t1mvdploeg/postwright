@@ -1,4 +1,4 @@
-// Marketing studio: loading the brand in the browser: the active brand from
+// Loading the brand in the browser: the active brand from
 // `GET /api/brand`, the logos and the font as data URIs. An image in a foreignObject must
 // not fetch anything from outside (the image stays empty or the canvas gets "tainted");
 // with everything embedded, preview equals export. The files come from `/brand/`: the

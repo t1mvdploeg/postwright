@@ -1,4 +1,4 @@
-// Marketing studio: the calendar export (RFC 5545). Every scheduled post becomes a
+// The calendar export (RFC 5545). Every scheduled post becomes a
 // fifteen-minute appointment with a reminder beforehand. The UID is fixed per post, so
 // importing again updates the appointment instead of duplicating it. A post that is no
 // longer scheduled (back to draft or archived) is included as STATUS:CANCELLED with a

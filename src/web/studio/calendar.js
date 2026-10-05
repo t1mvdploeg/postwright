@@ -1,4 +1,4 @@
-// Marketing studio: the calculation side of the planning: month grid (Monday first), ISO
+// The calculation side of the planning: month grid (Monday first), ISO
 // week numbers and moving a post to another day with the same clock time. Pure.
 import { withOffset, toLocal, localToday } from "./recipe.js";
 // `realDate`/`plusDays` live in the shared, DOM-free `web/date.js` (no second

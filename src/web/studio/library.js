@@ -1,4 +1,4 @@
-// Marketing studio: Library: all posts (recipes), with filters. A thumbnail is only
+// Library: all posts (recipes), with filters. A thumbnail is only
 // rendered when its row comes into view; a recipe is small, an image is not.
 import { confirmDialog, el, emptyState, notice } from "/ui.js";
 import { TEMPLATES, buildImage, template as templateOf } from "/studio/templates.js";

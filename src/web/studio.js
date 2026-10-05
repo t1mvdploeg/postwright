@@ -1,4 +1,4 @@
-// Marketing studio: the shell: navigation and a hash router that loads a module per screen
+// The shell: navigation and a hash router that loads a module per screen
 // (`src/web/studio/<screen>.js`).
 //
 // The editor needs the full width and the code loads only on this page.

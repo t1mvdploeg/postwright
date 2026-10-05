@@ -1,4 +1,4 @@
-// Marketing studio: Planning: scheduled and published posts, ideas and moments as a list
+// Planning: scheduled and published posts, ideas and moments as a list
 // (default, also on a phone) or as a month, the calendar export (.ics) and the campaigns.
 // Rescheduling is always possible with a date field; dragging in the month view is an
 // extra, never the only way.

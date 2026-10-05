@@ -1,4 +1,4 @@
-// Marketing studio: loading uploaded images in the browser (brand.js), with fetch and
+// Loading uploaded images in the browser (brand.js), with fetch and
 // createImageBitmap as stubs. A failed load must not stay in the cache as "no image" for
 // the rest of the session.
 import { describe, it, expect, afterEach, vi } from "vitest";
