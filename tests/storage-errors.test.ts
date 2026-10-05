@@ -1,7 +1,7 @@
 // Files in the data folder that a user can break by hand: the studio then names the file
 // in a readable error (500) and writes nothing over or next to it.
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_SETTINGS } from "../src/server/schema.js";
 import { startStudio } from "./helpers/studio.js";
@@ -90,6 +90,25 @@ describe("a broken post file", () => {
       expect(r.body.error, `${method} ${path}`).toContain(name);
     }
     expect(readFileSync(file(name), "utf8")).toBe(content);
+  });
+});
+
+describe("a file that cannot be read from disk", () => {
+  it.each([
+    ["marketing/settings.json", "/api/settings"],
+    ["marketing/facts.json", "/api/facts"],
+    ["marketing/moments.json", "/api/moments"],
+  ])("names %s and the error code, never an absolute path", async (name, url) => {
+    const { set, ask, file, dataDir } = await start();
+    set(name, "[]");
+    chmodSync(file(name), 0o000);
+    const r = await ask(url);
+    chmodSync(file(name), 0o600);
+    if (r.status === 200) return; // running as root: nothing is unreadable
+    expect(r.status).toBe(500);
+    expect(r.body.error).toContain(name);
+    expect(r.body.error).toContain("EACCES");
+    expect(r.body.error).not.toContain(dataDir);
   });
 });
 

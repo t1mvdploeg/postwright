@@ -2,7 +2,7 @@
 // uploaded images in the data folder; the studio renders, exports (PNG, PDF, ZIP) and
 // builds the calendar export itself in the browser.
 import { ApiError, response, route, type Ctx, type Route } from "./http.js";
-import { readJson, path, serialize, type Storage } from "./files.js";
+import { readJson, path, reason, serialize, type Storage } from "./files.js";
 import {
   StorageError,
   saveSettingsFile,
@@ -71,7 +71,7 @@ import { uncoveredNumbers } from "../web/studio/numbers.js";
 import { AiError, type AiProvider, type AiResult } from "./ai/provider.js";
 import { aiMode, chooseProvider } from "./ai/choose.js";
 import { loadBrand, type Brand } from "./brand.js";
-import { book, costUsd, monthTotalUsd } from "./ai/usage.js";
+import { assertBookable, book, costUsd, monthTotalUsd, type UsageEntry } from "./ai/usage.js";
 import { z } from "zod";
 
 /** Largest upload: a screenshot or photo. */
@@ -166,7 +166,7 @@ export async function readCustomMoments(o: Storage): Promise<Moment[]> {
     if (!r.success) throw new Error(firstZodError(r.error));
     return r.data.map((m) => ({ ...m, kind: "custom" as const }));
   } catch (e) {
-    throw new ApiError(500, `marketing/moments.json cannot be read: ${e instanceof Error ? e.message : String(e)}`);
+    throw new ApiError(500, `marketing/moments.json cannot be read: ${reason(e)}`);
   }
 }
 
@@ -337,14 +337,29 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
    * booking. One call at a time for both, otherwise fast clicks read the same amount and
    * together exceed the cap. The cap applies only to the live provider; the sample provider
    * costs nothing. Every call is booked, a failed one too (with the tokens already spent).
+   * The cap fails closed: the usage file must be appendable before the call, and the cost of
+   * a call that could not be booked is kept in memory and counted with what the file says.
    */
+  const unbooked = new Map<string, number>(); // UTC month -> dollars spent but not in the file
+  async function bookCounted(line: UsageEntry) {
+    try {
+      await book(o.dataDir, line);
+    } catch (e) {
+      const month = line.timestamp.slice(0, 7);
+      unbooked.set(month, (unbooked.get(month) ?? 0) + line.usd);
+      throw e;
+    }
+  }
   async function aiHelp<T>(name: string, task: string, call: () => Promise<AiResult<T>>): Promise<AiResult<T>> {
     return serialize("marketing-ai", async () => {
       const currentSettings = await loadSettings();
       if (!currentSettings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
       const cap = currentSettings.writingHelp.capUsdPerMonth;
-      if (provider.name === "anthropic" && (await monthTotalUsd(o.dataDir, new Date())) >= cap) {
-        throw new ApiError(429, `The monthly cap for AI help ($${cap}) has been reached`);
+      if (provider.name === "anthropic") {
+        const now = new Date();
+        const total = (await monthTotalUsd(o.dataDir, now)) + (unbooked.get(now.toISOString().slice(0, 7)) ?? 0);
+        if (total >= cap) throw new ApiError(429, `The monthly cap for AI help ($${cap}) has been reached`);
+        await assertBookable(o.dataDir);
       }
       const modelName = aiMode(provider).model ?? "sample";
       let result: AiResult<T>;
@@ -352,13 +367,13 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         result = await call();
       } catch (error) {
         const usd = error instanceof AiError && error.usage ? costUsd(modelName, error.usage) : 0;
-        await book(o.dataDir, { timestamp: new Date().toISOString(), model: modelName, task, usd, ok: false });
+        await bookCounted({ timestamp: new Date().toISOString(), model: modelName, task, usd, ok: false });
         throw new ApiError(
           502,
           `${name} did not give a usable answer: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
-      await book(o.dataDir, {
+      await bookCounted({
         timestamp: new Date().toISOString(),
         model: result.model,
         task,
@@ -549,6 +564,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
             throw new ApiError(409, "An archived post goes back to draft first");
           if (p.status === "published" && target === "scheduled")
             throw new ApiError(409, "A published post cannot be scheduled again; duplicate it");
+          // `p.check` is the result of the check the browser ran; the server only stores it.
           if ((target === "scheduled" || target === "published") && (!p.check || p.check.errors > 0)) {
             throw new ApiError(
               409,

@@ -25,6 +25,15 @@ function isMissing(e: unknown): boolean {
   return (e as NodeJS.ErrnoException)?.code === "ENOENT";
 }
 
+/**
+ * Why a read failed, for a message to the user: the error code (`EACCES`) for a file system
+ * error, so that no absolute path is shown; the message for anything else (JSON, schema).
+ */
+export function reason(e: unknown): string {
+  const code = (e as NodeJS.ErrnoException)?.code;
+  return typeof code === "string" ? code : e instanceof Error ? e.message : String(e);
+}
+
 /** Reads a JSON file; null if it does not exist. Unreadable JSON does throw an error. */
 export async function readJson<T>(p: string): Promise<T | null> {
   let text: string;

@@ -78,9 +78,9 @@ const STEP = {
     },
     headlineField("Explain one *step.*"),
     textField("One idea per slide keeps the post easy to read."),
-    line("tick1", "Tick 1", "First point", 34, { help: "Only with the illustration Checklist." }),
-    line("tick2", "Tick 2", "Second point", 34),
-    line("tick3", "Tick 3", "Third point", 34),
+    line("tick1", "Item 1", "First point", 34, { help: "Only with the illustration Checklist." }),
+    line("tick2", "Item 2", "Second point", 34),
+    line("tick3", "Item 3", "Third point", 34),
   ],
   html(v, c) {
     const long = String(v.text ?? "").length > 150 ? " long" : "";

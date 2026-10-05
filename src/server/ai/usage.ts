@@ -1,8 +1,8 @@
 // What the AI costs and what has already been spent this month. One line per call in
 // `<data folder>/ai-usage.jsonl`.
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, open, readFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { path } from "../files.js";
+import { path, reason } from "../files.js";
 import { ApiError } from "../http.js";
 import type { Usage } from "./provider.js";
 
@@ -44,6 +44,20 @@ export interface UsageEntry {
 }
 
 const file = (dataDir: string) => path({ dir: dataDir }, "ai-usage.jsonl");
+
+/**
+ * Fails (500) if the usage file cannot be appended to. Called before a paid call: a call
+ * that cannot be booked afterwards would not count towards the cap.
+ */
+export async function assertBookable(dataDir: string): Promise<void> {
+  const p = file(dataDir);
+  try {
+    await mkdir(dirname(p), { recursive: true, mode: 0o700 });
+    await (await open(p, "a", 0o600)).close();
+  } catch (e) {
+    throw new ApiError(500, `ai-usage.jsonl cannot be written (${reason(e)}); no live AI calls until that is fixed`);
+  }
+}
 
 /**
  * Appends the line after the existing ones. If the file does not end with a line break (a
