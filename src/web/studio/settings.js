@@ -41,6 +41,8 @@ export async function show(container, ctx) {
       el("input", { type: "text", id: `utm-source-${k}`, value: i.utm.source?.[k] ?? k, maxlength: "50" }),
     ]),
   );
+  const tone = el("textarea", { id: "tone", rows: "3", maxlength: "1500" });
+  tone.value = i.tone ?? "";
   const banned = el("textarea", { id: "banned-words", rows: "6" });
   banned.value = i.bannedWords.join("\n");
   const hashtags = el("input", {
@@ -76,6 +78,7 @@ export async function show(container, ctx) {
             .filter(([, v]) => v),
         ),
       },
+      tone: tone.value.trim(),
       bannedWords: banned.value
         .split("\n")
         .map((w) => w.trim())
@@ -189,6 +192,14 @@ export async function show(container, ctx) {
     ]),
     el("section", { class: "card" }, [
       el("h2", { text: "Tone and words" }),
+      el("div", { class: "field" }, [
+        el("label", { for: "tone", text: "Tone of voice" }),
+        tone,
+        el("p", {
+          class: "help-text",
+          text: "A few sentences. A brand kit you create fills this in; nothing reads it automatically yet.",
+        }),
+      ]),
       el("div", { class: "field" }, [
         el("label", { for: "banned-words", text: "Banned words, one per line" }),
         banned,

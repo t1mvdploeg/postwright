@@ -2,6 +2,7 @@
 // test helper both use it, so that they cannot drift apart.
 import type { ServerOptions } from "./http.js";
 import { brandFolder, brandRoutes } from "./brand.js";
+import { brandApplyRoutes } from "./brand-apply.js";
 import { brandInputRoutes } from "./brand-input.js";
 import { proposalDir, proposalRoutes } from "./brand-proposal.js";
 import { createRoutes } from "./routes.js";
@@ -13,7 +14,14 @@ export function createApp(o: {
   provider?: AiProvider;
 }): Pick<ServerOptions, "routes" | "static" | "projects"> {
   return {
-    routes: [...projectRoutes(o), ...brandRoutes(), ...brandInputRoutes(o), ...proposalRoutes(), ...createRoutes(o)],
+    routes: [
+      ...projectRoutes(o),
+      ...brandRoutes(),
+      ...brandInputRoutes(o),
+      ...proposalRoutes(),
+      ...brandApplyRoutes(),
+      ...createRoutes(o),
+    ],
     // The brand's files (logos, fonts) come from `brand/` of the project if a brand is there.
     static: [
       { prefix: "/brand/", dir: async (project) => brandFolder((await project()).dir) },
