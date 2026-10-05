@@ -73,6 +73,7 @@ import { uncoveredNumbers } from "../web/studio/numbers.js";
 import type { AiProvider, AiResult } from "./ai/provider.js";
 import { aiMode, chooseProvider } from "./ai/choose.js";
 import { loadBrand, type Brand } from "./brand.js";
+import { loadOwnTemplates } from "./template-store.js";
 import { runPaid } from "./ai/guard.js";
 import { z } from "zod";
 
@@ -223,6 +224,8 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       name: string;
       /** Extra check before saving (uniqueness); throws an ApiError. */
       runCheck?: (input: Record<string, unknown>, lines: T[], id: string | null) => void;
+      /** An asynchronous check before saving that needs the project (not the list); throws an ApiError. */
+      beforeSave?: (s: Storage, input: Record<string, unknown>) => Promise<void>;
       /** Why this entry may not be deleted, or null. */
       isProtected?: (s: Storage, id: string) => Promise<string | null>;
     },
@@ -236,6 +239,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       route("POST", path, async (c) => {
         const s = await store(c);
         const input = validate(schema, await c.readJson()) as Record<string, unknown>;
+        await options.beforeSave?.(s, input);
         const now = new Date().toISOString();
         const line = await updateList<T, T>(s, list, (lines) => {
           options.runCheck?.(input, lines, null);
@@ -249,6 +253,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         const s = await store(c);
         const id = idFrom(c);
         const input = validate(schema, await c.readJson()) as Record<string, unknown>;
+        await options.beforeSave?.(s, input);
         const line = await updateList<T, T>(s, list, (lines) => {
           const i = lines.findIndex((r) => r.id === id);
           if (i < 0) throw new ApiError(404, `${options.name[0].toUpperCase()}${options.name.slice(1)} not found`);
@@ -700,8 +705,13 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     // -----------------------------------------------------------------------------------------
     ...listRoutes<Idea>("ideas", "/api/ideas", IdeaInputSchema, {
       name: "idea",
-      runCheck: (input) => {
-        if (input.template && !templateOf(String(input.template))) throw new ApiError(400, "Unknown template");
+      // A template is a built-in one or an own template of this project. The server never
+      // registers own templates (that is for the browser), so `templateOf` knows built-ins only.
+      beforeSave: async (s, input) => {
+        if (!input.template) return;
+        const id = String(input.template);
+        if (templateOf(id) || (await loadOwnTemplates(s.dir)).some((t) => t.id === id)) return;
+        throw new ApiError(400, "Unknown template");
       },
     }),
 
@@ -862,7 +872,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         count: v.count,
         channel: v.channel,
         note: v.note,
-        templates: TEMPLATES.map((s) => ({ id: s.id, name: s.name, goal: s.goal })),
+        templates: [...TEMPLATES, ...(await loadOwnTemplates(s.dir))].map((t) => ({
+          id: t.id,
+          name: t.name,
+          goal: t.goal,
+        })),
         facts: facts
           .filter((f) => !factUnusable(f, today))
           .slice(0, 60)

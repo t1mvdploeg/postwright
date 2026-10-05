@@ -1,5 +1,6 @@
 // The example template and variants of it, as plain data that a test can break.
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 /** The worked example: a statement in tree form, as a proposal (no id, no created). */
 export function exampleTemplate(): any {
@@ -75,4 +76,11 @@ export function answerOf(file: any, notes: string[] = []): any {
     },
     notes,
   };
+}
+
+/** Writes a saved template into the `templates/` folder of a project and returns its id. */
+export function writeOwn(projectDir: string, template: any = exampleTemplate(), id = "own-0123abcd"): string {
+  mkdirSync(join(projectDir, "templates"), { recursive: true });
+  writeFileSync(join(projectDir, "templates", `${id}.json`), JSON.stringify(saved(template, id), null, 2));
+  return id;
 }

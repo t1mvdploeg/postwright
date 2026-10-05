@@ -12,6 +12,7 @@ import { projectRoutes, resolveProject } from "./projects.js";
 import { chooseBrandClient } from "./ai/choose.js";
 import type { BrandClient } from "./ai/brand.js";
 import type { AiProvider } from "./ai/provider.js";
+import { templateRoutes } from "./template-routes.js";
 
 export function createApp(o: {
   dataDir: string;
@@ -29,6 +30,7 @@ export function createApp(o: {
       ...brandApplyRoutes(),
       ...brandPromptRoutes(),
       ...brandGenerateRoutes({ dataDir: o.dataDir, brand }),
+      ...templateRoutes(),
       ...createRoutes(o),
     ],
     // The brand's files (logos, fonts) come from `brand/` of the project if a brand is there.
