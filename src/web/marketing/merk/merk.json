@@ -1,0 +1,162 @@
+{
+  "versie": "mixed-1.0",
+  "kit": "docs/ontwerpen/brand-kits/Mixed/mijntarieftool",
+  "toelichting": "Overgenomen uit de Mixed-merkkit (open vraag 1 in docs/ontwerpen/2026-09-24-marketingstudio.md). Elk bestand in deze map is byte-gelijk aan zijn bron in de kit; tests/marketing-merk.test.ts bewaakt dat.",
+  "css": {
+    "--inkt": "#10243e",
+    "--blauw": "#245cf0",
+    "--blauw-hover": "#1748c9",
+    "--lucht": "#55b6ff",
+    "--zacht-blauw": "#eaf2ff",
+    "--bleek-blauw": "#cfe2ff",
+    "--achtergrond": "oklch(0.982 0.006 248)",
+    "--wit": "#fff",
+    "--gedempt": "#5a6b84",
+    "--lijn": "#dde6f4",
+    "--succes": "#2e7d32",
+    "--waarschuwing": "#8a4d00",
+    "--zacht-waarschuwing": "#fdf1dc",
+    "--fout": "#b3261e"
+  },
+  "kleuren": [
+    {
+      "naam": "actieblauw",
+      "hex": "#245cf0",
+      "gebruik": "Primair accent, actie en merk"
+    },
+    {
+      "naam": "dossierinkt",
+      "hex": "#10243e",
+      "gebruik": "Tekst en donkere vlakken"
+    },
+    {
+      "naam": "papierwit",
+      "hex": "#ffffff",
+      "gebruik": "Papier en tekst op blauw"
+    },
+    {
+      "naam": "werkcanvas",
+      "hex": "#f6f8fd",
+      "gebruik": "Lichte achtergrond"
+    },
+    {
+      "naam": "luchtblauw",
+      "hex": "#55b6ff",
+      "gebruik": "Accent op dossierinkt"
+    },
+    {
+      "naam": "bleekblauw",
+      "hex": "#cfe2ff",
+      "gebruik": "Documentcirkels en tekst op inkt"
+    },
+    {
+      "naam": "zachte-selectie",
+      "hex": "#eaf2ff",
+      "gebruik": "Selectie en subtiele vlakken"
+    },
+    {
+      "naam": "potloodgrijs",
+      "hex": "#5a6b84",
+      "gebruik": "Secundaire tekst op licht"
+    },
+    {
+      "naam": "archieflijn",
+      "hex": "#dde6f4",
+      "gebruik": "Randen en haarlijnen"
+    },
+    {
+      "naam": "diep-actieblauw",
+      "hex": "#1748c9",
+      "gebruik": "Actie hover"
+    },
+    {
+      "naam": "bevestigd",
+      "hex": "#2e7d32",
+      "gebruik": "Status met tekst en icoon"
+    },
+    {
+      "naam": "let-op",
+      "hex": "#8a4d00",
+      "gebruik": "Status met tekst en icoon"
+    },
+    {
+      "naam": "let-op-zacht",
+      "hex": "#fdf1dc",
+      "gebruik": "Waarschuwingsachtergrond"
+    },
+    {
+      "naam": "fout",
+      "hex": "#b3261e",
+      "gebruik": "Status met tekst en icoon"
+    }
+  ],
+  "typografie": {
+    "familie": "Geist",
+    "gewichten": {
+      "tekst": 400,
+      "kop": 550,
+      "interface": 600,
+      "woordmerk": 630
+    },
+    "tracking": {
+      "kop": "-0.04em",
+      "woordmerk": "-0.035em"
+    },
+    "cijfers": "tabular-nums"
+  },
+  "logos": {
+    "standaard": "logo/mijntarieftool-logo.svg",
+    "op-inkt": "logo/mijntarieftool-logo-op-inkt.svg",
+    "op-blauw": "logo/mijntarieftool-logo-op-blauw.svg",
+    "wit": "logo/mijntarieftool-logo-wit.svg",
+    "inkt": "logo/mijntarieftool-logo-inkt.svg",
+    "merkteken": "logo/mijntarieftool-merkteken.svg",
+    "merkteken-op-inkt": "logo/mijntarieftool-merkteken-op-inkt.svg",
+    "merkteken-op-blauw": "logo/mijntarieftool-merkteken-op-blauw.svg"
+  },
+  "bestanden": {
+    "logo": [
+      "logo/mijntarieftool-logo-e-mail.png",
+      "logo/mijntarieftool-logo-gestapeld-inkt.svg",
+      "logo/mijntarieftool-logo-gestapeld-op-blauw.svg",
+      "logo/mijntarieftool-logo-gestapeld-op-inkt.svg",
+      "logo/mijntarieftool-logo-gestapeld-wit.svg",
+      "logo/mijntarieftool-logo-gestapeld-zwart.svg",
+      "logo/mijntarieftool-logo-gestapeld.svg",
+      "logo/mijntarieftool-logo-inkt.svg",
+      "logo/mijntarieftool-logo-op-blauw.svg",
+      "logo/mijntarieftool-logo-op-inkt.svg",
+      "logo/mijntarieftool-logo-wit.svg",
+      "logo/mijntarieftool-logo-zwart.svg",
+      "logo/mijntarieftool-logo.svg",
+      "logo/mijntarieftool-merkteken-inkt.svg",
+      "logo/mijntarieftool-merkteken-op-blauw.svg",
+      "logo/mijntarieftool-merkteken-op-inkt.svg",
+      "logo/mijntarieftool-merkteken-vol.svg",
+      "logo/mijntarieftool-merkteken-wit.svg",
+      "logo/mijntarieftool-merkteken-zwart.svg",
+      "logo/mijntarieftool-merkteken.svg",
+      "logo/mijntarieftool-woordmerk-inkt.svg",
+      "logo/mijntarieftool-woordmerk-op-blauw.svg",
+      "logo/mijntarieftool-woordmerk-op-inkt.svg",
+      "logo/mijntarieftool-woordmerk-wit.svg",
+      "logo/mijntarieftool-woordmerk-zwart.svg",
+      "logo/mijntarieftool-woordmerk.svg"
+    ],
+    "motieven": [
+      "motieven/cirkel.svg",
+      "motieven/keten-inkt.svg",
+      "motieven/keten-licht.svg",
+      "motieven/route-blauw.svg",
+      "motieven/route-inkt.svg",
+      "motieven/route-licht.svg"
+    ],
+    "profiel": [
+      "profiel/profiel-blauw.svg",
+      "profiel/profiel-inkt.svg",
+      "profiel/profiel-licht.svg"
+    ],
+    "iconen": "iconen.svg",
+    "eMailLogo": "logo/mijntarieftool-logo-e-mail.png"
+  }
+}

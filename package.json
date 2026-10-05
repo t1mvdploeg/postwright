@@ -1,0 +1,17 @@
+{
+  "name": "postwright",
+  "version": "0.1.0",
+  "description": "Make on-brand social posts from templates, with planning and AI writing help.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --import tsx src/server/start.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write src tests",
+    "format:check": "prettier --check src tests"
+  },
+  "dependencies": { "@anthropic-ai/sdk": "^0.124.0", "tsx": "^4.19.0", "zod": "^4.5.4" },
+  "devDependencies": { "@types/node": "^22.20.4", "fflate": "^0.8.3", "prettier": "^3.0.0", "typescript": "^5.9.0", "vitest": "^3.0.0" }
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marketingstudio — Mijntarieftool</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/app.css"></head>
+<body>
+<div id="studio-app" class="app-shell studio" hidden>
+  <aside id="studio-zijbalk" class="app-zijbalk">
+    <div class="app-merk">
+      <div class="app-merk-tekst">
+        <a class="logo" href="/beheer/marketing#overzicht">
+          <svg aria-hidden="true" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M7 9h5l4 4m-9 3h10m-10 7h5l4-4m0-3h4l5-6m-4 0h4v4" stroke="#fff" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Mijntarieftool</span>
+        </a>
+        <small>Marketingstudio</small>
+      </div>
+    </div>
+    <nav id="studio-nav" class="app-navigatie" aria-label="Marketingstudio"></nav>
+    <div class="app-profiel">
+      <div><b id="studio-naam">Beheerder</b><span>Platformadmin</span></div>
+      <div class="app-profiel-links"><a href="/beheer">← Platformbeheer</a></div>
+      <button id="studio-uitloggen" class="secundair" type="button">Uitloggen</button>
+    </div>
+  </aside>
+  <div id="studio-overlay" class="app-overlay" hidden></div>
+  <div class="app-werkvlak">
+    <header class="app-werkbalk">
+      <button id="studio-menu" class="secundair app-menu" type="button" aria-label="Menu openen" aria-expanded="false">Menu</button>
+      <div class="app-paginakop"><span>Marketingstudio</span><h1 id="studio-titel">Overzicht</h1></div>
+      <a id="studio-nieuw" class="knop" href="#maken">Nieuwe post</a>
+    </header>
+    <main id="studio-hoofd" class="app-inhoud">
+      <div id="studio-inhoud"></div>
+    </main>
+  </div>
+</div>
+<script type="module" src="/marketing.js"></script>
+</body></html>
