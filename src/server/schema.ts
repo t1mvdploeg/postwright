@@ -7,7 +7,6 @@
 // has exactly one emphasis is checked by the brand check in the browser, and that outcome
 // travels with the content (see `check` below).
 import { z } from "zod";
-import "../core/zod-nl.js";
 
 /**
  * The formats the studio knows; equal to the keys in `src/web/studio/formats.js`
