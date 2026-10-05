@@ -16,10 +16,13 @@ describe("zip", () => {
 
   it("levert een ZIP die fflate uitpakt tot dezelfde namen en bytes, ook met accenten", () => {
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 250]);
-    const zip = maakZip([
-      { naam: "postwright_stelling_li-vierkant_1200x1200.png", bytes: png },
-      { naam: "posttekst café.txt", bytes: "Genoeg gezien. Nu bent u aan zet." },
-    ], new Date(2026, 8, 24, 13, 30, 10));
+    const zip = maakZip(
+      [
+        { naam: "postwright_stelling_li-vierkant_1200x1200.png", bytes: png },
+        { naam: "posttekst café.txt", bytes: "Genoeg gezien. Nu bent u aan zet." },
+      ],
+      new Date(2026, 8, 24, 13, 30, 10),
+    );
     const uit = unzipSync(zip);
     expect(Object.keys(uit)).toEqual(["postwright_stelling_li-vierkant_1200x1200.png", "posttekst café.txt"]);
     expect([...uit["postwright_stelling_li-vierkant_1200x1200.png"]]).toEqual([...png]);
@@ -39,7 +42,13 @@ describe("pdf", () => {
   const tekst = (b: Uint8Array) => new TextDecoder("latin1").decode(b);
 
   it("heeft één pagina per dia met de juiste MediaBox en de JPEG ongewijzigd in de stream", () => {
-    const pdf = maakPdf([{ jpeg, breedte: 1080, hoogte: 1350 }, { jpeg, breedte: 1080, hoogte: 1350 }], { titel: "Carrousel" });
+    const pdf = maakPdf(
+      [
+        { jpeg, breedte: 1080, hoogte: 1350 },
+        { jpeg, breedte: 1080, hoogte: 1350 },
+      ],
+      { titel: "Carrousel" },
+    );
     const t = tekst(pdf);
     expect(t.startsWith("%PDF-1.4")).toBe(true);
     expect(t).toContain("/Count 2");
@@ -51,12 +60,19 @@ describe("pdf", () => {
   });
 
   it("heeft een xref waarvan elke offset naar het begin van zijn object wijst", () => {
-    const pdf = maakPdf([{ jpeg, breedte: 1200, hoogte: 1200 }, { jpeg, breedte: 1200, hoogte: 1200 }, { jpeg, breedte: 1200, hoogte: 1200 }]);
+    const pdf = maakPdf([
+      { jpeg, breedte: 1200, hoogte: 1200 },
+      { jpeg, breedte: 1200, hoogte: 1200 },
+      { jpeg, breedte: 1200, hoogte: 1200 },
+    ]);
     const t = tekst(pdf);
     const startxref = Number(t.match(/startxref\n(\d+)\n/)![1]);
     expect(t.slice(startxref, startxref + 4)).toBe("xref");
     const [, aantal] = t.slice(startxref).match(/xref\n0 (\d+)\n/)!;
-    const regels = t.slice(startxref).split("\n").slice(3, 2 + Number(aantal));
+    const regels = t
+      .slice(startxref)
+      .split("\n")
+      .slice(3, 2 + Number(aantal));
     regels.forEach((regel, i) => {
       const offset = Number(regel.slice(0, 10));
       expect(t.slice(offset, offset + `${i + 1} 0 obj`.length), `object ${i + 1}`).toBe(`${i + 1} 0 obj`);
@@ -80,7 +96,12 @@ describe("ics", () => {
     const regel = `SUMMARY:${"a".repeat(66)}ëëëë`;
     const gevouwen = vouw(regel);
     for (const deel of gevouwen.split("\r\n")) expect(enc.encode(deel).length).toBeLessThanOrEqual(75);
-    expect(gevouwen.split("\r\n").map((d, i) => (i ? d.slice(1) : d)).join("")).toBe(regel);
+    expect(
+      gevouwen
+        .split("\r\n")
+        .map((d, i) => (i ? d.slice(1) : d))
+        .join(""),
+    ).toBe(regel);
     expect(vouw("kort")).toBe("kort");
   });
 
@@ -91,10 +112,18 @@ describe("ics", () => {
   });
 
   it("maakt per geplande post een afspraak met vast UID, herinnering en link, met CRLF", () => {
-    const ics = maakIcs([
-      { id: "p-1", titel: "Stelling, accent", gepland: "2026-10-06T08:30:00+02:00", posttekst: { linkedin: "Genoeg gezien." } },
-      { id: "p-2", titel: "Zonder datum", gepland: null },
-    ], { basisUrl: "https://postwright.example", merknaam: "Postwright", nu: new Date("2026-10-01T00:00:00Z") });
+    const ics = maakIcs(
+      [
+        {
+          id: "p-1",
+          titel: "Stelling, accent",
+          gepland: "2026-10-06T08:30:00+02:00",
+          posttekst: { linkedin: "Genoeg gezien." },
+        },
+        { id: "p-2", titel: "Zonder datum", gepland: null },
+      ],
+      { basisUrl: "https://postwright.example", merknaam: "Postwright", nu: new Date("2026-10-01T00:00:00Z") },
+    );
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
@@ -108,10 +137,13 @@ describe("ics", () => {
   });
 
   it("trekt een afspraak in van een post die niet meer gepland staat", () => {
-    const ics = maakIcs([
-      { id: "p-1", titel: "Gepland", gepland: "2026-10-06T08:30:00+02:00", status: "gepland" },
-      { id: "p-2", titel: "Terug naar concept", gepland: "2026-10-07T08:30:00+02:00", status: "concept" },
-    ], { basisUrl: "https://postwright.example", merknaam: "Postwright" });
+    const ics = maakIcs(
+      [
+        { id: "p-1", titel: "Gepland", gepland: "2026-10-06T08:30:00+02:00", status: "gepland" },
+        { id: "p-2", titel: "Terug naar concept", gepland: "2026-10-07T08:30:00+02:00", status: "concept" },
+      ],
+      { basisUrl: "https://postwright.example", merknaam: "Postwright" },
+    );
     const [gepland, ingetrokken] = ics.split("BEGIN:VEVENT").slice(1);
     expect(gepland).toContain("SEQUENCE:0");
     expect(gepland).not.toContain("STATUS:CANCELLED");

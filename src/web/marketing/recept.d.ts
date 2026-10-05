@@ -21,7 +21,18 @@ export function metOffset(lokaal: string): string | null;
 export function naarLokaal(iso: string): string;
 export function leesbaarMoment(iso: string): string;
 export function nieuwRecept(id: string, opties?: { formatenAan?: string[]; merkVersie?: string }): Recept;
-export function naarInvoer(post: Partial<Recept>, s: Sjabloon, controle: { fouten: number; letOp: number; op: string } | null): Recept & { controle: unknown };
+export function naarInvoer(
+  post: Partial<Recept>,
+  s: Sjabloon,
+  controle: { fouten: number; letOp: number; op: string } | null,
+): Recept & { controle: unknown };
 export function verplaatsDia(dias: Dia[], index: number, richting: number): number;
-export function ideeNaarRecept(idee: { sjabloon: string; titel: string; kop?: string; feiten?: string[]; campagne?: string | null }, opties?: { formatenAan?: string[]; merkVersie?: string }): Recept;
-export function zetOm(post: Partial<Recept> & { sjabloon: string; titel: string }, doelId: string, opties?: { formatenAan?: string[]; merkVersie?: string }): Recept;
+export function ideeNaarRecept(
+  idee: { sjabloon: string; titel: string; kop?: string; feiten?: string[]; campagne?: string | null },
+  opties?: { formatenAan?: string[]; merkVersie?: string },
+): Recept;
+export function zetOm(
+  post: Partial<Recept> & { sjabloon: string; titel: string },
+  doelId: string,
+  opties?: { formatenAan?: string[]; merkVersie?: string },
+): Recept;

@@ -3,6 +3,12 @@ export function icsTekst(t: unknown): string;
 export function vouw(regel: string): string;
 export function icsTijd(moment: string | number | Date): string;
 export function maakIcs(
-  posts: Array<{ id: string; titel: string; gepland: string | null; status?: string; posttekst?: Record<string, string> }>,
+  posts: Array<{
+    id: string;
+    titel: string;
+    gepland: string | null;
+    status?: string;
+    posttekst?: Record<string, string>;
+  }>,
   opties: { basisUrl: string; merknaam: string; nu?: Date },
 ): string;

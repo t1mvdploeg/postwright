@@ -11,17 +11,24 @@ import { ongedekteGetallen } from "../web/marketing/getallen.js";
 // Dezelfde toets als de routes en de browser gebruiken.
 import { echteDatum } from "../web/marketing/kalender.js";
 
-export const IdeeenVerzoekSchema = z.object({
-  van: z.string().refine(echteDatum, "van: een bestaande datum (JJJJ-MM-DD)"),
-  tot: z.string().refine(echteDatum, "tot: een bestaande datum (JJJJ-MM-DD)"),
-  aantal: z.number().int().min(1).max(20),
-  kanaal: z.enum(KANALEN),
-  toelichting: z.string().max(1000).default(""),
-  campagne: z.string().regex(CAMPAGNE_ID, "ongeldig campagne-id").nullable().default(null),
-}).strict().refine((v) => v.van <= v.tot, { message: "tot ligt vóór van", path: ["tot"] });
+export const IdeeenVerzoekSchema = z
+  .object({
+    van: z.string().refine(echteDatum, "van: een bestaande datum (JJJJ-MM-DD)"),
+    tot: z.string().refine(echteDatum, "tot: een bestaande datum (JJJJ-MM-DD)"),
+    aantal: z.number().int().min(1).max(20),
+    kanaal: z.enum(KANALEN),
+    toelichting: z.string().max(1000).default(""),
+    campagne: z.string().regex(CAMPAGNE_ID, "ongeldig campagne-id").nullable().default(null),
+  })
+  .strict()
+  .refine((v) => v.van <= v.tot, { message: "tot ligt vóór van", path: ["tot"] });
 
 export interface IdeeenOpdracht {
-  van: string; tot: string; aantal: number; kanaal: string; toelichting: string;
+  van: string;
+  tot: string;
+  aantal: number;
+  kanaal: string;
+  toelichting: string;
   sjablonen: Array<{ id: string; naam: string; doel: string }>;
   feiten: Array<{ id: string; tekst: string; soort: string }>;
   momenten: Array<{ sleutel: string; datum: string; titel: string; zin: string }>;
@@ -33,19 +40,30 @@ export interface IdeeenOpdracht {
 
 /** Antwoordschema zonder optionele velden of records (structured outputs in strict-modus). */
 export const IdeeenVoorstelSchema = z.object({
-  ideeen: z.array(z.object({
-    datum: z.string().max(10),
-    titel: z.string().max(200),
-    toelichting: z.string().max(1000),
-    sjabloon: z.string().max(40),
-    kop: z.string().max(300),
-    feiten: z.array(z.string().max(60)),
-    moment: z.string().max(80),
-  })),
+  ideeen: z.array(
+    z.object({
+      datum: z.string().max(10),
+      titel: z.string().max(200),
+      toelichting: z.string().max(1000),
+      sjabloon: z.string().max(40),
+      kop: z.string().max(300),
+      feiten: z.array(z.string().max(60)),
+      moment: z.string().max(80),
+    }),
+  ),
 });
 export type IdeeenVoorstel = z.infer<typeof IdeeenVoorstelSchema>;
 
-export interface IdeeVoorstel { datum: string; titel: string; toelichting: string; sjabloon: string | null; kop: string; feiten: string[]; moment: string | null; ongedekt: string[] }
+export interface IdeeVoorstel {
+  datum: string;
+  titel: string;
+  toelichting: string;
+  sjabloon: string | null;
+  kop: string;
+  feiten: string[];
+  moment: string | null;
+  ongedekt: string[];
+}
 
 export function ideeenInstructie(merk: PromptMerk): string {
   return (
@@ -97,12 +115,21 @@ export function ruimIdeeenOp(v: IdeeenVoorstel, o: IdeeenOpdracht): IdeeVoorstel
     .map((i) => {
       const eigen = [...new Set(i.feiten)].filter((id) => feiten.has(id)).slice(0, 10);
       const moment = momenten.has(i.moment) ? i.moment : null;
-      const bronnen = [...eigen.map((id) => ({ tekst: feiten.get(id)!.tekst })), ...(moment ? [{ tekst: momenten.get(moment)!.zin }] : [])];
+      const bronnen = [
+        ...eigen.map((id) => ({ tekst: feiten.get(id)!.tekst })),
+        ...(moment ? [{ tekst: momenten.get(moment)!.zin }] : []),
+      ];
       const titel = i.titel.trim().slice(0, 120);
       const toelichting = i.toelichting.trim().slice(0, 1000);
       const kop = i.kop.trim().slice(0, 200);
       return {
-        datum: i.datum, titel, toelichting, sjabloon: sjablonen.has(i.sjabloon) ? i.sjabloon : null, kop, feiten: eigen, moment,
+        datum: i.datum,
+        titel,
+        toelichting,
+        sjabloon: sjablonen.has(i.sjabloon) ? i.sjabloon : null,
+        kop,
+        feiten: eigen,
+        moment,
         ongedekt: [...new Set(ongedekteGetallen(`${titel}\n${toelichting}\n${kop}`, bronnen).map((g) => g.tekst))],
       };
     })

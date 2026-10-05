@@ -16,7 +16,11 @@ export async function haalAiStand() {
 
 /** De vaste balk boven voorbeeldantwoorden, en het etiket bij elk voorstel. */
 export function voorbeeldBalk() {
-  return el("p", { class: "studio-waarschuwing studio-voorbeeldbalk", role: "status", text: "No API key active. These are sample answers." });
+  return el("p", {
+    class: "studio-waarschuwing studio-voorbeeldbalk",
+    role: "status",
+    text: "No API key active. These are sample answers.",
+  });
 }
 export function voorbeeldEtiket() {
   return el("span", { class: "studio-etiket", text: "Sample" });
@@ -30,40 +34,69 @@ const TAKEN = [
 
 /** De al ingevulde inhoud van de post, voor de opdracht: alleen de velden die de hulp kent. */
 function huidigeInhoud(post, velden, kanaal) {
-  const veld = Object.fromEntries(velden.map((v) => [v.id, String(post.inhoud?.[v.id] ?? "")]).filter(([, t]) => t.trim()));
+  const veld = Object.fromEntries(
+    velden.map((v) => [v.id, String(post.inhoud?.[v.id] ?? "")]).filter(([, t]) => t.trim()),
+  );
   return { velden: veld, posttekst: post.posttekst?.[kanaal] ?? "", altTekst: post.altTekst ?? "" };
 }
 
 export function schrijfhulpPaneel({ ctx, sjabloon, veldenNu, postNu, kanaalNu, pasToe, zetPosttekst, zetAlt }) {
-  const taak = el("select", { id: "hulp-taak" }, TAKEN.map(([w, t]) => el("option", { value: w, text: t })));
-  const toelichting = el("textarea", { id: "hulp-toelichting", rows: "3", maxlength: "1000", placeholder: "Bijvoorbeeld: voor beginnende gebruikers, over het gratis proberen." });
+  const taak = el(
+    "select",
+    { id: "hulp-taak" },
+    TAKEN.map(([w, t]) => el("option", { value: w, text: t })),
+  );
+  const toelichting = el("textarea", {
+    id: "hulp-toelichting",
+    rows: "3",
+    maxlength: "1000",
+    placeholder: "Bijvoorbeeld: voor beginnende gebruikers, over het gratis proberen.",
+  });
   const vraag = el("button", { type: "button", text: "Vraag drie voorstellen" });
   const annuleer = el("button", { type: "button", class: "secundair", text: "Annuleren", hidden: "" });
   const stand = el("p", { class: "hulptekst", role: "status", "aria-live": "polite" });
   const uitkomst = el("div", { class: "studio-varianten" });
   const balk = el("div");
-  haalAiStand().then((a) => { if (a?.stand === "voorbeeld") balk.replaceChildren(voorbeeldBalk()); });
+  haalAiStand().then((a) => {
+    if (a?.stand === "voorbeeld") balk.replaceChildren(voorbeeldBalk());
+  });
   let afbreken = null;
 
   function voorstel(v, i, voorbeeld) {
     const regels = [];
     const t = taak.value;
-    if (t === "velden") for (const [id, waarde] of Object.entries(v.velden ?? {})) {
-      const veld = veldenNu().find((x) => x.id === id);
-      regels.push(el("p", {}, [el("b", { text: `${veld?.label ?? id}: ` }), zonderNadruk(waarde)]));
-    }
+    if (t === "velden")
+      for (const [id, waarde] of Object.entries(v.velden ?? {})) {
+        const veld = veldenNu().find((x) => x.id === id);
+        regels.push(el("p", {}, [el("b", { text: `${veld?.label ?? id}: ` }), zonderNadruk(waarde)]));
+      }
     if (t === "posttekst") regels.push(el("p", { class: "studio-varianttekst", text: v.posttekst ?? "" }));
     if (t === "alt-tekst") regels.push(el("p", { text: v.altTekst ?? "" }));
     const ongedekt = v.ongedekt ?? [];
-    if (ongedekt.length) regels.push(el("p", { class: "studio-waarschuwing", text: `Bevat een getal dat in geen gekoppeld feit staat: ${ongedekt.join(", ")}. Niet over te nemen.` }));
-    const gebruik = el("button", { type: "button", class: "secundair klein", text: "Gebruik deze", ...(ongedekt.length ? { disabled: "" } : {}) });
+    if (ongedekt.length)
+      regels.push(
+        el("p", {
+          class: "studio-waarschuwing",
+          text: `Bevat een getal dat in geen gekoppeld feit staat: ${ongedekt.join(", ")}. Niet over te nemen.`,
+        }),
+      );
+    const gebruik = el("button", {
+      type: "button",
+      class: "secundair klein",
+      text: "Gebruik deze",
+      ...(ongedekt.length ? { disabled: "" } : {}),
+    });
     gebruik.addEventListener("click", () => {
       if (t === "velden") pasToe(v.velden ?? {});
       else if (t === "posttekst") zetPosttekst(v.posttekst ?? "");
       else zetAlt(v.altTekst ?? "");
       melding("Voorstel overgenomen; bewaar de post om het vast te leggen");
     });
-    return el("article", { class: "studio-variant" }, [el("h3", {}, [`Voorstel ${i + 1} `, ...(voorbeeld ? [voorbeeldEtiket()] : [])]), ...regels, gebruik]);
+    return el("article", { class: "studio-variant" }, [
+      el("h3", {}, [`Voorstel ${i + 1} `, ...(voorbeeld ? [voorbeeldEtiket()] : [])]),
+      ...regels,
+      gebruik,
+    ]);
   }
 
   vraag.addEventListener("click", async () => {
@@ -74,16 +107,35 @@ export function schrijfhulpPaneel({ ctx, sjabloon, veldenNu, postNu, kanaalNu, p
     stand.textContent = "De schrijfhulp denkt na…";
     uitkomst.replaceChildren();
     try {
-      const velden = veldenNu().filter((v) => v.soort !== "keuze" && v.soort !== "media")
-        .map((v) => ({ id: v.id, label: v.label, soort: v.soort, max: v.max ?? null, nadruk: v.nadruk === "precies-een" }));
+      const velden = veldenNu()
+        .filter((v) => v.soort !== "keuze" && v.soort !== "media")
+        .map((v) => ({
+          id: v.id,
+          label: v.label,
+          soort: v.soort,
+          max: v.max ?? null,
+          nadruk: v.nadruk === "precies-een",
+        }));
       const r = await fetch("/api/schrijfhulp", {
-        method: "POST", signal: afbreken.signal, headers: { "content-type": "application/json" },
-        body: JSON.stringify({ taak: taak.value, sjabloon: sjabloon.naam, velden, kanaal: kanaalNu(), toelichting: toelichting.value, feiten: post.feiten ?? [], huidig: huidigeInhoud(post, velden, kanaalNu()) }),
+        method: "POST",
+        signal: afbreken.signal,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          taak: taak.value,
+          sjabloon: sjabloon.naam,
+          velden,
+          kanaal: kanaalNu(),
+          toelichting: toelichting.value,
+          feiten: post.feiten ?? [],
+          huidig: huidigeInhoud(post, velden, kanaalNu()),
+        }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.fout ?? `De schrijfhulp gaf een fout (${r.status})`);
       uitkomst.replaceChildren(...data.varianten.map((v, i) => voorstel(v, i, data.voorbeeld)));
-      stand.textContent = data.varianten.length ? `${data.varianten.length} voorstellen.` : "Geen bruikbaar voorstel ontvangen.";
+      stand.textContent = data.varianten.length
+        ? `${data.varianten.length} voorstellen.`
+        : "Geen bruikbaar voorstel ontvangen.";
     } catch (e) {
       stand.textContent = e.name === "AbortError" ? "Afgebroken." : "";
       if (e.name !== "AbortError") melding(e.message, "fout");
@@ -98,9 +150,15 @@ export function schrijfhulpPaneel({ ctx, sjabloon, veldenNu, postNu, kanaalNu, p
   const element = el("details", { class: "blok studio-schrijfhulp" }, [
     el("summary", { text: "Schrijfhulp" }),
     el("div", { class: "blok-inhoud" }, [
-      el("p", { class: "hulptekst", text: "Voorstellen uitsluitend uit de gekoppelde, actieve feiten, in de toon van de site. U kiest zelf; niets wordt automatisch bewaard." }),
+      el("p", {
+        class: "hulptekst",
+        text: "Voorstellen uitsluitend uit de gekoppelde, actieve feiten, in de toon van de site. U kiest zelf; niets wordt automatisch bewaard.",
+      }),
       el("div", { class: "veld" }, [el("label", { for: "hulp-taak", text: "Wat moet er komen" }), taak]),
-      el("div", { class: "veld" }, [el("label", { for: "hulp-toelichting", text: "Toelichting (optioneel)" }), toelichting]),
+      el("div", { class: "veld" }, [
+        el("label", { for: "hulp-toelichting", text: "Toelichting (optioneel)" }),
+        toelichting,
+      ]),
       el("div", { class: "knoppenrij" }, [vraag, annuleer]),
       stand,
       balk,

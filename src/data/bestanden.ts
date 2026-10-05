@@ -7,7 +7,9 @@ function dataDir(): string {
 }
 
 /** Waar de gegevens staan. `dir` is de datamap; zonder `dir` geldt `POSTWRIGHT_DATA_DIR` of `./data`. */
-export interface Opslag { dir?: string }
+export interface Opslag {
+  dir?: string;
+}
 
 /**
  * Pad binnen de datamap, bijvoorbeeld `pad(o, "marketing", "posts", "123.json")`. Een resultaat

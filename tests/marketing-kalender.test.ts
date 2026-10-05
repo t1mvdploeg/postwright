@@ -1,6 +1,19 @@
 // Marketingstudio — maandraster, weeknummers, verzetten.
 import { describe, it, expect } from "vitest";
-import { aantalWerkdagen, dagenGeleden, dagVan, echteDatum, isoWeek, kiesPeriode, komendeWeken, maandRaster, plusDagen, standaardAantal, verzetNaarDag, volgendeMaand } from "../src/web/marketing/kalender.js";
+import {
+  aantalWerkdagen,
+  dagenGeleden,
+  dagVan,
+  echteDatum,
+  isoWeek,
+  kiesPeriode,
+  komendeWeken,
+  maandRaster,
+  plusDagen,
+  standaardAantal,
+  verzetNaarDag,
+  volgendeMaand,
+} from "../src/web/marketing/kalender.js";
 import { plusDagen as plusDagenModel } from "../src/model/marketing-momenten.js";
 
 describe("kalender", () => {
@@ -38,7 +51,10 @@ describe("komendeWeken", () => {
     ]);
   });
   it("kent week 53 van 2026 en een zondag als vandaag", () => {
-    expect(komendeWeken("2026-12-30", 2).map((w) => [w.jaar, w.week, w.maandag])).toEqual([[2026, 53, "2026-12-28"], [2027, 1, "2027-01-04"]]);
+    expect(komendeWeken("2026-12-30", 2).map((w) => [w.jaar, w.week, w.maandag])).toEqual([
+      [2026, 53, "2026-12-28"],
+      [2027, 1, "2027-01-04"],
+    ]);
     expect(komendeWeken("2026-10-25", 1)[0].maandag).toBe("2026-10-19");
   });
 });

@@ -1,32 +1,50 @@
 <!doctype html>
-<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Postwright</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/studio.css"></head>
-<body>
-<a class="skip-link" href="#studio-hoofd">Ga naar inhoud</a>
-<div id="studio-app" class="app-shell studio">
-  <aside id="studio-zijbalk" class="app-zijbalk">
-    <div class="app-merk">
-      <div class="app-merk-tekst">
-        <a class="logo" href="/#overzicht">
-          <img src="/favicon.svg" alt="">
-          <span>Postwright</span>
-        </a>
-        <small>Marketingstudio</small>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postwright</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#studio-hoofd">Ga naar inhoud</a>
+    <div id="studio-app" class="app-shell studio">
+      <aside id="studio-zijbalk" class="app-zijbalk">
+        <div class="app-merk">
+          <div class="app-merk-tekst">
+            <a class="logo" href="/#overzicht">
+              <img src="/favicon.svg" alt="" />
+              <span>Postwright</span>
+            </a>
+            <small>Marketingstudio</small>
+          </div>
+        </div>
+        <nav id="studio-nav" class="app-navigatie" aria-label="Postwright"></nav>
+      </aside>
+      <div id="studio-overlay" class="app-overlay" hidden></div>
+      <div class="app-werkvlak">
+        <header class="app-werkbalk">
+          <button
+            id="studio-menu"
+            class="secundair app-menu"
+            type="button"
+            aria-label="Menu openen"
+            aria-expanded="false"
+          >
+            Menu
+          </button>
+          <div class="app-paginakop">
+            <span>Marketingstudio</span>
+            <h1 id="studio-titel">Overzicht</h1>
+          </div>
+          <a id="studio-nieuw" class="knop" href="#maken">Nieuwe post</a>
+        </header>
+        <main id="studio-hoofd" class="app-inhoud" tabindex="-1">
+          <div id="studio-inhoud"></div>
+        </main>
       </div>
     </div>
-    <nav id="studio-nav" class="app-navigatie" aria-label="Postwright"></nav>
-  </aside>
-  <div id="studio-overlay" class="app-overlay" hidden></div>
-  <div class="app-werkvlak">
-    <header class="app-werkbalk">
-      <button id="studio-menu" class="secundair app-menu" type="button" aria-label="Menu openen" aria-expanded="false">Menu</button>
-      <div class="app-paginakop"><span>Marketingstudio</span><h1 id="studio-titel">Overzicht</h1></div>
-      <a id="studio-nieuw" class="knop" href="#maken">Nieuwe post</a>
-    </header>
-    <main id="studio-hoofd" class="app-inhoud" tabindex="-1">
-      <div id="studio-inhoud"></div>
-    </main>
-  </div>
-</div>
-<script type="module" src="/marketing.js"></script>
-</body></html>
+    <script type="module" src="/marketing.js"></script>
+  </body>
+</html>

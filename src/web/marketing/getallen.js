@@ -16,7 +16,8 @@ function naarGetal(tekst) {
   return Number.isFinite(n) ? n : null;
 }
 
-const BEDRAG = /€\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-))?|(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\s?(?:euro|EUR)\b/gi;
+const BEDRAG =
+  /€\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-))?|(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\s?(?:euro|EUR)\b/gi;
 const PROCENT = /(\d+(?:,\d+)?)\s?(?:%|procent\b)/gi;
 const GETAL = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)(?![\p{L}\p{N}]|[.,]\d)/gu;
 

@@ -31,20 +31,39 @@ export function maakPdf(paginas, { titel = "" } = {}) {
   const delen = [];
   const offsets = [];
   let lengte = 0;
-  const schrijf = (d) => { const b = typeof d === "string" ? enc.encode(d) : d; delen.push(b); lengte += b.length; };
-  const object = (nr, inhoud) => { offsets[nr] = lengte; schrijf(`${nr} 0 obj\n`); inhoud(); schrijf("\nendobj\n"); };
+  const schrijf = (d) => {
+    const b = typeof d === "string" ? enc.encode(d) : d;
+    delen.push(b);
+    lengte += b.length;
+  };
+  const object = (nr, inhoud) => {
+    offsets[nr] = lengte;
+    schrijf(`${nr} 0 obj\n`);
+    inhoud();
+    schrijf("\nendobj\n");
+  };
 
   // Objectnummers: 1 catalogus, 2 pagina's, 3 info, daarna per pagina drie: pagina, beeld, inhoud.
   const paginaNr = (i) => 4 + i * 3;
   schrijf("%PDF-1.4\n%\xe2\xe3\xcf\xd3\n");
   object(1, () => schrijf("<< /Type /Catalog /Pages 2 0 R >>"));
-  object(2, () => schrijf(`<< /Type /Pages /Kids [${paginas.map((_, i) => `${paginaNr(i)} 0 R`).join(" ")}] /Count ${paginas.length} >>`));
+  object(2, () =>
+    schrijf(
+      `<< /Type /Pages /Kids [${paginas.map((_, i) => `${paginaNr(i)} 0 R`).join(" ")}] /Count ${paginas.length} >>`,
+    ),
+  );
   object(3, () => schrijf(`<< /Title ${pdfTekst(titel)} /Producer (Postwright) >>`));
   paginas.forEach((p, i) => {
     const nr = paginaNr(i);
-    object(nr, () => schrijf(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.breedte} ${p.hoogte}] /Resources << /XObject << /Im${i} ${nr + 1} 0 R >> >> /Contents ${nr + 2} 0 R >>`));
+    object(nr, () =>
+      schrijf(
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.breedte} ${p.hoogte}] /Resources << /XObject << /Im${i} ${nr + 1} 0 R >> >> /Contents ${nr + 2} 0 R >>`,
+      ),
+    );
     object(nr + 1, () => {
-      schrijf(`<< /Type /XObject /Subtype /Image /Width ${p.breedte} /Height ${p.hoogte} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`);
+      schrijf(
+        `<< /Type /XObject /Subtype /Image /Width ${p.breedte} /Height ${p.hoogte} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`,
+      );
       schrijf(p.jpeg);
       schrijf("\nendstream");
     });
@@ -59,6 +78,9 @@ export function maakPdf(paginas, { titel = "" } = {}) {
 
   const uit = new Uint8Array(lengte);
   let p = 0;
-  for (const d of delen) { uit.set(d, p); p += d.length; }
+  for (const d of delen) {
+    uit.set(d, p);
+    p += d.length;
+  }
   return uit;
 }

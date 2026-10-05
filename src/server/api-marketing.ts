@@ -4,15 +4,51 @@
 import { ApiFout, antwoord, route, type Ctx, type Route } from "./http.js";
 import { leesJson, pad, serialiseer, type Opslag } from "../data/bestanden.js";
 import {
-  MarketingOpslagFout, bewaarMarketingInstellingen, bewaarMedia, geldigLijstId, laadMarketingInstellingen,
-  leesLijst, leesMedia, leesPost, lijstMedia, lijstPosts, maakPost, mediaAfmetingen, mediaGebruik, mediaSoort,
-  MEDIA_CONTENT_TYPES, MEDIA_ID, nieuwLijstId, nieuwPostId, werkLijstBij, werkPostBij, wisMedia, wisPost,
-  type LijstNaam, type MediaSoort,
+  MarketingOpslagFout,
+  bewaarMarketingInstellingen,
+  bewaarMedia,
+  geldigLijstId,
+  laadMarketingInstellingen,
+  leesLijst,
+  leesMedia,
+  leesPost,
+  lijstMedia,
+  lijstPosts,
+  maakPost,
+  mediaAfmetingen,
+  mediaGebruik,
+  mediaSoort,
+  MEDIA_CONTENT_TYPES,
+  MEDIA_ID,
+  nieuwLijstId,
+  nieuwPostId,
+  werkLijstBij,
+  werkPostBij,
+  wisMedia,
+  wisPost,
+  type LijstNaam,
+  type MediaSoort,
 } from "../data/marketing.js";
 import {
-  CampagneInvoerSchema, FeitInvoerSchema, IdeeInvoerSchema, MarketingInstellingenSchema, MOMENT_SLEUTEL, POST_ID,
-  PostInvoerSchema, ResultaatInvoerSchema, StatusOvergangSchema, TekstInvoerSchema,
-  type Campagne, type Feit, type Geschiedenisregel, type Idee, type Post, type PostInvoer, type PostSamenvatting, type Tekst, type TekstInvoer,
+  CampagneInvoerSchema,
+  FeitInvoerSchema,
+  IdeeInvoerSchema,
+  MarketingInstellingenSchema,
+  MOMENT_SLEUTEL,
+  POST_ID,
+  PostInvoerSchema,
+  ResultaatInvoerSchema,
+  StatusOvergangSchema,
+  TekstInvoerSchema,
+  type Campagne,
+  type Feit,
+  type Geschiedenisregel,
+  type Idee,
+  type Post,
+  type PostInvoer,
+  type PostSamenvatting,
+  type Tekst,
+  type TekstInvoer,
 } from "../model/marketing-schema.js";
 import { STARTFEITEN, STARTPOSTS, STARTTEKSTEN, type Startfeit } from "../model/marketing-startvulling.js";
 import { SchrijfhulpVerzoekSchema, type MarketingOpdracht } from "../model/marketing-schrijfhulp.js";
@@ -43,7 +79,9 @@ const MAX_GESCHIEDENIS = 100;
 const AMSTERDAM_DATUM = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam" });
 /** De kalenderdatum (JJJJ-MM-DD) in Nederland; zelfde aanpak als `kalenderdatumAmsterdam` in api.ts
  *  (niet geïmporteerd: api.ts importeert deze module, dat zou een kringetje worden). */
-function vandaagAmsterdam(nu: Date): string { return AMSTERDAM_DATUM.format(nu); }
+function vandaagAmsterdam(nu: Date): string {
+  return AMSTERDAM_DATUM.format(nu);
+}
 
 /** Of een feit niet (meer) mag worden gebruikt: ingetrokken, nog concept, of voorbij `geldigTot`. */
 export function feitOnbruikbaar(f: Pick<Feit, "status" | "geldigTot">, vandaag: string): boolean {
@@ -72,14 +110,23 @@ function samenvatting(p: Post): PostSamenvatting {
 }
 
 /** De velden die het beeld of de tekst bepalen. Verandert er één, dan hoort er een nieuwe controle bij. */
-function inhoudVerschilt(a: Pick<Post, "sjabloon" | "inhoud" | "dias" | "formaten" | "posttekst" | "altTekst" | "link" | "feiten">, b: typeof a): boolean {
-  const sleutel = (x: typeof a) => JSON.stringify([x.sjabloon, x.inhoud, x.dias, x.formaten, x.posttekst, x.altTekst, x.link, x.feiten]);
+function inhoudVerschilt(
+  a: Pick<Post, "sjabloon" | "inhoud" | "dias" | "formaten" | "posttekst" | "altTekst" | "link" | "feiten">,
+  b: typeof a,
+): boolean {
+  const sleutel = (x: typeof a) =>
+    JSON.stringify([x.sjabloon, x.inhoud, x.dias, x.formaten, x.posttekst, x.altTekst, x.link, x.feiten]);
   return sleutel(a) !== sleutel(b);
 }
 
 /** Elke studio-link in de postteksten wijst naar deze post (utm_content = post-id). */
 function metEigenUtm<T extends { posttekst: PostInvoer["posttekst"] }>(p: T, id: string): T {
-  return { ...p, posttekst: Object.fromEntries(Object.entries(p.posttekst).map(([k, t]) => [k, zetUtmInhoud(t, id)])) as T["posttekst"] };
+  return {
+    ...p,
+    posttekst: Object.fromEntries(
+      Object.entries(p.posttekst).map(([k, t]) => [k, zetUtmInhoud(t, id)]),
+    ) as T["posttekst"],
+  };
 }
 
 function naarApiFout(e: unknown): never {
@@ -87,12 +134,18 @@ function naarApiFout(e: unknown): never {
   throw e;
 }
 
-const EigenMomentenSchema = z.array(z.object({
-  sleutel: z.string().regex(MOMENT_SLEUTEL, "alleen kleine letters, cijfers en streepjes"),
-  datum: z.string().refine(echteDatum, "geen echte datum (JJJJ-MM-DD)"),
-  titel: z.string().trim().min(1).max(80),
-  zin: z.string().trim().max(300).default(""),
-}).strict()).max(500);
+const EigenMomentenSchema = z
+  .array(
+    z
+      .object({
+        sleutel: z.string().regex(MOMENT_SLEUTEL, "alleen kleine letters, cijfers en streepjes"),
+        datum: z.string().refine(echteDatum, "geen echte datum (JJJJ-MM-DD)"),
+        titel: z.string().trim().min(1).max(80),
+        zin: z.string().trim().max(300).default(""),
+      })
+      .strict(),
+  )
+  .max(500);
 
 /**
  * De eigen momenten uit `<datamap>/marketing/momenten.json`: een lijst met `sleutel`, `datum`, `titel`
@@ -128,7 +181,8 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
   async function controleerCampagne(invoer: PostInvoer): Promise<void> {
     if (!invoer.campagne) return;
     const campagnes = await leesLijst<Campagne>(gedeeld, "campagnes");
-    if (!campagnes.some((k) => k.id === invoer.campagne)) throw new ApiFout(400, "De gekozen campagne bestaat niet (meer)");
+    if (!campagnes.some((k) => k.id === invoer.campagne))
+      throw new ApiFout(400, "De gekozen campagne bestaat niet (meer)");
   }
 
   /** Generieke routes voor een kleine lijst (campagnes, teksten): lijst, nieuw, wijzigen, wissen. */
@@ -206,7 +260,9 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
    */
   async function vulPosts(): Promise<number> {
     const [bestaand, feiten, instellingen, merk] = await Promise.all([
-      lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten"), laadInstellingen(),
+      lijstPosts(gedeeld),
+      leesLijst<Feit>(gedeeld, "feiten"),
+      laadInstellingen(),
       laadMerk(o.dataDir),
     ]);
     let nieuw = 0;
@@ -217,21 +273,55 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const nu = new Date();
       const feitId = s.feit ? feiten.find((f) => f.tekst === s.feit)?.id : undefined;
       const post: Post = {
-        id, versie: 1, titel: s.titel, soort: "beeld", sjabloon: s.sjabloon, formaten: [sj.formaten[0]], inhoud: s.inhoud, dias: [],
-        posttekst: { linkedin: s.posttekst }, altTekst: s.altTekst, link: "", feiten: feitId ? [feitId] : [], campagne: null,
-        merkVersie: merk.versie, status: "concept", gepland: null, gepubliceerd: null, controle: null, resultaat: null,
-        geschiedenis: [{ op: nu.toISOString(), wie: "", wat: "aangemaakt" }], aangemaakt: nu.toISOString(), gewijzigd: nu.toISOString(),
+        id,
+        versie: 1,
+        titel: s.titel,
+        soort: "beeld",
+        sjabloon: s.sjabloon,
+        formaten: [sj.formaten[0]],
+        inhoud: s.inhoud,
+        dias: [],
+        posttekst: { linkedin: s.posttekst },
+        altTekst: s.altTekst,
+        link: "",
+        feiten: feitId ? [feitId] : [],
+        campagne: null,
+        merkVersie: merk.versie,
+        status: "concept",
+        gepland: null,
+        gepubliceerd: null,
+        controle: null,
+        resultaat: null,
+        geschiedenis: [{ op: nu.toISOString(), wie: "", wat: "aangemaakt" }],
+        aangemaakt: nu.toISOString(),
+        gewijzigd: nu.toISOString(),
       };
       if (s.inDagen !== undefined) {
-        const c = controleer({ post, sjabloon: sj, instellingen, feiten, vandaag: vandaagAmsterdam(nu), merkVersie: merk.versie, merk });
+        const c = controleer({
+          post,
+          sjabloon: sj,
+          instellingen,
+          feiten,
+          vandaag: vandaagAmsterdam(nu),
+          merkVersie: merk.versie,
+          merk,
+        });
         post.controle = { fouten: c.fouten, letOp: c.letOp, op: nu.toISOString() };
         if (c.fouten === 0) {
           post.status = "gepland";
           post.gepland = new Date(nu.getTime() + s.inDagen * 24 * 3600 * 1000).toISOString();
-          post.geschiedenis = metGeschiedenis(post, { op: nu.toISOString(), wie: "", wat: `gepland op ${post.gepland}` });
+          post.geschiedenis = metGeschiedenis(post, {
+            op: nu.toISOString(),
+            wie: "",
+            wat: `gepland op ${post.gepland}`,
+          });
         }
       }
-      try { await maakPost(gedeeld, post); } catch (e) { naarApiFout(e); }
+      try {
+        await maakPost(gedeeld, post);
+      } catch (e) {
+        naarApiFout(e);
+      }
       nieuw++;
     }
     return nieuw;
@@ -247,7 +337,8 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
   async function aiHulp<T>(naam: string, taak: string, roep: () => Promise<AiResultaat<T>>): Promise<AiResultaat<T>> {
     return serialiseer("marketing-ai", async () => {
       const marketing = await laadInstellingen();
-      if (!marketing.schrijfhulp.aan) throw new ApiFout(409, `${naam} staat uit; zet de AI-hulp aan onder Instellingen`);
+      if (!marketing.schrijfhulp.aan)
+        throw new ApiFout(409, `${naam} staat uit; zet de AI-hulp aan onder Instellingen`);
       const plafond = marketing.schrijfhulp.plafondUsdPerMaand;
       if (provider.naam === "anthropic" && (await maandtotaalUsd(o.dataDir, new Date())) >= plafond) {
         throw new ApiFout(429, `Het maandplafond van de AI-hulp ($ ${plafond}) is bereikt`);
@@ -260,10 +351,17 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         if (fout instanceof ApiFout) throw fout;
         const usd = fout instanceof AiFout && fout.usage ? kostenUsd(modelNaam, fout.usage) : 0;
         await boek(o.dataDir, { tijdstip: new Date().toISOString(), model: modelNaam, taak, usd, ok: false });
-        throw new ApiFout(502, `${naam} gaf geen bruikbaar antwoord: ${fout instanceof Error ? fout.message : String(fout)}`);
+        throw new ApiFout(
+          502,
+          `${naam} gaf geen bruikbaar antwoord: ${fout instanceof Error ? fout.message : String(fout)}`,
+        );
       }
       await boek(o.dataDir, {
-        tijdstip: new Date().toISOString(), model: resultaat.model, taak, usd: kostenUsd(resultaat.model, resultaat.usage), ok: true,
+        tijdstip: new Date().toISOString(),
+        model: resultaat.model,
+        taak,
+        usd: kostenUsd(resultaat.model, resultaat.usage),
+        ok: true,
       });
       return resultaat;
     });
@@ -274,17 +372,27 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     const alleFeiten = await leesLijst<Feit>(gedeeld, "feiten");
     const feiten = verzoek.feiten.map((id) => alleFeiten.find((f) => f.id === id));
     if (feiten.some((f) => !f || feitOnbruikbaar(f, vandaag))) {
-      throw new ApiFout(400, "Een gekoppeld feit bestaat niet of is niet actief; de schrijfhulp werkt alleen met actieve feiten");
+      throw new ApiFout(
+        400,
+        "Een gekoppeld feit bestaat niet of is niet actief; de schrijfhulp werkt alleen met actieve feiten",
+      );
     }
     const bruikbaar = feiten as Feit[];
 
     const merk = await laadMerk(o.dataDir);
     const opdracht: MarketingOpdracht = {
-      taak: verzoek.taak, sjabloon: verzoek.sjabloon, velden: verzoek.velden, kanaal: verzoek.kanaal,
-      toelichting: verzoek.toelichting, huidig: verzoek.huidig, feiten: bruikbaar.map((f) => ({ id: f.id, tekst: f.tekst, bron: f.bron.verwijzing })),
+      taak: verzoek.taak,
+      sjabloon: verzoek.sjabloon,
+      velden: verzoek.velden,
+      kanaal: verzoek.kanaal,
+      toelichting: verzoek.toelichting,
+      huidig: verzoek.huidig,
+      feiten: bruikbaar.map((f) => ({ id: f.id, tekst: f.tekst, bron: f.bron.verwijzing })),
       merk: { merknaam: merk.naam },
     };
-    const resultaat = await aiHulp("De schrijfhulp", `schrijfhulp:${verzoek.taak}`, () => provider.marketingTekst(opdracht));
+    const resultaat = await aiHulp("De schrijfhulp", `schrijfhulp:${verzoek.taak}`, () =>
+      provider.marketingTekst(opdracht),
+    );
 
     const veldIds = new Set(verzoek.velden.map((v) => v.id));
     const varianten = resultaat.voorstel.varianten.slice(0, 3).map((v) => {
@@ -293,7 +401,9 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const altTekst = verzoek.taak === "alt-tekst" ? v.altTekst : "";
       const tekst = [...Object.values(velden), posttekst, altTekst].join("\n");
       return {
-        velden, posttekst, altTekst,
+        velden,
+        posttekst,
+        altTekst,
         gebruikteFeiten: v.gebruikteFeiten.filter((id) => verzoek.feiten.includes(id)),
         ongedekt: [...new Set(ongedekteGetallen(tekst, bruikbaar).map((g) => g.tekst))],
       };
@@ -324,11 +434,22 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const { controle, ...rest } = invoer;
       const id = nieuwPostId();
       const post: Post = {
-        ...metEigenUtm(rest, id), id, versie: 1, status: "concept", gepland: null, gepubliceerd: null,
-        controle: controle ?? null, geschiedenis: [{ op: nu, wie: "", wat: "aangemaakt" }],
-        aangemaakt: nu, gewijzigd: nu,
+        ...metEigenUtm(rest, id),
+        id,
+        versie: 1,
+        status: "concept",
+        gepland: null,
+        gepubliceerd: null,
+        controle: controle ?? null,
+        geschiedenis: [{ op: nu, wie: "", wat: "aangemaakt" }],
+        aangemaakt: nu,
+        gewijzigd: nu,
       };
-      try { await maakPost(gedeeld, post); } catch (e) { naarApiFout(e); }
+      try {
+        await maakPost(gedeeld, post);
+      } catch (e) {
+        naarApiFout(e);
+      }
       return antwoord({ status: 201, body: post });
     }),
 
@@ -359,11 +480,17 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
           // anders met een fout erin op de kalender blijven staan.
           if (p.status === "gepland" && (!nieuweControle || nieuweControle.fouten > 0)) {
             bijgewerkt.status = "concept";
-            bijgewerkt.geschiedenis = metGeschiedenis(p, { op: nu, wie: "", wat: "terug naar concept: de controle is niet meer zonder fouten" });
+            bijgewerkt.geschiedenis = metGeschiedenis(p, {
+              op: nu,
+              wie: "",
+              wat: "terug naar concept: de controle is niet meer zonder fouten",
+            });
           }
           return bijgewerkt;
         });
-      } catch (e) { naarApiFout(e); }
+      } catch (e) {
+        naarApiFout(e);
+      }
     }),
 
     route("DELETE", "/api/posts/:id", async (c) => {
@@ -379,10 +506,23 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const titel = `Kopie van ${bron.titel}`.slice(0, 120);
       const id = nieuwPostId();
       const kopie: Post = {
-        ...metEigenUtm(structuredClone(bron), id), id, versie: 1, titel, status: "concept", gepland: null, gepubliceerd: null, resultaat: null,
-        geschiedenis: [{ op: nu, wie: "", wat: `gedupliceerd van ${bron.id}` }], aangemaakt: nu, gewijzigd: nu,
+        ...metEigenUtm(structuredClone(bron), id),
+        id,
+        versie: 1,
+        titel,
+        status: "concept",
+        gepland: null,
+        gepubliceerd: null,
+        resultaat: null,
+        geschiedenis: [{ op: nu, wie: "", wat: `gedupliceerd van ${bron.id}` }],
+        aangemaakt: nu,
+        gewijzigd: nu,
       };
-      try { await maakPost(gedeeld, kopie); } catch (e) { naarApiFout(e); }
+      try {
+        await maakPost(gedeeld, kopie);
+      } catch (e) {
+        naarApiFout(e);
+      }
       return antwoord({ status: 201, body: kopie });
     }),
 
@@ -403,39 +543,75 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
           const nu = new Date();
           const naar = overgang.naar;
           if (naar === p.status && naar !== "gepland") throw new ApiFout(409, `Deze post staat al op ${naar}`);
-          if (p.status === "gearchiveerd" && naar !== "concept") throw new ApiFout(409, "Een gearchiveerde post gaat eerst terug naar concept");
-          if (p.status === "gepubliceerd" && naar === "gepland") throw new ApiFout(409, "Een gepubliceerde post kan niet opnieuw worden gepland; dupliceer hem");
+          if (p.status === "gearchiveerd" && naar !== "concept")
+            throw new ApiFout(409, "Een gearchiveerde post gaat eerst terug naar concept");
+          if (p.status === "gepubliceerd" && naar === "gepland")
+            throw new ApiFout(409, "Een gepubliceerde post kan niet opnieuw worden gepland; dupliceer hem");
           if ((naar === "gepland" || naar === "gepubliceerd") && (!p.controle || p.controle.fouten > 0)) {
-            throw new ApiFout(409, p.controle
-              ? `De merkcontrole vond nog ${p.controle.fouten} fout${p.controle.fouten === 1 ? "" : "en"}; los die eerst op`
-              : "Deze post heeft nog geen merkcontrole bij de huidige inhoud; open en bewaar hem eerst");
+            throw new ApiFout(
+              409,
+              p.controle
+                ? `De merkcontrole vond nog ${p.controle.fouten} fout${p.controle.fouten === 1 ? "" : "en"}; los die eerst op`
+                : "Deze post heeft nog geen merkcontrole bij de huidige inhoud; open en bewaar hem eerst",
+            );
           }
           if (naar === "gepland" || naar === "gepubliceerd") {
-            const onbruikbaar = p.feiten.filter((id) => { const f = feitenNu.get(id); return !f || feitOnbruikbaar(f, vandaag); });
+            const onbruikbaar = p.feiten.filter((id) => {
+              const f = feitenNu.get(id);
+              return !f || feitOnbruikbaar(f, vandaag);
+            });
             if (onbruikbaar.length) {
-              throw new ApiFout(409, `Deze post leunt op ${onbruikbaar.length === 1 ? "een feit dat" : `${onbruikbaar.length} feiten die`} verlopen, ingetrokken of gewist ${onbruikbaar.length === 1 ? "is" : "zijn"}; vervang ${onbruikbaar.length === 1 ? "het" : "ze"} eerst`);
+              throw new ApiFout(
+                409,
+                `Deze post leunt op ${onbruikbaar.length === 1 ? "een feit dat" : `${onbruikbaar.length} feiten die`} verlopen, ingetrokken of gewist ${onbruikbaar.length === 1 ? "is" : "zijn"}; vervang ${onbruikbaar.length === 1 ? "het" : "ze"} eerst`,
+              );
             }
           }
           const wat = (tekst: string) => ({ op: nu.toISOString(), wie: "", wat: tekst });
           if (naar === "gepland") {
             if (!overgang.gepland) throw new ApiFout(400, "gepland: kies een datum en tijd");
-            if (new Date(overgang.gepland).getTime() <= nu.getTime()) throw new ApiFout(400, "gepland: kies een moment in de toekomst");
+            if (new Date(overgang.gepland).getTime() <= nu.getTime())
+              throw new ApiFout(400, "gepland: kies een moment in de toekomst");
             const opnieuw = p.status === "gepland";
-            return { ...p, status: "gepland", gepland: overgang.gepland, gewijzigd: nu.toISOString(),
-              geschiedenis: metGeschiedenis(p, wat(`${opnieuw ? "verzet naar" : "gepland op"} ${overgang.gepland}`)) };
+            return {
+              ...p,
+              status: "gepland",
+              gepland: overgang.gepland,
+              gewijzigd: nu.toISOString(),
+              geschiedenis: metGeschiedenis(p, wat(`${opnieuw ? "verzet naar" : "gepland op"} ${overgang.gepland}`)),
+            };
           }
           if (naar === "gepubliceerd") {
-            return { ...p, status: "gepubliceerd", gepubliceerd: { op: nu.toISOString(), url: overgang.url ?? "" }, gewijzigd: nu.toISOString(),
-              geschiedenis: metGeschiedenis(p, wat("gepubliceerd")) };
+            return {
+              ...p,
+              status: "gepubliceerd",
+              gepubliceerd: { op: nu.toISOString(), url: overgang.url ?? "" },
+              gewijzigd: nu.toISOString(),
+              geschiedenis: metGeschiedenis(p, wat("gepubliceerd")),
+            };
           }
           if (naar === "concept") {
             // Uit het archief terughalen laat publicatie en resultaat staan; alleen een echte terugtrekking wist ze.
             const behoud = p.status === "gearchiveerd";
-            return { ...p, status: "concept", gepubliceerd: behoud ? p.gepubliceerd : null, resultaat: behoud ? p.resultaat : null, gewijzigd: nu.toISOString(), geschiedenis: metGeschiedenis(p, wat("terug naar concept")) };
+            return {
+              ...p,
+              status: "concept",
+              gepubliceerd: behoud ? p.gepubliceerd : null,
+              resultaat: behoud ? p.resultaat : null,
+              gewijzigd: nu.toISOString(),
+              geschiedenis: metGeschiedenis(p, wat("terug naar concept")),
+            };
           }
-          return { ...p, status: "gearchiveerd", gewijzigd: nu.toISOString(), geschiedenis: metGeschiedenis(p, wat("gearchiveerd")) };
+          return {
+            ...p,
+            status: "gearchiveerd",
+            gewijzigd: nu.toISOString(),
+            geschiedenis: metGeschiedenis(p, wat("gearchiveerd")),
+          };
         });
-      } catch (e) { naarApiFout(e); }
+      } catch (e) {
+        naarApiFout(e);
+      }
     }),
 
     /**
@@ -450,9 +626,16 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
           if (p.status !== "gepubliceerd") throw new ApiFout(409, "Alleen een gepubliceerde post heeft resultaten");
           const nu = new Date().toISOString();
           const leeg = r.vertoningen === null && r.reacties === null && r.klikken === null;
-          return { ...p, resultaat: leeg ? null : { ...r, op: nu }, gewijzigd: nu, geschiedenis: metGeschiedenis(p, { op: nu, wie: "", wat: "resultaat bijgewerkt" }) };
+          return {
+            ...p,
+            resultaat: leeg ? null : { ...r, op: nu },
+            gewijzigd: nu,
+            geschiedenis: metGeschiedenis(p, { op: nu, wie: "", wat: "resultaat bijgewerkt" }),
+          };
         });
-      } catch (e) { naarApiFout(e); }
+      } catch (e) {
+        naarApiFout(e);
+      }
     }),
 
     // -----------------------------------------------------------------------------------------
@@ -462,7 +645,10 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       naam: "campagne",
       controleer: (invoer, regels, id) => {
         if (regels.some((r) => r.id !== id && r.utmCampagne === invoer.utmCampagne)) {
-          throw new ApiFout(409, `De UTM-naam "${String(invoer.utmCampagne)}" is al in gebruik bij een andere campagne`);
+          throw new ApiFout(
+            409,
+            `De UTM-naam "${String(invoer.utmCampagne)}" is al in gebruik bij een andere campagne`,
+          );
         }
       },
       magNietWeg: async (id) => {
@@ -475,7 +661,9 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       naam: "feit",
       magNietWeg: async (id) => {
         const n = await gebruiktIn("feiten", id);
-        return n ? `Dit feit staat in ${n} post${n === 1 ? "" : "s"}; zet het op "ingetrokken" in plaats van wissen` : null;
+        return n
+          ? `Dit feit staat in ${n} post${n === 1 ? "" : "s"}; zet het op "ingetrokken" in plaats van wissen`
+          : null;
       },
     }),
 
@@ -494,17 +682,33 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     // gebruiker heeft ingetrokken. Twee keer klikken voegt dus niets dubbel toe.
     route("POST", "/api/startvulling", async () => {
       const nu = new Date().toISOString();
-      const vul = <B extends { tekst: string }, T extends { id: string; tekst: string }>(lijst: "feiten" | "teksten", bron: readonly B[], maak: (b: B) => T) =>
+      const vul = <B extends { tekst: string }, T extends { id: string; tekst: string }>(
+        lijst: "feiten" | "teksten",
+        bron: readonly B[],
+        maak: (b: B) => T,
+      ) =>
         werkLijstBij<T, number>(gedeeld, lijst, (regels) => {
           const bestaand = new Set(regels.map((r) => r.tekst));
           const nieuw = bron.filter((b) => !bestaand.has(b.tekst)).map(maak);
-          if (regels.length + nieuw.length > 500) throw new ApiFout(409, `Er passen niet meer dan 500 ${lijst} in de studio; ruim eerst op`);
+          if (regels.length + nieuw.length > 500)
+            throw new ApiFout(409, `Er passen niet meer dan 500 ${lijst} in de studio; ruim eerst op`);
           return { regels: [...regels, ...nieuw], uitkomst: nieuw.length };
         });
       const feiten = await vul<Startfeit, Feit>("feiten", STARTFEITEN, (f) => ({
-        ...f, geldigVan: null, geldigTot: null, status: "concept", id: nieuwLijstId("feiten"), aangemaakt: nu, gewijzigd: nu,
+        ...f,
+        geldigVan: null,
+        geldigTot: null,
+        status: "concept",
+        id: nieuwLijstId("feiten"),
+        aangemaakt: nu,
+        gewijzigd: nu,
       }));
-      const teksten = await vul<TekstInvoer, Tekst>("teksten", STARTTEKSTEN, (t) => ({ ...t, id: nieuwLijstId("teksten"), aangemaakt: nu, gewijzigd: nu }));
+      const teksten = await vul<TekstInvoer, Tekst>("teksten", STARTTEKSTEN, (t) => ({
+        ...t,
+        id: nieuwLijstId("teksten"),
+        aangemaakt: nu,
+        gewijzigd: nu,
+      }));
       const posts = await vulPosts();
       return { feiten, teksten, posts };
     }),
@@ -526,7 +730,10 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const week = nu.getTime() + 7 * 24 * 3600 * 1000;
       const maandTerug = nu.getTime() - 30 * 24 * 3600 * 1000;
       const [posts, feiten, media, ideeen, eigen] = await Promise.all([
-        lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten"), lijstMedia(gedeeld), leesLijst<Idee>(gedeeld, "ideeen"),
+        lijstPosts(gedeeld),
+        leesLijst<Feit>(gedeeld, "feiten"),
+        lijstMedia(gedeeld),
+        leesLijst<Idee>(gedeeld, "ideeen"),
         eigenMomenten(),
       ]);
       const onbruikbaar = new Set(feiten.filter((f) => feitOnbruikbaar(f, vandaag)).map((f) => f.id));
@@ -535,19 +742,32 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const gepland = posts.filter((p) => p.status === "gepland");
       const lopend = posts.filter((p) => p.status === "concept" || p.status === "gepland");
       const postIds = new Set(posts.map((p) => p.id));
-      const geplandeDagen = gepland.filter((p) => p.gepland).map((p) => vandaagAmsterdam(new Date(p.gepland as string)));
+      const geplandeDagen = gepland
+        .filter((p) => p.gepland)
+        .map((p) => vandaagAmsterdam(new Date(p.gepland as string)));
       return {
         geplandDezeWeek: gepland.filter((p) => tijd(p) >= nu.getTime() && tijd(p) <= week).length,
         overDatum: gepland.filter((p) => tijd(p) < nu.getTime()).length,
         concepten: posts.filter((p) => p.status === "concept").length,
-        gepubliceerd30: posts.filter((p) => p.status === "gepubliceerd" && p.gepubliceerd && new Date(p.gepubliceerd.op).getTime() >= maandTerug).length,
+        gepubliceerd30: posts.filter(
+          (p) => p.status === "gepubliceerd" && p.gepubliceerd && new Date(p.gepubliceerd.op).getTime() >= maandTerug,
+        ).length,
         // Een feit dat is gewist of niet (meer) bruikbaar is, telt als probleem voor elke post die er nog op leunt.
         metOnbruikbaarFeit: lopend.filter((p) => p.feiten.some((id) => onbruikbaar.has(id) || !bekend.has(id))).length,
-        volgende: gepland.filter((p) => tijd(p) >= nu.getTime()).sort((a, b) => tijd(a) - tijd(b)).slice(0, 3).map(samenvatting),
+        volgende: gepland
+          .filter((p) => tijd(p) >= nu.getTime())
+          .sort((a, b) => tijd(a) - tijd(b))
+          .slice(0, 3)
+          .map(samenvatting),
         media: { aantal: media.length, bytes: media.reduce((s, m) => s + m.bytes, 0) },
         // Ritme, momenten en resultaten.
         // Een gearchiveerde post houdt zijn publicatie: hij is wél verschenen.
-        laatstGepubliceerd: posts.filter((p) => (p.status === "gepubliceerd" || p.status === "gearchiveerd") && p.gepubliceerd).map((p) => p.gepubliceerd!.op).sort().at(-1) ?? null,
+        laatstGepubliceerd:
+          posts
+            .filter((p) => (p.status === "gepubliceerd" || p.status === "gearchiveerd") && p.gepubliceerd)
+            .map((p) => p.gepubliceerd!.op)
+            .sort()
+            .at(-1) ?? null,
         legeWeken: komendeWeken(vandaag, 4).filter((w) => !geplandeDagen.some((d) => d >= w.maandag && d <= w.zondag)),
         // Ook een open idee met een datum in het verleden telt: het is nog niet opgepakt, en de
         // planner toont het bovenaan als "Open ideeën van eerder".
@@ -578,30 +798,58 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       // Hooguit 92 dagen, van en tot meegeteld: tot ligt uiterlijk 91 dagen na van.
       if (plusDagen(van, 91) < v.tot) throw new ApiFout(400, "Kies een periode van hooguit drie maanden");
       const [feiten, posts, ideeen, campagnes, eigen] = await Promise.all([
-        leesLijst<Feit>(gedeeld, "feiten"), lijstPosts(gedeeld), leesLijst<Idee>(gedeeld, "ideeen"), leesLijst<Campagne>(gedeeld, "campagnes"),
+        leesLijst<Feit>(gedeeld, "feiten"),
+        lijstPosts(gedeeld),
+        leesLijst<Idee>(gedeeld, "ideeen"),
+        leesLijst<Campagne>(gedeeld, "campagnes"),
         eigenMomenten(),
       ]);
-      const campagne = v.campagne ? campagnes.find((k) => k.id === v.campagne) ?? null : null;
+      const campagne = v.campagne ? (campagnes.find((k) => k.id === v.campagne) ?? null) : null;
       if (v.campagne && !campagne) throw new ApiFout(400, "De gekozen campagne bestaat niet (meer)");
-      const dagVan = (p: Post) => (p.status === "gepland" && p.gepland ? vandaagAmsterdam(new Date(p.gepland))
-        : p.status === "gepubliceerd" && p.gepubliceerd ? vandaagAmsterdam(new Date(p.gepubliceerd.op)) : null);
+      const dagVan = (p: Post) =>
+        p.status === "gepland" && p.gepland
+          ? vandaagAmsterdam(new Date(p.gepland))
+          : p.status === "gepubliceerd" && p.gepubliceerd
+            ? vandaagAmsterdam(new Date(p.gepubliceerd.op))
+            : null;
       const inPeriode = (d: string | null) => d !== null && d >= van && d <= v.tot;
       const opdracht: IdeeenOpdracht = {
-        van, tot: v.tot, aantal: v.aantal, kanaal: v.kanaal, toelichting: v.toelichting,
+        van,
+        tot: v.tot,
+        aantal: v.aantal,
+        kanaal: v.kanaal,
+        toelichting: v.toelichting,
         sjablonen: SJABLONEN.map((s) => ({ id: s.id, naam: s.naam, doel: s.doel })),
-        feiten: feiten.filter((f) => !feitOnbruikbaar(f, vandaag)).slice(0, 60).map((f) => ({ id: f.id, tekst: f.tekst, soort: f.soort })),
+        feiten: feiten
+          .filter((f) => !feitOnbruikbaar(f, vandaag))
+          .slice(0, 60)
+          .map((f) => ({ id: f.id, tekst: f.tekst, soort: f.soort })),
         // Ook momenten net na de periode: een post vlak ervoor kan erop vooruitlopen.
-        momenten: alleMomenten(van, plusDagen(v.tot, 21), eigen).map(({ sleutel, datum, titel, zin }) => ({ sleutel, datum, titel, zin })),
+        momenten: alleMomenten(van, plusDagen(v.tot, 21), eigen).map(({ sleutel, datum, titel, zin }) => ({
+          sleutel,
+          datum,
+          titel,
+          zin,
+        })),
         bestaand: [
-          ...posts.filter((p) => inPeriode(dagVan(p))).map((p) => ({ datum: dagVan(p) as string, titel: p.titel, soort: "post" as const })),
-          ...ideeen.filter((i) => inPeriode(i.datum)).map((i) => ({ datum: i.datum, titel: i.titel, soort: "idee" as const })),
+          ...posts
+            .filter((p) => inPeriode(dagVan(p)))
+            .map((p) => ({ datum: dagVan(p) as string, titel: p.titel, soort: "post" as const })),
+          ...ideeen
+            .filter((i) => inPeriode(i.datum))
+            .map((i) => ({ datum: i.datum, titel: i.titel, soort: "idee" as const })),
         ],
         campagne: campagne ? { naam: campagne.naam, doel: campagne.doel } : null,
         resultaten: resultatenPerSjabloon(posts, plusDagen(vandaag, -182)),
         merk: { merknaam: (await laadMerk(o.dataDir)).naam },
       };
       const r = await aiHulp("De ideeënhulp", `ideeen:${van}..${v.tot}`, () => provider.marketingIdeeen(opdracht));
-      return { voorstellen: ruimIdeeenOp(r.voorstel, opdracht), model: r.model, van, voorbeeld: provider.naam === "voorbeeld" };
+      return {
+        voorstellen: ruimIdeeenOp(r.voorstel, opdracht),
+        model: r.model,
+        van,
+        voorbeeld: provider.naam === "voorbeeld",
+      };
     }),
 
     // -----------------------------------------------------------------------------------------
@@ -630,13 +878,23 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       const { feit, nieuw } = await werkLijstBij<Feit, { feit: Feit; nieuw: boolean }>(gedeeld, "feiten", (regels) => {
         const al = regels.find((f) => f.tekst === tekst);
         if (al?.status === "ingetrokken") {
-          throw new ApiFout(409, "Het feit bij dit moment is ingetrokken; zet het in de Feitenbank terug op concept als u het weer wilt gebruiken");
+          throw new ApiFout(
+            409,
+            "Het feit bij dit moment is ingetrokken; zet het in de Feitenbank terug op concept als u het weer wilt gebruiken",
+          );
         }
         if (al) return { regels, uitkomst: { feit: al, nieuw: false } };
         if (regels.length >= 500) throw new ApiFout(409, "Er staan al 500 feiten; ruim eerst op");
         const f: Feit = {
-          id: nieuwLijstId("feiten"), tekst, soort: "extern", bron: { soort: "site", verwijzing: `moment ${m.sleutel}` },
-          geldigVan: null, geldigTot: null, status: "concept", aangemaakt: nu, gewijzigd: nu,
+          id: nieuwLijstId("feiten"),
+          tekst,
+          soort: "extern",
+          bron: { soort: "site", verwijzing: `moment ${m.sleutel}` },
+          geldigVan: null,
+          geldigTot: null,
+          status: "concept",
+          aangemaakt: nu,
+          gewijzigd: nu,
         };
         return { regels: [...regels, f], uitkomst: { feit: f, nieuw: true } };
       });
@@ -646,17 +904,24 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     // -----------------------------------------------------------------------------------------
     // Media
     // -----------------------------------------------------------------------------------------
-    route("POST", "/api/media", async (c) => {
-      const inhoud = await c.lees(MAX_MEDIA_BYTES);
-      if (!inhoud.length) throw new ApiFout(400, "Er is geen bestand meegestuurd");
-      const soort = mediaSoort(inhoud);
-      if (!soort) throw new ApiFout(400, "Alleen PNG, JPEG of WebP; een SVG of ander bestand kan hier niet");
-      const maat = mediaAfmetingen(inhoud, soort);
-      if (!maat || maat.breedte < 1 || maat.hoogte < 1) throw new ApiFout(400, "Dit beeld is onleesbaar of beschadigd");
-      if (maat.breedte > 8000 || maat.hoogte > 8000) throw new ApiFout(400, "Dit beeld is groter dan 8000 pixels; verklein het eerst");
-      const id = await bewaarMedia(gedeeld, inhoud, soort);
-      return antwoord({ status: 201, body: { id, bytes: inhoud.length, ...maat } });
-    }, { ruweBody: true }),
+    route(
+      "POST",
+      "/api/media",
+      async (c) => {
+        const inhoud = await c.lees(MAX_MEDIA_BYTES);
+        if (!inhoud.length) throw new ApiFout(400, "Er is geen bestand meegestuurd");
+        const soort = mediaSoort(inhoud);
+        if (!soort) throw new ApiFout(400, "Alleen PNG, JPEG of WebP; een SVG of ander bestand kan hier niet");
+        const maat = mediaAfmetingen(inhoud, soort);
+        if (!maat || maat.breedte < 1 || maat.hoogte < 1)
+          throw new ApiFout(400, "Dit beeld is onleesbaar of beschadigd");
+        if (maat.breedte > 8000 || maat.hoogte > 8000)
+          throw new ApiFout(400, "Dit beeld is groter dan 8000 pixels; verklein het eerst");
+        const id = await bewaarMedia(gedeeld, inhoud, soort);
+        return antwoord({ status: 201, body: { id, bytes: inhoud.length, ...maat } });
+      },
+      { ruweBody: true },
+    ),
 
     route("GET", "/api/media", async () => {
       const [media, posts] = await Promise.all([lijstMedia(gedeeld), lijstPosts(gedeeld)]);
@@ -670,7 +935,11 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       // Bewuste beperking: controle en wissen zijn twee stappen; met één beheerder is een post die precies
       // daartussen het beeld kiest geen reëel scenario. Een slot over posts heen als er meer gebruikers komen.
       const n = mediaGebruik(await lijstPosts(gedeeld)).get(id) ?? 0;
-      if (n) throw new ApiFout(409, `Dit beeld staat in ${n} post${n === 1 ? "" : "s"} (gearchiveerde tellen mee); haal het daar eerst weg`);
+      if (n)
+        throw new ApiFout(
+          409,
+          `Dit beeld staat in ${n} post${n === 1 ? "" : "s"} (gearchiveerde tellen mee); haal het daar eerst weg`,
+        );
       if (!(await wisMedia(gedeeld, id))) throw new ApiFout(404, "Beeld niet gevonden");
       return { ok: true };
     }),

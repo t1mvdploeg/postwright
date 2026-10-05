@@ -10,26 +10,37 @@ export const SCHRIJFHULP_TAKEN = ["velden", "posttekst", "alt-tekst"] as const;
 export type SchrijfhulpTaak = (typeof SCHRIJFHULP_TAKEN)[number];
 
 /** Wat de browser vraagt. De feiten komen alleen als id's binnen; de tekst laadt de server zelf. */
-export const SchrijfhulpVerzoekSchema = z.object({
-  taak: z.enum(SCHRIJFHULP_TAKEN),
-  sjabloon: z.string().trim().min(1).max(80),
-  velden: z.array(z.object({
-    id: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/),
-    label: z.string().trim().min(1).max(80),
-    soort: z.enum(["kop", "tekst", "regel"]),
-    max: z.number().int().min(1).max(2000).nullable(),
-    nadruk: z.boolean(),
-  }).strict()).max(20),
-  kanaal: z.enum(KANALEN),
-  toelichting: z.string().max(1000).default(""),
-  feiten: z.array(z.string().regex(FEIT_ID)).max(50),
-  /** Wat er al in de post staat: de hulp beschrijft of vervolgt die post, niet een verzonnen post. */
-  huidig: z.object({
-    velden: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/), z.string().max(600)).default({}),
-    posttekst: z.string().max(3000).default(""),
-    altTekst: z.string().max(1500).default(""),
-  }).strict().default({ velden: {}, posttekst: "", altTekst: "" }),
-}).strict();
+export const SchrijfhulpVerzoekSchema = z
+  .object({
+    taak: z.enum(SCHRIJFHULP_TAKEN),
+    sjabloon: z.string().trim().min(1).max(80),
+    velden: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/),
+            label: z.string().trim().min(1).max(80),
+            soort: z.enum(["kop", "tekst", "regel"]),
+            max: z.number().int().min(1).max(2000).nullable(),
+            nadruk: z.boolean(),
+          })
+          .strict(),
+      )
+      .max(20),
+    kanaal: z.enum(KANALEN),
+    toelichting: z.string().max(1000).default(""),
+    feiten: z.array(z.string().regex(FEIT_ID)).max(50),
+    /** Wat er al in de post staat: de hulp beschrijft of vervolgt die post, niet een verzonnen post. */
+    huidig: z
+      .object({
+        velden: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/), z.string().max(600)).default({}),
+        posttekst: z.string().max(3000).default(""),
+        altTekst: z.string().max(1500).default(""),
+      })
+      .strict()
+      .default({ velden: {}, posttekst: "", altTekst: "" }),
+  })
+  .strict();
 export type SchrijfhulpVerzoek = z.infer<typeof SchrijfhulpVerzoekSchema>;
 
 /** Wat het model te zien krijgt: de opdracht plus uitsluitend de feiten die de server heeft geladen. */
@@ -50,12 +61,14 @@ export interface MarketingOpdracht {
  * string of lege lijst. Het aantal varianten begrenst de route na afloop (hooguit drie).
  */
 export const MarketingVoorstelSchema = z.object({
-  varianten: z.array(z.object({
-    velden: z.array(z.object({ id: z.string().max(40), tekst: z.string().max(600) })),
-    posttekst: z.string().max(3000),
-    altTekst: z.string().max(1500),
-    gebruikteFeiten: z.array(z.string().max(60)),
-  })),
+  varianten: z.array(
+    z.object({
+      velden: z.array(z.object({ id: z.string().max(40), tekst: z.string().max(600) })),
+      posttekst: z.string().max(3000),
+      altTekst: z.string().max(1500),
+      gebruikteFeiten: z.array(z.string().max(60)),
+    }),
+  ),
 });
 export type MarketingVoorstel = z.infer<typeof MarketingVoorstelSchema>;
 
@@ -89,11 +102,17 @@ export function marketingInstructie(merk: PromptMerk): string {
 
 /** De opdracht als compacte JSON voor het model. */
 export function marketingOpdracht(o: MarketingOpdracht): string {
-  return `Opdracht:\n${JSON.stringify({
-    taak: o.taak, sjabloon: o.sjabloon, kanaal: o.kanaal,
-    velden: o.velden.map((v) => ({ id: v.id, label: v.label, maxTekens: v.max, nadruk: v.nadruk })),
-    toelichting: o.toelichting,
-    huidig: o.huidig,
-    feiten: o.feiten,
-  }, null, 1)}`;
+  return `Opdracht:\n${JSON.stringify(
+    {
+      taak: o.taak,
+      sjabloon: o.sjabloon,
+      kanaal: o.kanaal,
+      velden: o.velden.map((v) => ({ id: v.id, label: v.label, maxTekens: v.max, nadruk: v.nadruk })),
+      toelichting: o.toelichting,
+      huidig: o.huidig,
+      feiten: o.feiten,
+    },
+    null,
+    1,
+  )}`;
 }

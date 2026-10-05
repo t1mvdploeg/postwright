@@ -9,8 +9,11 @@ const MAP = "src/web/marketing/merk";
 
 export function merkVanSchijf(): Merk {
   const m = JSON.parse(readFileSync(join(MAP, "merk.json"), "utf8"));
-  const logos = Object.fromEntries(Object.entries(m.logos as Record<string, string>).map(([stand, pad]) => [
-    stand, `data:image/svg+xml;base64,${readFileSync(join(MAP, pad)).toString("base64")}`,
-  ]));
+  const logos = Object.fromEntries(
+    Object.entries(m.logos as Record<string, string>).map(([stand, pad]) => [
+      stand,
+      `data:image/svg+xml;base64,${readFileSync(join(MAP, pad)).toString("base64")}`,
+    ]),
+  );
   return { ...m, logos, lettertypeCss: "" };
 }

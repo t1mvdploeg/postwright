@@ -18,10 +18,12 @@ export function naarSvg(beeld) {
   const inhoud = [...doc.body.childNodes].map((n) => xml.serializeToString(n)).join("");
   const css = beeld.css.replaceAll("]]>", "]]]]><![CDATA[>");
   const { breedte: b, hoogte: h } = beeld;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${b}" height="${h}" viewBox="0 0 ${b} ${h}">`
-    + `<foreignObject x="0" y="0" width="${b}" height="${h}">`
-    + `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${b}px;height:${h}px;overflow:hidden"><style><![CDATA[${css}]]></style>${inhoud}</div>`
-    + "</foreignObject></svg>";
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${b}" height="${h}" viewBox="0 0 ${b} ${h}">` +
+    `<foreignObject x="0" y="0" width="${b}" height="${h}">` +
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${b}px;height:${h}px;overflow:hidden"><style><![CDATA[${css}]]></style>${inhoud}</div>` +
+    "</foreignObject></svg>"
+  );
 }
 
 export class ExportFout extends Error {}
@@ -30,7 +32,13 @@ export class ExportFout extends Error {}
 export async function naarCanvas(beeld, schaal = 1) {
   const img = new Image();
   img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(naarSvg(beeld))}`;
-  try { await img.decode(); } catch { throw new ExportFout("Het beeld kon niet worden opgebouwd. Probeer het opnieuw, of gebruik Chrome, Edge of Firefox."); }
+  try {
+    await img.decode();
+  } catch {
+    throw new ExportFout(
+      "Het beeld kon niet worden opgebouwd. Probeer het opnieuw, of gebruik Chrome, Edge of Firefox.",
+    );
+  }
   const c = document.createElement("canvas");
   c.width = Math.round(beeld.breedte * schaal);
   c.height = Math.round(beeld.hoogte * schaal);
@@ -52,7 +60,8 @@ export async function naarBlob(beeld, type = "image/png", kwaliteit = 0.92) {
   if (type === "image/jpeg") {
     // JPEG kent geen transparantie: eerst een witte ondergrond, dan het beeld erop.
     const wit = document.createElement("canvas");
-    wit.width = c.width; wit.height = c.height;
+    wit.width = c.width;
+    wit.height = c.height;
     const ctx = wit.getContext("2d");
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, wit.width, wit.height);
@@ -65,7 +74,14 @@ export async function naarBlob(beeld, type = "image/png", kwaliteit = 0.92) {
 function canvasNaarBlob(c, type, kwaliteit) {
   return new Promise((ok, nee) => {
     try {
-      c.toBlob((blob) => (blob ? ok(blob) : nee(new ExportFout("Exporteren lukte niet in deze browser. Gebruik Chrome, Edge of Firefox."))), type, kwaliteit);
+      c.toBlob(
+        (blob) =>
+          blob
+            ? ok(blob)
+            : nee(new ExportFout("Exporteren lukte niet in deze browser. Gebruik Chrome, Edge of Firefox.")),
+        type,
+        kwaliteit,
+      );
     } catch {
       nee(new ExportFout("Exporteren lukt niet in deze browser. Gebruik Chrome, Edge of Firefox."));
     }

@@ -6,21 +6,65 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
 import { plusDagen } from "../src/model/marketing-momenten.js";
-import { ideeenInstructie, IdeeenVoorstelSchema, ruimIdeeenOp, werkdagen, type IdeeenOpdracht, type IdeeenVoorstel } from "../src/model/marketing-ideeen.js";
+import {
+  ideeenInstructie,
+  IdeeenVoorstelSchema,
+  ruimIdeeenOp,
+  werkdagen,
+  type IdeeenOpdracht,
+  type IdeeenVoorstel,
+} from "../src/model/marketing-ideeen.js";
 import { LEGE_USAGE, type AiProvider, type AiResultaat } from "../src/server/ai/provider.js";
 import { maandtotaalUsd } from "../src/server/ai/verbruik.js";
 import { voorbeeldProvider } from "../src/server/ai/voorbeeld.js";
 import { startStudio } from "./helpers/studio.js";
 
 const OPDRACHT: IdeeenOpdracht = {
-  van: "2026-10-05", tot: "2026-10-16", aantal: 3, kanaal: "linkedin", toelichting: "",
-  sjablonen: [{ id: "stelling", naam: "Stelling", doel: "" }, { id: "vraag", naam: "Vraag", doel: "" }],
-  feiten: [{ id: "f-00000000-0000-4000-8000-000000000001", tekst: "The minimum hourly rate is € 14,99.", soort: "extern" }],
-  momenten: [{ sleutel: "aanmelden-overgang", datum: "2026-11-01", titel: "Registration", zin: "Registration is open from 1 November to 31 December 2026." }],
-  bestaand: [], campagne: null, resultaten: [], merk: { merknaam: "Testmerk" },
+  van: "2026-10-05",
+  tot: "2026-10-16",
+  aantal: 3,
+  kanaal: "linkedin",
+  toelichting: "",
+  sjablonen: [
+    { id: "stelling", naam: "Stelling", doel: "" },
+    { id: "vraag", naam: "Vraag", doel: "" },
+  ],
+  feiten: [
+    { id: "f-00000000-0000-4000-8000-000000000001", tekst: "The minimum hourly rate is € 14,99.", soort: "extern" },
+  ],
+  momenten: [
+    {
+      sleutel: "aanmelden-overgang",
+      datum: "2026-11-01",
+      titel: "Registration",
+      zin: "Registration is open from 1 November to 31 December 2026.",
+    },
+  ],
+  bestaand: [],
+  campagne: null,
+  resultaten: [],
+  merk: { merknaam: "Testmerk" },
 };
-const idee = (x: Partial<{ datum: string; titel: string; toelichting: string; sjabloon: string; kop: string; feiten: string[]; moment: string }>) =>
-  ({ datum: "2026-10-06", titel: "Een idee", toelichting: "", sjabloon: "stelling", kop: "Een *kop.*", feiten: [], moment: "", ...x });
+const idee = (
+  x: Partial<{
+    datum: string;
+    titel: string;
+    toelichting: string;
+    sjabloon: string;
+    kop: string;
+    feiten: string[];
+    moment: string;
+  }>,
+) => ({
+  datum: "2026-10-06",
+  titel: "Een idee",
+  toelichting: "",
+  sjabloon: "stelling",
+  kop: "Een *kop.*",
+  feiten: [],
+  moment: "",
+  ...x,
+});
 
 describe("werkdagen", () => {
   it("geeft maandag tot en met vrijdag in de periode", () => {
@@ -31,23 +75,55 @@ describe("werkdagen", () => {
 
 describe("ruimIdeeenOp", () => {
   it("laat ongeldige en buitenperiode-datums en lege titels vallen, kapt af en sorteert", () => {
-    const uit = ruimIdeeenOp({ ideeen: [
-      idee({ datum: "2026-10-09", titel: "B" }), idee({ datum: "2026-02-30" }), idee({ datum: "2026-10-20" }),
-      idee({ datum: "2026-10-06", titel: "A" }), idee({ titel: "   " }), idee({ datum: "2026-10-07", titel: "C" }), idee({ datum: "2026-10-08", titel: "D" }),
-    ] }, OPDRACHT);
+    const uit = ruimIdeeenOp(
+      {
+        ideeen: [
+          idee({ datum: "2026-10-09", titel: "B" }),
+          idee({ datum: "2026-02-30" }),
+          idee({ datum: "2026-10-20" }),
+          idee({ datum: "2026-10-06", titel: "A" }),
+          idee({ titel: "   " }),
+          idee({ datum: "2026-10-07", titel: "C" }),
+          idee({ datum: "2026-10-08", titel: "D" }),
+        ],
+      },
+      OPDRACHT,
+    );
     expect(uit.map((i) => i.titel)).toEqual(["A", "C", "B"]);
   });
   it("struikelt niet over een datum die geen datum is (maand 13 geeft in JavaScript een ongeldige Date)", () => {
-    expect(ruimIdeeenOp({ ideeen: [idee({ datum: "2026-13-01" }), idee({ datum: "2026-10-00" }), idee({ titel: "Goed" })] }, OPDRACHT).map((i) => i.titel)).toEqual(["Goed"]);
+    expect(
+      ruimIdeeenOp(
+        { ideeen: [idee({ datum: "2026-13-01" }), idee({ datum: "2026-10-00" }), idee({ titel: "Goed" })] },
+        OPDRACHT,
+      ).map((i) => i.titel),
+    ).toEqual(["Goed"]);
   });
   it("maakt een onbekend sjabloon null en laat verzonnen feiten en momenten weg", () => {
-    const [i] = ruimIdeeenOp({ ideeen: [idee({ sjabloon: "canva", feiten: ["f-verzonnen", OPDRACHT.feiten[0].id], moment: "bestaat-niet" })] }, OPDRACHT);
+    const [i] = ruimIdeeenOp(
+      { ideeen: [idee({ sjabloon: "canva", feiten: ["f-verzonnen", OPDRACHT.feiten[0].id], moment: "bestaat-niet" })] },
+      OPDRACHT,
+    );
     expect(i).toMatchObject({ sjabloon: null, feiten: [OPDRACHT.feiten[0].id], moment: null });
   });
   it("meldt getallen zonder bron; een gekoppeld feit of moment dekt ze", () => {
-    const [zonder] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "The rate is € 14,99 and the fine € 50.000." })] }, OPDRACHT);
+    const [zonder] = ruimIdeeenOp(
+      { ideeen: [idee({ toelichting: "The rate is € 14,99 and the fine € 50.000." })] },
+      OPDRACHT,
+    );
     expect(zonder.ongedekt).toEqual(["€ 14,99", "€ 50.000"]);
-    const [met] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "The rate is € 14,99; register before 31 December.", feiten: [OPDRACHT.feiten[0].id], moment: "aanmelden-overgang" })] }, OPDRACHT);
+    const [met] = ruimIdeeenOp(
+      {
+        ideeen: [
+          idee({
+            toelichting: "The rate is € 14,99; register before 31 December.",
+            feiten: [OPDRACHT.feiten[0].id],
+            moment: "aanmelden-overgang",
+          }),
+        ],
+      },
+      OPDRACHT,
+    );
     expect(met.ongedekt).toEqual([]);
   });
 });
@@ -59,7 +135,12 @@ describe("voorbeeldgever en instructie", () => {
     expect(r.voorstel.ideeen).toHaveLength(3);
     const uit = ruimIdeeenOp(r.voorstel, OPDRACHT);
     expect(uit).toHaveLength(3);
-    expect(uit.every((i) => werkdagen(OPDRACHT.van, OPDRACHT.tot).includes(i.datum) && i.sjabloon !== null && i.ongedekt.length === 0)).toBe(true);
+    expect(
+      uit.every(
+        (i) =>
+          werkdagen(OPDRACHT.van, OPDRACHT.tot).includes(i.datum) && i.sjabloon !== null && i.ongedekt.length === 0,
+      ),
+    ).toBe(true);
     expect(uit[0].moment).toBe("aanmelden-overgang");
     expect(r.usage).toEqual(LEGE_USAGE);
   });
@@ -82,11 +163,18 @@ const nep = {
 const provider: AiProvider = {
   naam: "anthropic",
   model: "claude-sonnet-5-5",
-  marketingIdeeen: async (o) => { nep.gezien = o; return nep.antwoord!(o); },
+  marketingIdeeen: async (o) => {
+    nep.gezien = o;
+    return nep.antwoord!(o);
+  },
   // Alleen voor de plafondtest: een schrijfhulp-aanroep die iets kost ($ 0,40).
   marketingTekst: async () => ({
-    voorstel: { varianten: [{ velden: [{ id: "kop", tekst: "Een *kop*" }], posttekst: "", altTekst: "", gebruikteFeiten: [] }] },
-    model: "claude-sonnet-5-5", usage: { input: 100_000, output: 20_000, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+    voorstel: {
+      varianten: [{ velden: [{ id: "kop", tekst: "Een *kop*" }], posttekst: "", altTekst: "", gebruikteFeiten: [] }],
+    },
+    model: "claude-sonnet-5-5",
+    usage: { input: 100_000, output: 20_000, cacheLezen: 0, cacheSchrijven: 0 },
+    duurMs: 5,
   }),
 };
 
@@ -99,22 +187,42 @@ const vandaag = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amste
 
 async function vraag(pad: string, body?: unknown, methode = body === undefined ? "GET" : "POST") {
   const r = await fetch(basis + pad, {
-    method: methode, headers: body !== undefined ? { "content-type": "application/json" } : {},
+    method: methode,
+    headers: body !== undefined ? { "content-type": "application/json" } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  return { status: r.status, body: await r.json() as any };
+  return { status: r.status, body: (await r.json()) as any };
 }
 
 async function zetAiHulp(aan: boolean, plafond = 10) {
-  const r = await vraag(`${API}/instellingen`, { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondUsdPerMaand: plafond } }, "PUT");
+  const r = await vraag(
+    `${API}/instellingen`,
+    { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondUsdPerMaand: plafond } },
+    "PUT",
+  );
   expect(r.status).toBe(200);
 }
 
-const verzoek = (van: string, tot: string, extra: Record<string, unknown> = {}) =>
-  ({ van, tot, aantal: 2, kanaal: "linkedin", toelichting: "Voor planners.", campagne: null, ...extra });
+const verzoek = (van: string, tot: string, extra: Record<string, unknown> = {}) => ({
+  van,
+  tot,
+  aantal: 2,
+  kanaal: "linkedin",
+  toelichting: "Voor planners.",
+  campagne: null,
+  ...extra,
+});
 
 const boekingen = () => {
-  try { return readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; }
+  try {
+    return readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l));
+  } catch {
+    return [];
+  }
 };
 
 beforeAll(async () => {
@@ -123,12 +231,16 @@ beforeAll(async () => {
   dataDir = s.dataDir;
   sluit = s.sluit;
 });
-afterAll(async () => { await sluit(); });
+afterAll(async () => {
+  await sluit();
+});
 beforeEach(() => {
   nep.gezien = null;
   nep.antwoord = (o) => ({
     voorstel: { ideeen: [idee({ datum: o.van, titel: "Eerste" })] },
-    model: "claude-sonnet-5-5", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+    model: "claude-sonnet-5-5",
+    usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 },
+    duurMs: 5,
   });
 });
 
@@ -147,12 +259,16 @@ describe("POST /ideeen/voorstellen", () => {
     const van = plusDagen(vandaag(), 1);
     const tot = plusDagen(van, 9);
     nep.antwoord = (o) => ({
-      voorstel: { ideeen: [
-        idee({ datum: o.van, titel: "Binnen" }),
-        idee({ datum: plusDagen(o.tot, 5), titel: "Erbuiten" }),
-        idee({ datum: plusDagen(o.van, 2), titel: "Onbekend sjabloon", sjabloon: "onbekend" }),
-      ] },
-      model: "claude-sonnet-5-5", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+      voorstel: {
+        ideeen: [
+          idee({ datum: o.van, titel: "Binnen" }),
+          idee({ datum: plusDagen(o.tot, 5), titel: "Erbuiten" }),
+          idee({ datum: plusDagen(o.van, 2), titel: "Onbekend sjabloon", sjabloon: "onbekend" }),
+        ],
+      },
+      model: "claude-sonnet-5-5",
+      usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 },
+      duurMs: 5,
     });
     const voor = boekingen().length;
     const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, tot));
@@ -215,7 +331,11 @@ describe("POST /ideeen/voorstellen", () => {
     // Eerst een schrijfhulp-aanroep die echt iets kost, met ruimte onder het plafond.
     await zetAiHulp(true, 1000);
     const hulp = await vraag(`${API}/schrijfhulp`, {
-      taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "", feiten: [],
+      taak: "velden",
+      sjabloon: "Stelling",
+      kanaal: "linkedin",
+      toelichting: "",
+      feiten: [],
       velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }],
     });
     expect(hulp.status).toBe(200);
@@ -234,7 +354,13 @@ describe("POST /ideeen/voorstellen", () => {
   it("geeft het model alleen bruikbare feiten, en de campagne met naam en doel (afsluitende review, C3)", async () => {
     await zetAiHulp(true, 1000);
     const feit = async (tekst: string, status: string, geldigTot: string | null = null) => {
-      const r = await vraag(`${API}/feiten`, { tekst, soort: "product", bron: { soort: "site", verwijzing: "README.md" }, status, geldigTot });
+      const r = await vraag(`${API}/feiten`, {
+        tekst,
+        soort: "product",
+        bron: { soort: "site", verwijzing: "README.md" },
+        status,
+        geldigTot,
+      });
       expect(r.status).toBe(201);
       return r.body.id as string;
     };
@@ -242,7 +368,11 @@ describe("POST /ideeen/voorstellen", () => {
     const concept = await feit("A draft fact for the ideas help.", "concept");
     const verlopen = await feit("An expired fact for the ideas help.", "actief", plusDagen(vandaag(), -1));
     const ingetrokken = await feit("A withdrawn fact for the ideas help.", "ingetrokken");
-    const campagne = await vraag(`${API}/campagnes`, { naam: "Najaar", utmCampagne: "najaar-ideeen", doel: "Point readers to the new release." });
+    const campagne = await vraag(`${API}/campagnes`, {
+      naam: "Najaar",
+      utmCampagne: "najaar-ideeen",
+      doel: "Point readers to the new release.",
+    });
     expect(campagne.status).toBe(201);
     const van = plusDagen(vandaag(), 1);
     const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, plusDagen(van, 9), { campagne: campagne.body.id }));
@@ -256,7 +386,10 @@ describe("POST /ideeen/voorstellen", () => {
   it("weigert een campagne die niet bestaat met 400, zonder het model te vragen", async () => {
     await zetAiHulp(true, 1000);
     const van = plusDagen(vandaag(), 1);
-    const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, plusDagen(van, 9), { campagne: "c-00000000-0000-4000-8000-000000000000" }));
+    const r = await vraag(
+      `${API}/ideeen/voorstellen`,
+      verzoek(van, plusDagen(van, 9), { campagne: "c-00000000-0000-4000-8000-000000000000" }),
+    );
     expect(r.status).toBe(400);
     expect(r.body.fout).toMatch(/campagne/);
     expect(nep.gezien).toBeNull();

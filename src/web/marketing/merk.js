@@ -33,17 +33,29 @@ export function laadMerk() {
     const r = await fetch("/api/merk");
     if (!r.ok) throw new Error((await r.json().catch(() => null))?.fout ?? "Het merk kon niet worden geladen");
     const m = await r.json();
-    const logos = Object.fromEntries(await Promise.all(Object.entries(m.logos)
-      .map(async ([stand, pad]) => [stand, await haalDataUri(`${MERK_MAP}/${pad}`, "image/svg+xml")])));
+    const logos = Object.fromEntries(
+      await Promise.all(
+        Object.entries(m.logos).map(async ([stand, pad]) => [
+          stand,
+          await haalDataUri(`${MERK_MAP}/${pad}`, "image/svg+xml"),
+        ]),
+      ),
+    );
     const familie = m.lettertype.familie.replace(/["\\]/g, "");
-    const letters = await Promise.all(m.lettertype.bestanden.map((pad) => {
-      const ext = pad.split(".").pop().toLowerCase();
-      return haalDataUri(`${MERK_MAP}/${pad}`, LETTERTYPE_MIME[ext] ?? "application/octet-stream")
-        .then((src) => `@font-face { font-family: "${familie}"; font-style: normal; font-weight: 100 900; src: url("${src}") format("${LETTERTYPE_FORMAAT[ext] ?? "woff2"}"); }`);
-    }));
+    const letters = await Promise.all(
+      m.lettertype.bestanden.map((pad) => {
+        const ext = pad.split(".").pop().toLowerCase();
+        return haalDataUri(`${MERK_MAP}/${pad}`, LETTERTYPE_MIME[ext] ?? "application/octet-stream").then(
+          (src) =>
+            `@font-face { font-family: "${familie}"; font-style: normal; font-weight: 100 900; src: url("${src}") format("${LETTERTYPE_FORMAAT[ext] ?? "woff2"}"); }`,
+        );
+      }),
+    );
     return { ...m, logos, lettertypeCss: letters.join("\n") };
   })();
-  merkBelofte.catch(() => { merkBelofte = null; });
+  merkBelofte.catch(() => {
+    merkBelofte = null;
+  });
   return merkBelofte;
 }
 
@@ -54,27 +66,38 @@ export function laadMerk() {
  */
 export async function laadMedia(ids, maxZijde = 3200) {
   const uit = {};
-  await Promise.all([...new Set(ids)].filter((id) => /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id)).map(async (id) => {
-    if (!mediaCache.has(id)) {
-      mediaCache.set(id, (async () => {
-        const r = await fetch(`/api/media/${id}`);
-        if (!r.ok) return null;
-        const blob = await r.blob();
-        const bitmap = await createImageBitmap(blob);
-        if (Math.max(bitmap.width, bitmap.height) <= maxZijde) { bitmap.close(); return alsDataUri(blob); }
-        const schaal = maxZijde / Math.max(bitmap.width, bitmap.height);
-        const c = document.createElement("canvas");
-        c.width = Math.round(bitmap.width * schaal);
-        c.height = Math.round(bitmap.height * schaal);
-        c.getContext("2d").drawImage(bitmap, 0, 0, c.width, c.height);
-        bitmap.close();
-        return c.toDataURL(id.endsWith(".png") ? "image/png" : "image/jpeg", 0.92);
-      })().catch(() => null));
-    }
-    const bron = await mediaCache.get(id);
-    // Een mislukte lading niet onthouden: anders blijft het beeld tot een herlaad leeg in voorbeeld
-    // én export, zonder melding. De volgende keer gewoon opnieuw proberen.
-    if (bron) uit[id] = bron; else mediaCache.delete(id);
-  }));
+  await Promise.all(
+    [...new Set(ids)]
+      .filter((id) => /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id))
+      .map(async (id) => {
+        if (!mediaCache.has(id)) {
+          mediaCache.set(
+            id,
+            (async () => {
+              const r = await fetch(`/api/media/${id}`);
+              if (!r.ok) return null;
+              const blob = await r.blob();
+              const bitmap = await createImageBitmap(blob);
+              if (Math.max(bitmap.width, bitmap.height) <= maxZijde) {
+                bitmap.close();
+                return alsDataUri(blob);
+              }
+              const schaal = maxZijde / Math.max(bitmap.width, bitmap.height);
+              const c = document.createElement("canvas");
+              c.width = Math.round(bitmap.width * schaal);
+              c.height = Math.round(bitmap.height * schaal);
+              c.getContext("2d").drawImage(bitmap, 0, 0, c.width, c.height);
+              bitmap.close();
+              return c.toDataURL(id.endsWith(".png") ? "image/png" : "image/jpeg", 0.92);
+            })().catch(() => null),
+          );
+        }
+        const bron = await mediaCache.get(id);
+        // Een mislukte lading niet onthouden: anders blijft het beeld tot een herlaad leeg in voorbeeld
+        // én export, zonder melding. De volgende keer gewoon opnieuw proberen.
+        if (bron) uit[id] = bron;
+        else mediaCache.delete(id);
+      }),
+  );
   return uit;
 }

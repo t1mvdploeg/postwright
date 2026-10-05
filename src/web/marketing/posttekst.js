@@ -4,13 +4,26 @@
 // weergeven" valt, verschilt per scherm; `vouw` is daarom een richtgetal, geen grens.
 
 export const KANAAL_REGELS = {
-  linkedin: { naam: "LinkedIn", maxTekens: 3000, vouw: 210, maxHashtags: null, plaatsen: "https://www.linkedin.com/feed/" },
+  linkedin: {
+    naam: "LinkedIn",
+    maxTekens: 3000,
+    vouw: 210,
+    maxHashtags: null,
+    plaatsen: "https://www.linkedin.com/feed/",
+  },
   instagram: { naam: "Instagram", maxTekens: 2200, vouw: 125, maxHashtags: 30, plaatsen: "https://www.instagram.com/" },
   x: { naam: "X", maxTekens: 280, vouw: null, maxHashtags: null, linkTelt: 23, plaatsen: "https://x.com/compose/post" },
-  facebook: { naam: "Facebook", maxTekens: 63206, vouw: null, maxHashtags: null, plaatsen: "https://www.facebook.com/" },
+  facebook: {
+    naam: "Facebook",
+    maxTekens: 63206,
+    vouw: null,
+    maxHashtags: null,
+    plaatsen: "https://www.facebook.com/",
+  },
 };
 
-const segmenter = typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter("nl", { granularity: "grapheme" }) : null;
+const segmenter =
+  typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter("nl", { granularity: "grapheme" }) : null;
 
 /** Tekens zoals een lezer ze telt: een emoji of een letter met accent is één teken. */
 export function telTekens(tekst) {
@@ -37,7 +50,11 @@ export function zetUtmInhoud(tekst, id) {
     const staart = ruw.match(LINK_STAART)?.[0] ?? "";
     const link = staart ? ruw.slice(0, -staart.length) : ruw;
     let u;
-    try { u = new URL(link); } catch { return ruw; }
+    try {
+      u = new URL(link);
+    } catch {
+      return ruw;
+    }
     if (!u.searchParams.has("utm_source")) return ruw;
     u.searchParams.set("utm_content", id);
     return `${u.toString()}${staart}`;
@@ -85,9 +102,16 @@ export function hashtags(tekst) {
  */
 export function voegUtmToe(link, { bron, medium, campagne, inhoud } = {}) {
   let u;
-  try { u = new URL(String(link ?? "").trim()); } catch { return null; }
+  try {
+    u = new URL(String(link ?? "").trim());
+  } catch {
+    return null;
+  }
   if (u.protocol !== "https:") return null;
-  const zet = (naam, waarde) => { if (waarde) u.searchParams.set(naam, waarde); else u.searchParams.delete(naam); };
+  const zet = (naam, waarde) => {
+    if (waarde) u.searchParams.set(naam, waarde);
+    else u.searchParams.delete(naam);
+  };
   zet("utm_source", bron);
   zet("utm_medium", medium);
   zet("utm_campaign", campagne);
@@ -109,15 +133,45 @@ export function controleerPosttekst(kanaal, tekst) {
   if (!r) return [];
   const uit = [];
   const t = String(tekst ?? "");
-  if (!t.trim()) return [{ niveau: "let-op", code: "posttekst-leeg", tekst: `Nog geen posttekst voor ${r.naam}`, kanaal }];
+  if (!t.trim())
+    return [{ niveau: "let-op", code: "posttekst-leeg", tekst: `Nog geen posttekst voor ${r.naam}`, kanaal }];
   const lengte = lengteVoor(kanaal, t);
-  if (lengte > r.maxTekens) uit.push({ niveau: "fout", code: "posttekst-te-lang", tekst: `De posttekst voor ${r.naam} is ${lengte} tekens; ${r.naam} laat er ${r.maxTekens} toe`, kanaal });
+  if (lengte > r.maxTekens)
+    uit.push({
+      niveau: "fout",
+      code: "posttekst-te-lang",
+      tekst: `De posttekst voor ${r.naam} is ${lengte} tekens; ${r.naam} laat er ${r.maxTekens} toe`,
+      kanaal,
+    });
   const h = hashtags(t);
   if (r.maxHashtags !== null && h.lijst.length > r.maxHashtags) {
-    uit.push({ niveau: "fout", code: "te-veel-hashtags", tekst: `${h.lijst.length} hashtags voor ${r.naam}; hooguit ${r.maxHashtags}`, kanaal });
+    uit.push({
+      niveau: "fout",
+      code: "te-veel-hashtags",
+      tekst: `${h.lijst.length} hashtags voor ${r.naam}; hooguit ${r.maxHashtags}`,
+      kanaal,
+    });
   }
-  for (const d of h.dubbel) uit.push({ niveau: "let-op", code: "hashtag-dubbel", tekst: `#${d} staat er meer dan één keer in (${r.naam})`, kanaal });
-  for (const a of h.afgebroken) uit.push({ niveau: "let-op", code: "hashtag-afgebroken", tekst: `#${a} breekt af bij het leesteken; schrijf hem aaneen (${r.naam})`, kanaal });
-  for (const l of linksZonderUtm(t)) uit.push({ niveau: "let-op", code: "link-zonder-utm", tekst: `Link zonder UTM in de posttekst voor ${r.naam}: ${l.length > 60 ? `${l.slice(0, 57)}…` : l}`, kanaal });
+  for (const d of h.dubbel)
+    uit.push({
+      niveau: "let-op",
+      code: "hashtag-dubbel",
+      tekst: `#${d} staat er meer dan één keer in (${r.naam})`,
+      kanaal,
+    });
+  for (const a of h.afgebroken)
+    uit.push({
+      niveau: "let-op",
+      code: "hashtag-afgebroken",
+      tekst: `#${a} breekt af bij het leesteken; schrijf hem aaneen (${r.naam})`,
+      kanaal,
+    });
+  for (const l of linksZonderUtm(t))
+    uit.push({
+      niveau: "let-op",
+      code: "link-zonder-utm",
+      tekst: `Link zonder UTM in de posttekst voor ${r.naam}: ${l.length > 60 ? `${l.slice(0, 57)}…` : l}`,
+      kanaal,
+    });
   return uit;
 }

@@ -6,15 +6,36 @@ import { api, bevestigDialoog, el, icoon, melding } from "/ui.js";
 import { laadMerk } from "/marketing/merk.js";
 
 const NAV_GROEPEN = [
-  ["Werk", [["overzicht", "Overzicht"], ["maken", "Maken"], ["bibliotheek", "Bibliotheek"], ["planning", "Planning"]]],
-  ["Bronnen", [["feiten", "Feitenbank"], ["teksten", "Teksten"], ["merkkit", "Merkkit"]]],
+  [
+    "Werk",
+    [
+      ["overzicht", "Overzicht"],
+      ["maken", "Maken"],
+      ["bibliotheek", "Bibliotheek"],
+      ["planning", "Planning"],
+    ],
+  ],
+  [
+    "Bronnen",
+    [
+      ["feiten", "Feitenbank"],
+      ["teksten", "Teksten"],
+      ["merkkit", "Merkkit"],
+    ],
+  ],
   ["Systeem", [["instellingen", "Instellingen"]]],
 ];
 const SCHERMEN = new Map(NAV_GROEPEN.flatMap(([, s]) => s));
 // Het kiticoon per scherm, dezelfde sprite als de rest van de tool (/iconen.svg).
 const SCHERM_ICOON = {
-  overzicht: "start", maken: "bewerken", bibliotheek: "archief", planning: "kalender",
-  feiten: "bron", teksten: "document", merkkit: "lagen", instellingen: "instellingen",
+  overzicht: "start",
+  maken: "bewerken",
+  bibliotheek: "archief",
+  planning: "kalender",
+  feiten: "bron",
+  teksten: "document",
+  merkkit: "lagen",
+  instellingen: "instellingen",
 };
 const MODULES = {
   overzicht: () => import("/marketing/overzicht.js"),
@@ -43,7 +64,10 @@ let instellingenBelofte = null;
 
 /** `#maken/p-…` → { scherm: "maken", delen: ["p-…"] }. Onbekend wordt het overzicht. */
 export function leesRoute(hash) {
-  const [scherm, ...delen] = String(hash ?? "").replace(/^#/, "").split("/").map(decodeURIComponent);
+  const [scherm, ...delen] = String(hash ?? "")
+    .replace(/^#/, "")
+    .split("/")
+    .map(decodeURIComponent);
   return SCHERMEN.has(scherm) ? { scherm, delen } : { scherm: "overzicht", delen: [] };
 }
 
@@ -54,13 +78,25 @@ function sluitMenu() {
 }
 
 function tekenNav(scherm) {
-  navEl.replaceChildren(...NAV_GROEPEN.map(([groep, schermen]) => el("div", { class: "nav-groep" }, [
-    el("span", { class: "nav-groep-label", text: groep }),
-    ...schermen.map(([id, naam]) => el("a", {
-      href: `#${id}`, class: id === scherm ? "actief" : "", ...(id === scherm ? { "aria-current": "page" } : {}),
-      onclick: sluitMenu,
-    }, [icoon(SCHERM_ICOON[id]), naam])),
-  ])));
+  navEl.replaceChildren(
+    ...NAV_GROEPEN.map(([groep, schermen]) =>
+      el("div", { class: "nav-groep" }, [
+        el("span", { class: "nav-groep-label", text: groep }),
+        ...schermen.map(([id, naam]) =>
+          el(
+            "a",
+            {
+              href: `#${id}`,
+              class: id === scherm ? "actief" : "",
+              ...(id === scherm ? { "aria-current": "page" } : {}),
+              onclick: sluitMenu,
+            },
+            [icoon(SCHERM_ICOON[id]), naam],
+          ),
+        ),
+      ]),
+    ),
+  );
 }
 
 function laadInstellingen(opnieuw = false) {
@@ -84,9 +120,14 @@ async function teken() {
   }
   if (actief?.heeftOnbewaard?.() && location.hash !== vorigeHash) {
     const doorgaan = await bevestigDialoog("De wijzigingen aan deze post zijn nog niet bewaard en gaan verloren.", {
-      titel: "Weggaan zonder bewaren?", bevestigTekst: "Weggaan en wijzigingen weggooien", gevaarlijk: true,
+      titel: "Weggaan zonder bewaren?",
+      bevestigTekst: "Weggaan en wijzigingen weggooien",
+      gevaarlijk: true,
     });
-    if (!doorgaan) { history.replaceState(null, "", vorigeHash); return; }
+    if (!doorgaan) {
+      history.replaceState(null, "", vorigeHash);
+      return;
+    }
   }
   const mijn = ++renderTeller;
   const { scherm, delen } = leesRoute(location.hash);
@@ -102,16 +143,29 @@ async function teken() {
     const [mod, merk, instellingen] = await Promise.all([MODULES[scherm](), laadMerk(), laadInstellingen()]);
     if (mijn !== renderTeller) return;
     const ctx = {
-      api, merk, instellingen, delen,
+      api,
+      merk,
+      instellingen,
+      delen,
       /** Of dit scherm nog het actieve is; een laat antwoord mag een nieuwer scherm niet overschrijven. */
       geldig: () => mijn === renderTeller,
-      zetTitel: (t) => { titelEl.textContent = t; },
-      navigeer: (hash) => { location.hash = hash; },
+      zetTitel: (t) => {
+        titelEl.textContent = t;
+      },
+      navigeer: (hash) => {
+        location.hash = hash;
+      },
       /** Een nieuw adres zonder opnieuw te tekenen (bv. na het eerste bewaren van een nieuwe post). */
-      vervangAdres: (hash) => { history.replaceState(null, "", hash); vorigeHash = hash; },
-      herlaadInstellingen: async () => { ctx.instellingen = await laadInstellingen(true); return ctx.instellingen; },
+      vervangAdres: (hash) => {
+        history.replaceState(null, "", hash);
+        vorigeHash = hash;
+      },
+      herlaadInstellingen: async () => {
+        ctx.instellingen = await laadInstellingen(true);
+        return ctx.instellingen;
+      },
     };
-    actief = await mod.toon(inhoudEl, ctx) ?? mod;
+    actief = (await mod.toon(inhoudEl, ctx)) ?? mod;
   } catch (e) {
     if (mijn === renderTeller) melding(e.message, "fout");
   } finally {
@@ -127,9 +181,14 @@ async function start() {
   });
   overlayEl.addEventListener("click", sluitMenu);
   window.addEventListener("beforeunload", (e) => {
-    if (actief?.heeftOnbewaard?.()) { e.preventDefault(); e.returnValue = ""; }
+    if (actief?.heeftOnbewaard?.()) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
   });
-  window.addEventListener("hashchange", () => { void teken(); });
+  window.addEventListener("hashchange", () => {
+    void teken();
+  });
   if (!location.hash) history.replaceState(null, "", "#overzicht");
   await teken();
 }

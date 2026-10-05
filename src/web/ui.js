@@ -14,11 +14,21 @@ export async function api(pad, opties = {}) {
   // Een netwerkfout (TypeError; een AbortError blijft zoals hij is) of een gateway-fout zonder
   // JSON-antwoord krijgt een Nederlandse melding in plaats van "Failed to fetch"/"Fout 502".
   const GEEN_VERBINDING = "Geen verbinding met de server; probeer het opnieuw.";
-  const r = await fetch(pad, init).catch((e) => { throw e instanceof TypeError ? new Error(GEEN_VERBINDING) : e; });
+  const r = await fetch(pad, init).catch((e) => {
+    throw e instanceof TypeError ? new Error(GEEN_VERBINDING) : e;
+  });
   const tekst = await r.text();
   let data = null;
-  try { data = tekst ? JSON.parse(tekst) : null; } catch { data = null; }
-  if (!r.ok) throw Object.assign(new Error(data?.fout ?? ([502, 503, 504].includes(r.status) ? GEEN_VERBINDING : `Fout ${r.status}`)), { status: r.status, data });
+  try {
+    data = tekst ? JSON.parse(tekst) : null;
+  } catch {
+    data = null;
+  }
+  if (!r.ok)
+    throw Object.assign(
+      new Error(data?.fout ?? ([502, 503, 504].includes(r.status) ? GEEN_VERBINDING : `Fout ${r.status}`)),
+      { status: r.status, data },
+    );
   return data;
 }
 
@@ -49,7 +59,10 @@ function koppelLabels(wortel) {
 export function el(tag, attrs = {}, kinderen = []) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined) e.setAttribute(k, v);
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) e.setAttribute(k, v);
   }
   for (const kind of [].concat(kinderen)) if (kind !== null && kind !== undefined) e.append(kind);
   return e;
@@ -101,7 +114,11 @@ export function melding(tekst, soort = "info") {
   const m = el("div", { class: `melding ${soort}` }, [
     icoon(MELDING_ICOON[soort] ?? "info"),
     el("span", { text: tekst }),
-    el("button", { type: "button", class: "knop-stil melding-sluit", "aria-label": "Melding sluiten", onclick: () => m.remove() }, [icoon("kruis")]),
+    el(
+      "button",
+      { type: "button", class: "knop-stil melding-sluit", "aria-label": "Melding sluiten", onclick: () => m.remove() },
+      [icoon("kruis")],
+    ),
   ]);
   vak.append(m);
   setTimeout(() => m.remove(), 5000);
@@ -116,7 +133,10 @@ function metBeschrijving(bestaand, id) {
   return delen.includes(id) ? delen.join(" ") : [...delen, id].join(" ");
 }
 function zonderBeschrijving(bestaand, id) {
-  return (bestaand ?? "").split(" ").filter((d) => d && d !== id).join(" ");
+  return (bestaand ?? "")
+    .split(" ")
+    .filter((d) => d && d !== id)
+    .join(" ");
 }
 
 /**
@@ -136,11 +156,15 @@ export function veldFout(veld, tekst) {
   if (!tekst) {
     if (foutEl) foutEl.hidden = true;
     const hulptekst = verborgenHulpteksten.get(houder);
-    if (hulptekst) { hulptekst.hidden = false; verborgenHulpteksten.delete(houder); }
+    if (hulptekst) {
+      hulptekst.hidden = false;
+      verborgenHulpteksten.delete(houder);
+    }
     veld.removeAttribute("aria-invalid");
     if (veld.hasAttribute("aria-describedby")) {
       const rest = zonderBeschrijving(veld.getAttribute("aria-describedby"), foutId);
-      if (rest) veld.setAttribute("aria-describedby", rest); else veld.removeAttribute("aria-describedby");
+      if (rest) veld.setAttribute("aria-describedby", rest);
+      else veld.removeAttribute("aria-describedby");
     }
     return;
   }
@@ -179,7 +203,8 @@ function dialoog({ titel, bevestigTekst = "Bevestigen", annuleerTekst = "Annuler
     const waardeVan = bouwInhoud(form) ?? (() => true);
 
     // annuleerTekst: null laat de annuleerknop weg (voor een dialoog die alleen iets toont).
-    const annuleer = annuleerTekst === null ? null : el("button", { type: "button", class: "secundair", text: annuleerTekst });
+    const annuleer =
+      annuleerTekst === null ? null : el("button", { type: "button", class: "secundair", text: annuleerTekst });
     const bevestig = el("button", { type: "submit", class: gevaarlijk ? "secundair gevaar" : "", text: bevestigTekst });
     form.append(el("div", { class: "dialoog-knoppen" }, [annuleer, bevestig].filter(Boolean)));
 
@@ -206,7 +231,9 @@ function dialoog({ titel, bevestigTekst = "Bevestigen", annuleerTekst = "Annuler
       rond(waarde);
     });
     // Klikken buiten de dialoog (op de ::backdrop) sluit hem, net als Escape.
-    d.addEventListener("click", (e) => { if (e.target === d) rond(null); });
+    d.addEventListener("click", (e) => {
+      if (e.target === d) rond(null);
+    });
     d.addEventListener("cancel", () => rond(null));
     d.addEventListener("close", () => rond(null));
 
@@ -220,12 +247,20 @@ export async function bevestigDialoog(vraag, opties = {}) {
     titel: opties.titel ?? "Weet u het zeker?",
     bevestigTekst: opties.bevestigTekst ?? "Ja, doorgaan",
     gevaarlijk: opties.gevaarlijk ?? false,
-    bouwInhoud: (form) => { form.prepend(el("p", { text: vraag })); return () => true; },
+    bouwInhoud: (form) => {
+      form.prepend(el("p", { text: vraag }));
+      return () => true;
+    },
   });
   return uit === true;
 }
-export function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-
+export function debounce(fn, ms) {
+  let t;
+  return (...a) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...a), ms);
+  };
+}
 
 /**
  * Een scrollcontainer die alleen met de muis te verschuiven is, verbergt zijn rechterkant voor
@@ -272,8 +307,14 @@ function zetTabelScrollTabstop(vak, smal) {
     return;
   }
   const gezet = [];
-  if (!alBenoemd) { vak.setAttribute("aria-label", naam); gezet.push("label"); }
-  if (!vak.hasAttribute("role")) { vak.setAttribute("role", "region"); gezet.push("rol"); }
+  if (!alBenoemd) {
+    vak.setAttribute("aria-label", naam);
+    gezet.push("label");
+  }
+  if (!vak.hasAttribute("role")) {
+    vak.setAttribute("role", "region");
+    gezet.push("rol");
+  }
   if (gezet.length) vak.dataset.regioAfgeleid = gezet.join("+");
   vak.setAttribute("tabindex", "0");
 }

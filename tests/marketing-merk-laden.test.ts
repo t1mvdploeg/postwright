@@ -6,11 +6,15 @@ import { alsDataUri, laadMedia } from "../src/web/marketing/merk.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
 
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("merk laden", () => {
   it("maakt van een blob een data-URI", async () => {
-    expect(await alsDataUri(new Blob([new Uint8Array([104, 105])], { type: "text/plain" }))).toBe("data:text/plain;base64,aGk=");
+    expect(await alsDataUri(new Blob([new Uint8Array([104, 105])], { type: "text/plain" }))).toBe(
+      "data:text/plain;base64,aGk=",
+    );
   });
 
   it("probeert een beeld opnieuw na een mislukte lading, in plaats van de fout te onthouden", async () => {
@@ -18,7 +22,9 @@ describe("merk laden", () => {
     let pogingen = 0;
     vi.stubGlobal("fetch", async () => {
       pogingen += 1;
-      return pogingen === 1 ? new Response("stuk", { status: 503 }) : new Response(new Blob([PNG], { type: "image/png" }), { status: 200 });
+      return pogingen === 1
+        ? new Response("stuk", { status: 503 })
+        : new Response(new Blob([PNG], { type: "image/png" }), { status: 200 });
     });
     vi.stubGlobal("createImageBitmap", async () => ({ width: 10, height: 10, close() {} }));
     expect(await laadMedia([id])).toEqual({});
@@ -30,7 +36,9 @@ describe("merk laden", () => {
   });
 
   it("negeert id's die geen media-id zijn", async () => {
-    vi.stubGlobal("fetch", async () => { throw new Error("mag niet"); });
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("mag niet");
+    });
     expect(await laadMedia(["../geheim.png", "https://kwaad.nl/x.png"])).toEqual({});
   });
 });

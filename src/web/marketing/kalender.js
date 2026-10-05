@@ -9,7 +9,9 @@ export { echteDatum, plusDagen } from "../datum.js";
 const p2 = (n) => String(n).padStart(2, "0");
 
 /** JJJJ-MM-DD van een lokale datum. */
-function dag(d) { return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; }
+function dag(d) {
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+}
 
 /**
  * De weken van een maand (maand 0–11), elk zeven dagen van maandag tot en met zondag, met de dagen
@@ -52,7 +54,9 @@ export function dagVan(iso) {
  * één dag geleden, niet nul. Op datums via UTC-middag, dus de wintertijd verschuift niets.
  */
 export function dagenGeleden(iso, nu = new Date()) {
-  return Math.round((Date.parse(`${vandaagAmsterdam(nu)}T12:00:00Z`) - Date.parse(`${dagVan(iso)}T12:00:00Z`)) / 86400000);
+  return Math.round(
+    (Date.parse(`${vandaagAmsterdam(nu)}T12:00:00Z`) - Date.parse(`${dagVan(iso)}T12:00:00Z`)) / 86400000,
+  );
 }
 
 /** Zelfde kloktijd, andere dag: voor slepen in de maandweergave. */

@@ -1,7 +1,13 @@
 // Marketingstudio — resultaten per sjabloon, voor het Overzicht en als richting voor de ideeën.
 import type { Post } from "./marketing-schema.js";
 
-export interface ResultaatRegel { sjabloon: string; posts: number; vertoningen: number; reacties: number; klikken: number }
+export interface ResultaatRegel {
+  sjabloon: string;
+  posts: number;
+  vertoningen: number;
+  reacties: number;
+  klikken: number;
+}
 
 /**
  * Per sjabloon de gepubliceerde posts met een resultaat, gepubliceerd op of na `vanaf` (JJJJ-MM-DD),

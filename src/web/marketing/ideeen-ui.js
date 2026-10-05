@@ -10,7 +10,13 @@ import { ideeNaarRecept, naarInvoer } from "/marketing/recept.js";
 import { haalAiStand, voorbeeldBalk, voorbeeldEtiket } from "/marketing/schrijfhulp-ui.js";
 
 const KORT = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-const LANG = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const LANG = new Intl.DateTimeFormat("nl-NL", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
 /** De 404-tekst van de route moment → feit als het moment niet (meer) bestaat (api-marketing.ts; tests/marketing-momenten.test.ts legt hem vast). */
 const ONBEKEND_MOMENT = "Onbekend moment";
 
@@ -72,33 +78,53 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
   const sluitKnop = el("button", { type: "button", class: "secundair", text: "Sluiten" });
   const knoppen = [bewaarKnop, maakKnop, openKnop, wisKnop, sluitKnop];
 
-  const element = el("section", { class: "kaart studio-ideepaneel", role: "region", "aria-label": "Idee", hidden: "" }, [
-    kop,
-    el("div", { class: "veldrij" }, [
-      veld("idee-datum", "Datum", datum),
-      veld("idee-sjabloon", "Sjabloon", sjabloon),
-      veld("idee-campagne", "Campagne", campagne),
-    ]),
-    veld("idee-titel", "Titel", titel),
-    veld("idee-toelichting", "Toelichting (optioneel)", toelichting),
-    veld("idee-kop", "Voorstel voor de kop (optioneel)", kopVeld, el("p", { class: "hulptekst", id: "idee-kop-hulp", text: "Zet één frase tussen *sterretjes*" })),
-    info,
-    el("div", { class: "knoppenrij" }, knoppen),
-  ]);
+  const element = el(
+    "section",
+    { class: "kaart studio-ideepaneel", role: "region", "aria-label": "Idee", hidden: "" },
+    [
+      kop,
+      el("div", { class: "veldrij" }, [
+        veld("idee-datum", "Datum", datum),
+        veld("idee-sjabloon", "Sjabloon", sjabloon),
+        veld("idee-campagne", "Campagne", campagne),
+      ]),
+      veld("idee-titel", "Titel", titel),
+      veld("idee-toelichting", "Toelichting (optioneel)", toelichting),
+      veld(
+        "idee-kop",
+        "Voorstel voor de kop (optioneel)",
+        kopVeld,
+        el("p", { class: "hulptekst", id: "idee-kop-hulp", text: "Zet één frase tussen *sterretjes*" }),
+      ),
+      info,
+      el("div", { class: "knoppenrij" }, knoppen),
+    ],
+  );
 
   const gebruikt = () => Boolean(idee?.post && staat().posts.some((p) => p.id === idee.post));
 
   function invoer() {
     return {
-      datum: datum.value, titel: titel.value.trim(), toelichting: toelichting.value.trim(),
-      sjabloon: sjabloon.value || null, kop: kopVeld.value.trim(), feiten: [...(idee.feiten ?? [])],
-      moment: idee.moment ?? null, campagne: campagne.value || null, herkomst: idee.herkomst ?? "hand", post: idee.post ?? null,
+      datum: datum.value,
+      titel: titel.value.trim(),
+      toelichting: toelichting.value.trim(),
+      sjabloon: sjabloon.value || null,
+      kop: kopVeld.value.trim(),
+      feiten: [...(idee.feiten ?? [])],
+      moment: idee.moment ?? null,
+      campagne: campagne.value || null,
+      herkomst: idee.herkomst ?? "hand",
+      post: idee.post ?? null,
     };
   }
 
   const formulier = () => ({
-    datum: datum.value, titel: titel.value.trim(), toelichting: toelichting.value.trim(),
-    sjabloon: sjabloon.value, kop: kopVeld.value.trim(), campagne: campagne.value,
+    datum: datum.value,
+    titel: titel.value.trim(),
+    toelichting: toelichting.value.trim(),
+    sjabloon: sjabloon.value,
+    kop: kopVeld.value.trim(),
+    campagne: campagne.value,
   });
 
   /** Of er in het open paneel iets is ingetypt of gekozen dat nog niet is bewaard. */
@@ -112,13 +138,21 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
   function gewijzigd() {
     if (!idee.id) return true;
     const nu = invoer();
-    return ["datum", "titel", "toelichting", "sjabloon", "kop", "campagne"].some((k) => (nu[k] ?? "") !== (idee[k] ?? ""));
+    return ["datum", "titel", "toelichting", "sjabloon", "kop", "campagne"].some(
+      (k) => (nu[k] ?? "") !== (idee[k] ?? ""),
+    );
   }
 
   function controleer() {
     const fouten = [];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(datum.value)) { veldFout(datum, "Kies een datum."); fouten.push(datum); }
-    if (!titel.value.trim()) { veldFout(titel, "Geef het idee een titel."); fouten.push(titel); }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(datum.value)) {
+      veldFout(datum, "Kies een datum.");
+      fouten.push(datum);
+    }
+    if (!titel.value.trim()) {
+      veldFout(titel, "Geef het idee een titel.");
+      fouten.push(titel);
+    }
     fouten[0]?.focus();
     return !fouten.length;
   }
@@ -147,22 +181,35 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
       } catch (e) {
         // Bestaat het moment niet meer, dan zonder dat feit en zonder melding. Elke andere fout (een
         // ingetrokken feit, een volle feitenbank, geen verbinding) wel melden: de post mist dan een feit.
-        if (e.message !== ONBEKEND_MOMENT) melding(`De post wordt gemaakt zonder het feit bij het moment: ${e.message}`, "fout");
+        if (e.message !== ONBEKEND_MOMENT)
+          melding(`De post wordt gemaakt zonder het feit bij het moment: ${e.message}`, "fout");
       }
     }
     const campagneNu = staat().campagnes.some((c) => c.id === i.campagne && !c.gearchiveerd) ? i.campagne : null;
     const s = sjabloonVan(i.sjabloon);
-    const recept = ideeNaarRecept({ ...i, feiten, campagne: campagneNu }, { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie });
+    const recept = ideeNaarRecept(
+      { ...i, feiten, campagne: campagneNu },
+      { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie },
+    );
     const post = await ctx.api("/api/posts", { method: "POST", body: naarInvoer(recept, s, null) });
     const { id, aangemaakt: _a, gewijzigd: _g, ...rest } = i;
     try {
       // Een idee draagt hooguit tien feiten (serverschema); de post krijgt ze allemaal.
-      await ctx.api(`/api/ideeen/${id}`, { method: "PUT", body: { ...rest, feiten: feiten.slice(0, 10), post: post.id } });
+      await ctx.api(`/api/ideeen/${id}`, {
+        method: "PUT",
+        body: { ...rest, feiten: feiten.slice(0, 10), post: post.id },
+      });
     } catch (e) {
       // De post bestaat al. Hier toch als gebruikt tonen: nog eens "Maak post" gaf een tweede, losse post.
       staat().posts.push(post);
-      if (idee?.id === id) { idee.post = post.id; tekenInfo(); }
-      melding(`De post is gemaakt, maar niet aan het idee gekoppeld: ${e.message}. U vindt hem in de Bibliotheek.`, "fout");
+      if (idee?.id === id) {
+        idee.post = post.id;
+        tekenInfo();
+      }
+      melding(
+        `De post is gemaakt, maar niet aan het idee gekoppeld: ${e.message}. U vindt hem in de Bibliotheek.`,
+        "fout",
+      );
     }
     ctx.navigeer(`#maken/${post.id}`);
   }
@@ -176,7 +223,11 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     bezig = true;
     const knop = document.activeElement;
     for (const k of knoppen) k.disabled = true;
-    try { await actie(); } catch (e) { melding(e.message, "fout"); } finally {
+    try {
+      await actie();
+    } catch (e) {
+      melding(e.message, "fout");
+    } finally {
       bezig = false;
       for (const k of knoppen) k.disabled = false;
       const kwijt = !document.activeElement || document.activeElement === document.body;
@@ -187,12 +238,16 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
   function tekenInfo() {
     const m = idee.moment ? staat().momenten.find((x) => x.sleutel === idee.moment) : null;
     const n = idee.feiten?.length ?? 0;
-    info.replaceChildren(...[
-      idee.moment ? `Bij moment: ${m ? `${m.titel} (${korteDag(m.datum)})` : idee.moment}` : null,
-      n ? `${n} gekoppeld${n === 1 ? " feit" : "e feiten"}` : "Geen gekoppelde feiten",
-      idee.herkomst === "ai" ? "Voorgesteld door de AI-hulp" : null,
-      gebruikt() ? "Van dit idee is al een post gemaakt." : null,
-    ].filter(Boolean).map((t) => el("p", { class: "hulptekst", text: t })));
+    info.replaceChildren(
+      ...[
+        idee.moment ? `Bij moment: ${m ? `${m.titel} (${korteDag(m.datum)})` : idee.moment}` : null,
+        n ? `${n} gekoppeld${n === 1 ? " feit" : "e feiten"}` : "Geen gekoppelde feiten",
+        idee.herkomst === "ai" ? "Voorgesteld door de AI-hulp" : null,
+        gebruikt() ? "Van dit idee is al een post gemaakt." : null,
+      ]
+        .filter(Boolean)
+        .map((t) => el("p", { class: "hulptekst", text: t })),
+    );
     kop.textContent = idee.id ? "Idee" : "Nieuw idee";
     maakKnop.hidden = gebruikt();
     openKnop.hidden = !gebruikt();
@@ -208,13 +263,31 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     if (bezig) return;
     const vanaf = bron ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     if (onbewaard()) {
-      if (idee.id && idee.id === nieuwIdee.id) { titel.focus(); return; }
-      const weg = await bevestigDialoog("In het idee dat nu open staat, is iets gewijzigd dat nog niet is bewaard. Die wijzigingen gaan verloren als u een ander idee opent.", {
-        titel: "Wijzigingen weggooien?", bevestigTekst: "Weggooien en openen", gevaarlijk: true,
-      });
+      if (idee.id && idee.id === nieuwIdee.id) {
+        titel.focus();
+        return;
+      }
+      const weg = await bevestigDialoog(
+        "In het idee dat nu open staat, is iets gewijzigd dat nog niet is bewaard. Die wijzigingen gaan verloren als u een ander idee opent.",
+        {
+          titel: "Wijzigingen weggooien?",
+          bevestigTekst: "Weggooien en openen",
+          gevaarlijk: true,
+        },
+      );
       if (!weg || bezig) return;
     }
-    idee = { feiten: [], moment: null, campagne: null, herkomst: "hand", post: null, sjabloon: null, kop: "", toelichting: "", ...nieuwIdee };
+    idee = {
+      feiten: [],
+      moment: null,
+      campagne: null,
+      herkomst: "hand",
+      post: null,
+      sjabloon: null,
+      kop: "",
+      toelichting: "",
+      ...nieuwIdee,
+    };
     opener = vanaf;
     openerSleutel = opener?.dataset?.focus ?? null;
     for (const v of [datum, titel, toelichting, sjabloon, kopVeld, campagne]) veldFout(v, "");
@@ -233,7 +306,7 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
   function sluit() {
     element.hidden = true;
     const zelfde = openerSleutel ? document.querySelector(`[data-focus="${CSS.escape(openerSleutel)}"]`) : null;
-    const doel = opener?.isConnected ? opener : zelfde ?? terugval();
+    const doel = opener?.isConnected ? opener : (zelfde ?? terugval());
     idee = null;
     begin = null;
     opener = null;
@@ -241,18 +314,36 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     doel?.focus();
   }
 
-  bewaarKnop.addEventListener("click", () => metKnoppenUit(async () => {
-    if (await bewaar()) { melding("Idee bewaard"); sluit(); }
-  }));
-  maakKnop.addEventListener("click", () => metKnoppenUit(async () => {
-    if (!sjabloon.value) { veldFout(sjabloon, "Kies eerst een sjabloon."); sjabloon.focus(); return; }
-    const i = gewijzigd() ? await bewaar() : idee;
-    if (i) await maakPost(i);
-  }));
+  bewaarKnop.addEventListener("click", () =>
+    metKnoppenUit(async () => {
+      if (await bewaar()) {
+        melding("Idee bewaard");
+        sluit();
+      }
+    }),
+  );
+  maakKnop.addEventListener("click", () =>
+    metKnoppenUit(async () => {
+      if (!sjabloon.value) {
+        veldFout(sjabloon, "Kies eerst een sjabloon.");
+        sjabloon.focus();
+        return;
+      }
+      const i = gewijzigd() ? await bewaar() : idee;
+      if (i) await maakPost(i);
+    }),
+  );
   openKnop.addEventListener("click", () => ctx.navigeer(`#maken/${idee.post}`));
   wisKnop.addEventListener("click", async () => {
     if (!idee?.id || bezig) return;
-    if (!await bevestigDialoog(`Idee "${idee.titel}" wissen?`, { titel: "Idee wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
+    if (
+      !(await bevestigDialoog(`Idee "${idee.titel}" wissen?`, {
+        titel: "Idee wissen?",
+        bevestigTekst: "Wissen",
+        gevaarlijk: true,
+      }))
+    )
+      return;
     const id = idee.id;
     await metKnoppenUit(async () => {
       await ctx.api(`/api/ideeen/${id}`, { method: "DELETE" });
@@ -262,7 +353,12 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     });
   });
   sluitKnop.addEventListener("click", sluit);
-  element.addEventListener("keydown", (e) => { if (e.key === "Escape" && !element.hidden && !bezig) { e.preventDefault(); sluit(); } });
+  element.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !element.hidden && !bezig) {
+      e.preventDefault();
+      sluit();
+    }
+  });
 
   return {
     element,
@@ -277,7 +373,9 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
       veldFout(datum, "");
     },
     /** Het idee is buiten het paneel veranderd (bv. de lijsten opnieuw geladen): info en knoppen bijwerken. */
-    ververs() { if (idee) tekenInfo(); },
+    ververs() {
+      if (idee) tekenInfo();
+    },
   };
 }
 
@@ -293,11 +391,19 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
   const aan = Boolean(ctx.instellingen.schrijfhulp?.aan);
   const vraag = el("button", { type: "button", text: "Ideeën voorstellen", ...(aan ? {} : { disabled: "" }) });
   const annuleer = el("button", { type: "button", class: "secundair", text: "Annuleren", hidden: "" });
-  const uit = aan ? null : el("p", { class: "hulptekst" }, ["De AI-hulp staat uit. ", el("a", { href: "#instellingen", text: "Zet hem aan onder Instellingen" }), "."]);
+  const uit = aan
+    ? null
+    : el("p", { class: "hulptekst" }, [
+        "De AI-hulp staat uit. ",
+        el("a", { href: "#instellingen", text: "Zet hem aan onder Instellingen" }),
+        ".",
+      ]);
   const stand = el("p", { class: "hulptekst", role: "status", "aria-live": "polite" });
   const lijst = el("div", { class: "studio-varianten" });
   const balk = el("div");
-  haalAiStand().then((a) => { if (a?.stand === "voorbeeld") balk.replaceChildren(voorbeeldBalk()); });
+  haalAiStand().then((a) => {
+    if (a?.stand === "voorbeeld") balk.replaceChildren(voorbeeldBalk());
+  });
   let voorbeeldAntwoord = false;
   const zet = el("button", { type: "button", text: "Zet 0 in de planner" });
   const weg = el("button", { type: "button", class: "secundair", text: "Weggooien" });
@@ -329,12 +435,22 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     vink.addEventListener("change", telOp);
     const s = v.sjabloon ? sjabloonVan(v.sjabloon) : null;
     const article = el("article", { class: "studio-variant" }, [
-      el("label", { class: "studio-radio studio-voorsteltitel" }, [vink, el("b", { text: `${korteDag(v.datum)} · ${v.titel}` }), voorbeeldAntwoord ? voorbeeldEtiket() : null]),
+      el("label", { class: "studio-radio studio-voorsteltitel" }, [
+        vink,
+        el("b", { text: `${korteDag(v.datum)} · ${v.titel}` }),
+        voorbeeldAntwoord ? voorbeeldEtiket() : null,
+      ]),
       v.toelichting ? el("p", { text: v.toelichting }) : null,
       el("p", { class: "hulptekst", text: s ? `Sjabloon: ${s.naam}` : "Nog geen sjabloon" }),
       v.kop ? el("p", {}, [el("b", { text: "Kop: " }), zonderNadruk(v.kop)]) : null,
       v.moment ? el("p", { class: "hulptekst", text: `Bij: ${momentTitel(v.moment)}` }) : null,
-      waarschuwing ? el("p", { class: "studio-waarschuwing", id: waarschuwing, text: `Bevat een getal zonder bron: ${ongedekt.join(", ")}. Loop dit na voordat u het gebruikt.` }) : null,
+      waarschuwing
+        ? el("p", {
+            class: "studio-waarschuwing",
+            id: waarschuwing,
+            text: `Bevat een getal zonder bron: ${ongedekt.join(", ")}. Loop dit na voordat u het gebruikt.`,
+          })
+        : null,
     ]);
     return { v, vink, article };
   }
@@ -388,16 +504,33 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
         const { datum, titel, toelichting, sjabloon, kop, feiten, moment } = x.v;
         await ctx.api("/api/ideeen", {
           method: "POST",
-          body: { datum, titel, toelichting, sjabloon, kop, feiten, moment, campagne: campagneVanVerzoek, herkomst: "ai", post: null },
+          body: {
+            datum,
+            titel,
+            toelichting,
+            sjabloon,
+            kop,
+            feiten,
+            moment,
+            campagne: campagneVanVerzoek,
+            herkomst: "ai",
+            post: null,
+          },
         });
         bewaard++;
         voorstellen = voorstellen.filter((y) => y !== x);
       }
     } catch (e) {
-      melding(`${bewaard} van de ${gekozen.length} ideeën bewaard; de rest staat nog in de lijst. ${e.message}`, "fout");
+      melding(
+        `${bewaard} van de ${gekozen.length} ideeën bewaard; de rest staat nog in de lijst. ${e.message}`,
+        "fout",
+      );
     }
     const alles = bewaard === gekozen.length;
-    if (alles) { voorstellen = []; stand.textContent = ""; } else {
+    if (alles) {
+      voorstellen = [];
+      stand.textContent = "";
+    } else {
       // De statusregel noemde nog het aantal van vóór het bewaren.
       const n = voorstellen.length;
       stand.textContent = `Nog ${n} voorstel${n === 1 ? "" : "len"} in de lijst`;
@@ -406,7 +539,11 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     vraag.disabled = !aan;
     tekenLijst();
     if (bewaard) {
-      try { await naBewaren(); } catch (e) { melding(e.message, "fout"); }
+      try {
+        await naBewaren();
+      } catch (e) {
+        melding(e.message, "fout");
+      }
     }
     if (alles) {
       melding(`${bewaard} idee${bewaard === 1 ? "" : "ën"} in de planner gezet`);

@@ -5,7 +5,11 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
-import { marketingInstructie, MarketingVoorstelSchema, type MarketingOpdracht } from "../src/model/marketing-schrijfhulp.js";
+import {
+  marketingInstructie,
+  MarketingVoorstelSchema,
+  type MarketingOpdracht,
+} from "../src/model/marketing-schrijfhulp.js";
 import { AiFout, LEGE_USAGE, type AiProvider, type AiResultaat } from "../src/server/ai/provider.js";
 import type { MarketingVoorstel } from "../src/model/marketing-schrijfhulp.js";
 import { maandtotaalUsd } from "../src/server/ai/verbruik.js";
@@ -25,7 +29,9 @@ const provider: AiProvider = {
     if (nep.vertraging) await new Promise((ok) => setTimeout(ok, nep.vertraging));
     return nep.antwoord!(o);
   },
-  marketingIdeeen: async () => { throw new Error("mag niet"); },
+  marketingIdeeen: async () => {
+    throw new Error("mag niet");
+  },
 };
 
 let basis = "";
@@ -35,22 +41,35 @@ const API = "/api";
 
 async function vraag(pad: string, body?: unknown, methode = body === undefined ? "GET" : "POST") {
   const r = await fetch(basis + pad, {
-    method: methode, headers: body !== undefined ? { "content-type": "application/json" } : {},
+    method: methode,
+    headers: body !== undefined ? { "content-type": "application/json" } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  return { status: r.status, body: await r.json() as any };
+  return { status: r.status, body: (await r.json()) as any };
 }
 
 async function feit(tekst: string, status = "actief") {
-  const r = await vraag(`${API}/feiten`, { tekst, soort: "product", bron: { soort: "site", verwijzing: "README.md" }, status });
+  const r = await vraag(`${API}/feiten`, {
+    tekst,
+    soort: "product",
+    bron: { soort: "site", verwijzing: "README.md" },
+    status,
+  });
   expect(r.status).toBe(201);
   return r.body.id as string;
 }
 
 const verzoek = (feiten: string[], extra: Record<string, unknown> = {}) => ({
-  taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "Voor HR-managers.",
-  velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }, { id: "tekst", label: "Tekst", soort: "tekst", max: 160, nadruk: false }],
-  feiten, ...extra,
+  taak: "velden",
+  sjabloon: "Stelling",
+  kanaal: "linkedin",
+  toelichting: "Voor HR-managers.",
+  velden: [
+    { id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true },
+    { id: "tekst", label: "Tekst", soort: "tekst", max: 160, nadruk: false },
+  ],
+  feiten,
+  ...extra,
 });
 
 beforeAll(async () => {
@@ -59,21 +78,45 @@ beforeAll(async () => {
   dataDir = s.dataDir;
   sluit = s.sluit;
 });
-afterAll(async () => { await sluit(); });
+afterAll(async () => {
+  await sluit();
+});
 beforeEach(async () => {
   nep.gezien = null;
   nep.vertraging = 0;
   nep.antwoord = (o) => ({
-    voorstel: { varianten: [0, 1, 2, 3].map((i) => ({ velden: [{ id: "kop", tekst: `Voorstel ${i} *kop*` }, { id: "tekst", tekst: "A unit price of € 62,75." }, { id: "geheim", tekst: "x" }], posttekst: "", altTekst: "", gebruikteFeiten: o.feiten.map((f) => f.id) })) },
-    model: "claude-sonnet-5-5", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+    voorstel: {
+      varianten: [0, 1, 2, 3].map((i) => ({
+        velden: [
+          { id: "kop", tekst: `Voorstel ${i} *kop*` },
+          { id: "tekst", tekst: "A unit price of € 62,75." },
+          { id: "geheim", tekst: "x" },
+        ],
+        posttekst: "",
+        altTekst: "",
+        gebruikteFeiten: o.feiten.map((f) => f.id),
+      })),
+    },
+    model: "claude-sonnet-5-5",
+    usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 },
+    duurMs: 5,
   });
   await zetSchrijfhulp(true);
 });
 
-const boekingen = () => readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+const boekingen = () =>
+  readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
 
 async function zetSchrijfhulp(aan: boolean, plafond = 10) {
-  const r = await vraag(`${API}/instellingen`, { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondUsdPerMaand: plafond } }, "PUT");
+  const r = await vraag(
+    `${API}/instellingen`,
+    { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondUsdPerMaand: plafond } },
+    "PUT",
+  );
   expect(r.status).toBe(200);
 }
 
@@ -118,7 +161,14 @@ describe("schrijfhulp", () => {
   it("boekt elke aanroep met taak en kosten, ook bij een fout", async () => {
     const voor = boekingen().length;
     await vraag(`${API}/schrijfhulp`, verzoek([]));
-    nep.antwoord = () => { throw new AiFout("The model did not return valid JSON", { input: 1_000_000, output: 0, cacheLezen: 0, cacheSchrijven: 0 }); };
+    nep.antwoord = () => {
+      throw new AiFout("The model did not return valid JSON", {
+        input: 1_000_000,
+        output: 0,
+        cacheLezen: 0,
+        cacheSchrijven: 0,
+      });
+    };
     const fout = await vraag(`${API}/schrijfhulp`, verzoek([]));
     expect(fout.status).toBe(502);
     expect(fout.body).not.toHaveProperty("voorbeeld");
@@ -140,9 +190,16 @@ describe("schrijfhulp", () => {
     // Eén aanroep kost $ 0,90, meer dan de ruimte onder het plafond; zonder serialisatie zagen alle drie nog ruimte.
     await zetSchrijfhulp(true, (await maandtotaalUsd(dataDir, new Date())) + 0.5);
     const traag = nep.antwoord!;
-    nep.antwoord = (o) => ({ ...traag(o), usage: { input: 200_000, output: 50_000, cacheLezen: 0, cacheSchrijven: 0 } });
+    nep.antwoord = (o) => ({
+      ...traag(o),
+      usage: { input: 200_000, output: 50_000, cacheLezen: 0, cacheSchrijven: 0 },
+    });
     nep.vertraging = 80;
-    const uitslagen = await Promise.all([vraag(`${API}/schrijfhulp`, verzoek([])), vraag(`${API}/schrijfhulp`, verzoek([])), vraag(`${API}/schrijfhulp`, verzoek([]))]);
+    const uitslagen = await Promise.all([
+      vraag(`${API}/schrijfhulp`, verzoek([])),
+      vraag(`${API}/schrijfhulp`, verzoek([])),
+      vraag(`${API}/schrijfhulp`, verzoek([])),
+    ]);
     expect(uitslagen.map((u) => u.status).sort()).toEqual([200, 429, 429]);
   });
 });
@@ -156,7 +213,16 @@ describe("instructie en schema", () => {
   });
 
   it("de voorbeeldgever voldoet aan het antwoordschema", async () => {
-    const o: MarketingOpdracht = { taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "", huidig: { velden: {}, posttekst: "", altTekst: "" }, feiten: [], velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }], merk: { merknaam: "X" } };
+    const o: MarketingOpdracht = {
+      taak: "velden",
+      sjabloon: "Stelling",
+      kanaal: "linkedin",
+      toelichting: "",
+      huidig: { velden: {}, posttekst: "", altTekst: "" },
+      feiten: [],
+      velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }],
+      merk: { merknaam: "X" },
+    };
     const a = await voorbeeldProvider.marketingTekst(o);
     expect(a.voorstel.varianten).toHaveLength(3);
     expect(MarketingVoorstelSchema.safeParse(a.voorstel).success).toBe(true);

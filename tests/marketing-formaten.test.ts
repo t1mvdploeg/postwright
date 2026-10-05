@@ -1,6 +1,15 @@
 // Marketingstudio — de formatentabel en de bestandsnamen.
 import { describe, it, expect } from "vitest";
-import { FORMATEN, KANALEN, bestandsnaam, formaat, kanalenVan, overlapt, slugVan, vormVan } from "../src/web/marketing/formaten.js";
+import {
+  FORMATEN,
+  KANALEN,
+  bestandsnaam,
+  formaat,
+  kanalenVan,
+  overlapt,
+  slugVan,
+  vormVan,
+} from "../src/web/marketing/formaten.js";
 import { FORMAAT_SLEUTELS, KANALEN as SERVER_KANALEN } from "../src/model/marketing-schema.js";
 
 describe("formaten", () => {
@@ -48,13 +57,22 @@ describe("bestandsnamen", () => {
   });
 
   it("volgt het vaste patroon, laat een lege campagne weg en nummert dia's met een voorloopnul", () => {
-    expect(bestandsnaam({ merk: "Postwright", campagne: "Najaar", post: "Nu bent u aan zet", formaat: "li-staand" }))
-      .toBe("postwright_najaar_nu-bent-u-aan-zet_li-staand_1080x1350.png");
-    expect(bestandsnaam({ merk: "Postwright", post: "Stelling", formaat: "li-vierkant" })).toBe("postwright_stelling_li-vierkant_1200x1200.png");
-    expect(bestandsnaam({ merk: "Postwright", post: "Carrousel", formaat: "li-carrousel", dia: 3 })).toBe("postwright_carrousel_li-carrousel_1080x1350_dia-03.png");
-    expect(bestandsnaam({ merk: "Postwright", post: "", formaat: "li-link", extensie: "jpg" })).toBe("postwright_post_li-link_1200x630.jpg");
+    expect(
+      bestandsnaam({ merk: "Postwright", campagne: "Najaar", post: "Nu bent u aan zet", formaat: "li-staand" }),
+    ).toBe("postwright_najaar_nu-bent-u-aan-zet_li-staand_1080x1350.png");
+    expect(bestandsnaam({ merk: "Postwright", post: "Stelling", formaat: "li-vierkant" })).toBe(
+      "postwright_stelling_li-vierkant_1200x1200.png",
+    );
+    expect(bestandsnaam({ merk: "Postwright", post: "Carrousel", formaat: "li-carrousel", dia: 3 })).toBe(
+      "postwright_carrousel_li-carrousel_1080x1350_dia-03.png",
+    );
+    expect(bestandsnaam({ merk: "Postwright", post: "", formaat: "li-link", extensie: "jpg" })).toBe(
+      "postwright_post_li-link_1200x630.jpg",
+    );
     // De merknaam komt uit het merk: een ander merk geeft een ander voorvoegsel, geen merk geeft er geen.
-    expect(bestandsnaam({ merk: "Ander Merk", post: "Stelling", formaat: "li-vierkant" })).toBe("ander-merk_stelling_li-vierkant_1200x1200.png");
+    expect(bestandsnaam({ merk: "Ander Merk", post: "Stelling", formaat: "li-vierkant" })).toBe(
+      "ander-merk_stelling_li-vierkant_1200x1200.png",
+    );
     expect(bestandsnaam({ post: "Stelling", formaat: "li-vierkant" })).toBe("stelling_li-vierkant_1200x1200.png");
   });
 
@@ -67,7 +85,9 @@ describe("bestandsnamen", () => {
 
 describe("kanalenVan", () => {
   it("combineert de kanalen van de formaten met die van niet-lege postteksten", () => {
-    expect(kanalenVan({ formaten: ["li-vierkant", "story"], posttekst: { x: "  ", facebook: "Hallo" } }).sort()).toEqual(["facebook", "instagram", "linkedin"]);
+    expect(
+      kanalenVan({ formaten: ["li-vierkant", "story"], posttekst: { x: "  ", facebook: "Hallo" } }).sort(),
+    ).toEqual(["facebook", "instagram", "linkedin"]);
     expect(kanalenVan({})).toEqual([]);
   });
 });

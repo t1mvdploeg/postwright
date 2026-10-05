@@ -83,6 +83,9 @@ export function maakZip(bestanden, nu = new Date()) {
   const delen = [...lokaal, ...centraal, new Uint8Array(slot.buffer)];
   const uit = new Uint8Array(delen.reduce((s, d) => s + d.length, 0));
   let p = 0;
-  for (const d of delen) { uit.set(d, p); p += d.length; }
+  for (const d of delen) {
+    uit.set(d, p);
+    p += d.length;
+  }
   return uit;
 }

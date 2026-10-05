@@ -7,7 +7,9 @@ import { maakZip } from "/marketing/zip.js";
 import { maakPdf } from "/marketing/pdf.js";
 import { laadMedia } from "/marketing/merk.js";
 
-async function bytes(blob) { return new Uint8Array(await blob.arrayBuffer()); }
+async function bytes(blob) {
+  return new Uint8Array(await blob.arrayBuffer());
+}
 
 function mediaIds(post) {
   const alle = [post.inhoud ?? {}, ...(post.dias ?? []).map((d) => d.inhoud ?? {})];
@@ -16,7 +18,9 @@ function mediaIds(post) {
 
 /** De posttekst per kanaal als leesbaar tekstbestand, voor in de ZIP. */
 export function posttekstBestand(post) {
-  const delen = Object.entries(post.posttekst ?? {}).filter(([, t]) => t?.trim()).map(([k, t]) => `== ${KANALEN[k] ?? k} ==\n${t.trim()}\n`);
+  const delen = Object.entries(post.posttekst ?? {})
+    .filter(([, t]) => t?.trim())
+    .map(([k, t]) => `== ${KANALEN[k] ?? k} ==\n${t.trim()}\n`);
   if (post.altTekst?.trim()) delen.push(`== Alt-tekst ==\n${post.altTekst.trim()}\n`);
   return delen.join("\n") || "(Nog geen posttekst.)\n";
 }
@@ -27,11 +31,21 @@ export function posttekstBestand(post) {
  */
 export async function alleBeelden(post, s, merk, voortgang = () => {}) {
   const media = await laadMedia(mediaIds(post));
-  const taken = post.formaten.flatMap((f) => Array.from({ length: aantalBeelden(s, post.dias ?? []) }, (_, dia) => ({ f, dia })));
+  const taken = post.formaten.flatMap((f) =>
+    Array.from({ length: aantalBeelden(s, post.dias ?? []) }, (_, dia) => ({ f, dia })),
+  );
   const uit = [];
   for (const [i, t] of taken.entries()) {
     voortgang(i + 1, taken.length);
-    const beeld = bouwBeeld({ sjabloon: s.id, inhoud: post.inhoud, dias: post.dias, dia: t.dia, formaat: t.f, merk, media });
+    const beeld = bouwBeeld({
+      sjabloon: s.id,
+      inhoud: post.inhoud,
+      dias: post.dias,
+      dia: t.dia,
+      formaat: t.f,
+      merk,
+      media,
+    });
     uit.push({ ...t, beeld });
   }
   return uit;
@@ -44,7 +58,13 @@ const basisNaam = (merk, campagne, titel, terugval) =>
 export async function exporteerPng(post, s, merk, sleutel, dia, campagne) {
   const media = await laadMedia(mediaIds(post));
   const beeld = bouwBeeld({ sjabloon: s.id, inhoud: post.inhoud, dias: post.dias, dia, formaat: sleutel, merk, media });
-  const naam = bestandsnaam({ merk: merk.naam, campagne, post: post.titel, formaat: sleutel, dia: s.soort === "carrousel" ? dia + 1 : null });
+  const naam = bestandsnaam({
+    merk: merk.naam,
+    campagne,
+    post: post.titel,
+    formaat: sleutel,
+    dia: s.soort === "carrousel" ? dia + 1 : null,
+  });
   download(await naarBlob(beeld), naam, "image/png");
 }
 
@@ -54,7 +74,13 @@ export async function exporteerZip(post, s, merk, campagne, voortgang) {
   for (const [i, b] of beelden.entries()) {
     voortgang?.(i + 1, beelden.length);
     bestanden.push({
-      naam: bestandsnaam({ merk: merk.naam, campagne, post: post.titel, formaat: b.f, dia: s.soort === "carrousel" ? b.dia + 1 : null }),
+      naam: bestandsnaam({
+        merk: merk.naam,
+        campagne,
+        post: post.titel,
+        formaat: b.f,
+        dia: s.soort === "carrousel" ? b.dia + 1 : null,
+      }),
       bytes: await bytes(await naarBlob(b.beeld)),
     });
   }
@@ -77,7 +103,11 @@ async function carrouselPdf(post, s, merk, voortgang) {
   for (let dia = 0; dia < aantal; dia++) {
     voortgang(dia + 1, aantal);
     const beeld = bouwBeeld({ sjabloon: s.id, dias: post.dias, dia, formaat: "li-carrousel", merk, media });
-    paginas.push({ jpeg: await bytes(await naarBlob(beeld, "image/jpeg", 0.92)), breedte: f.breedte, hoogte: f.hoogte });
+    paginas.push({
+      jpeg: await bytes(await naarBlob(beeld, "image/jpeg", 0.92)),
+      breedte: f.breedte,
+      hoogte: f.hoogte,
+    });
   }
   return maakPdf(paginas, { titel: post.titel });
 }

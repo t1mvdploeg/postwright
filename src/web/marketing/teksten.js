@@ -2,7 +2,12 @@
 // hashtagsets, de vaste "over ons"-tekst). In de editor met één keuze in te voegen.
 import { bevestigDialoog, el, legeStaat, melding } from "/ui.js";
 
-const SOORTEN = { opening: "Openingszinnen", afsluiter: "Afsluiters met actie", hashtags: "Hashtagsets", boilerplate: "Vaste teksten" };
+const SOORTEN = {
+  opening: "Openingszinnen",
+  afsluiter: "Afsluiters met actie",
+  hashtags: "Hashtagsets",
+  boilerplate: "Vaste teksten",
+};
 
 export async function toon(container, ctx) {
   let { teksten } = await ctx.api("/api/teksten");
@@ -11,7 +16,13 @@ export async function toon(container, ctx) {
   const lijstHouder = el("div");
 
   function formulier(bestaand = null) {
-    const soort = el("select", { id: "tekst-soort" }, Object.entries(SOORTEN).map(([w, t]) => el("option", { value: w, text: t, ...(bestaand?.soort === w ? { selected: "" } : {}) })));
+    const soort = el(
+      "select",
+      { id: "tekst-soort" },
+      Object.entries(SOORTEN).map(([w, t]) =>
+        el("option", { value: w, text: t, ...(bestaand?.soort === w ? { selected: "" } : {}) }),
+      ),
+    );
     const naam = el("input", { type: "text", id: "tekst-naam", maxlength: "80", value: bestaand?.naam ?? "" });
     const tekst = el("textarea", { id: "tekst-inhoud", rows: "4", maxlength: "3000" });
     tekst.value = bestaand?.tekst ?? "";
@@ -27,17 +38,31 @@ export async function toon(container, ctx) {
         formHouder.replaceChildren(nieuwKnop());
         tekenLijst();
         melding("Tekst bewaard");
-      } catch (e) { melding(e.message, "fout"); } finally { opslaan.disabled = false; }
+      } catch (e) {
+        melding(e.message, "fout");
+      } finally {
+        opslaan.disabled = false;
+      }
     });
-    formHouder.replaceChildren(el("div", { class: "kaart studio-formulier" }, [
-      el("h2", { text: bestaand ? "Tekst bewerken" : "Nieuwe tekst" }),
-      el("div", { class: "veldrij" }, [
-        el("div", { class: "veld" }, [el("label", { for: "tekst-soort", text: "Soort" }), soort]),
-        el("div", { class: "veld" }, [el("label", { for: "tekst-naam", text: "Naam (alleen voor uzelf)" }), naam]),
+    formHouder.replaceChildren(
+      el("div", { class: "kaart studio-formulier" }, [
+        el("h2", { text: bestaand ? "Tekst bewerken" : "Nieuwe tekst" }),
+        el("div", { class: "veldrij" }, [
+          el("div", { class: "veld" }, [el("label", { for: "tekst-soort", text: "Soort" }), soort]),
+          el("div", { class: "veld" }, [el("label", { for: "tekst-naam", text: "Naam (alleen voor uzelf)" }), naam]),
+        ]),
+        el("div", { class: "veld" }, [el("label", { for: "tekst-inhoud", text: "Tekst" }), tekst]),
+        el("div", { class: "knoppenrij" }, [
+          opslaan,
+          el("button", {
+            type: "button",
+            class: "secundair",
+            text: "Annuleren",
+            onclick: () => formHouder.replaceChildren(nieuwKnop()),
+          }),
+        ]),
       ]),
-      el("div", { class: "veld" }, [el("label", { for: "tekst-inhoud", text: "Tekst" }), tekst]),
-      el("div", { class: "knoppenrij" }, [opslaan, el("button", { type: "button", class: "secundair", text: "Annuleren", onclick: () => formHouder.replaceChildren(nieuwKnop()) })]),
-    ]));
+    );
     naam.focus();
   }
 
@@ -52,42 +77,76 @@ export async function toon(container, ctx) {
   async function startvulling() {
     try {
       const r = await ctx.api("/api/startvulling", { method: "POST", body: {} });
-      melding(r.feiten || r.teksten || r.posts
-        // Het concept-deel alleen als er feiten bij kwamen: bij 0 feiten staat er niets na te lopen.
-        ? `${r.feiten} feit${r.feiten === 1 ? "" : "en"}, ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} en ${r.posts} post${r.posts === 1 ? "" : "s"} toegevoegd.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
-        : "De voorbeeldinhoud stond er al");
+      melding(
+        r.feiten || r.teksten || r.posts
+          ? // Het concept-deel alleen als er feiten bij kwamen: bij 0 feiten staat er niets na te lopen.
+            `${r.feiten} feit${r.feiten === 1 ? "" : "en"}, ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} en ${r.posts} post${r.posts === 1 ? "" : "s"} toegevoegd.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
+          : "De voorbeeldinhoud stond er al",
+      );
       ({ teksten } = await ctx.api("/api/teksten"));
       tekenLijst();
-    } catch (e) { melding(e.message, "fout"); }
+    } catch (e) {
+      melding(e.message, "fout");
+    }
   }
 
   function tekenLijst() {
     if (!teksten.length) {
-      const leeg = legeStaat("Nog geen teksten", "Leg vaste stukken vast, zoals uw standaardhashtags of een afsluitende zin.");
-      leeg.append(el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }));
+      const leeg = legeStaat(
+        "Nog geen teksten",
+        "Leg vaste stukken vast, zoals uw standaardhashtags of een afsluitende zin.",
+      );
+      leeg.append(
+        el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }),
+      );
       lijstHouder.replaceChildren(el("div", { class: "kaart" }, [leeg]));
       return;
     }
-    lijstHouder.replaceChildren(...Object.entries(SOORTEN).filter(([soort]) => teksten.some((t) => t.soort === soort)).map(([soort, titel]) => {
-      const lijst = teksten.filter((t) => t.soort === soort);
-      return el("section", { class: "kaart" }, [
-        el("h2", { text: titel }),
-        ...lijst.map((t) => el("div", { class: "studio-tekstregel" }, [
-          el("div", {}, [el("b", { text: t.naam }), el("p", { class: "studio-varianttekst", text: t.tekst })]),
-          el("div", { class: "rij-acties" }, [
-            el("button", { type: "button", class: "secundair klein", text: "Bewerken", onclick: () => formulier(t) }),
-            el("button", { type: "button", class: "secundair klein gevaar", text: "Wissen", onclick: async () => {
-              if (!await bevestigDialoog(`De tekst "${t.naam}" wissen?`, { titel: "Tekst wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
-              try {
-                await ctx.api(`/api/teksten/${t.id}`, { method: "DELETE" });
-                teksten = teksten.filter((x) => x.id !== t.id);
-                tekenLijst();
-              } catch (e) { melding(e.message, "fout"); }
-            } }),
-          ]),
-        ])),
-      ]);
-    }));
+    lijstHouder.replaceChildren(
+      ...Object.entries(SOORTEN)
+        .filter(([soort]) => teksten.some((t) => t.soort === soort))
+        .map(([soort, titel]) => {
+          const lijst = teksten.filter((t) => t.soort === soort);
+          return el("section", { class: "kaart" }, [
+            el("h2", { text: titel }),
+            ...lijst.map((t) =>
+              el("div", { class: "studio-tekstregel" }, [
+                el("div", {}, [el("b", { text: t.naam }), el("p", { class: "studio-varianttekst", text: t.tekst })]),
+                el("div", { class: "rij-acties" }, [
+                  el("button", {
+                    type: "button",
+                    class: "secundair klein",
+                    text: "Bewerken",
+                    onclick: () => formulier(t),
+                  }),
+                  el("button", {
+                    type: "button",
+                    class: "secundair klein gevaar",
+                    text: "Wissen",
+                    onclick: async () => {
+                      if (
+                        !(await bevestigDialoog(`De tekst "${t.naam}" wissen?`, {
+                          titel: "Tekst wissen?",
+                          bevestigTekst: "Wissen",
+                          gevaarlijk: true,
+                        }))
+                      )
+                        return;
+                      try {
+                        await ctx.api(`/api/teksten/${t.id}`, { method: "DELETE" });
+                        teksten = teksten.filter((x) => x.id !== t.id);
+                        tekenLijst();
+                      } catch (e) {
+                        melding(e.message, "fout");
+                      }
+                    },
+                  }),
+                ]),
+              ]),
+            ),
+          ]);
+        }),
+    );
   }
 
   formHouder.replaceChildren(nieuwKnop());

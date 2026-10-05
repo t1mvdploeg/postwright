@@ -10,7 +10,16 @@ export function vandaagAmsterdam(nu = new Date()) {
   return AMSTERDAM_DATUM.format(nu);
 }
 
-const AMSTERDAM_KLOK = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+const AMSTERDAM_KLOK = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "Europe/Amsterdam",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
 
 /** De Amsterdamse kloktijd van een tijdstip als "JJJJ-MM-DDTUU:MM:SS". */
 function amsterdamKlok(ms) {
@@ -47,7 +56,15 @@ export function naarLokaal(iso) {
 export function leesbaarMoment(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "–";
-  return new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Amsterdam", weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(d);
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(d);
 }
 
 /**
@@ -60,10 +77,18 @@ export function nieuwRecept(id, { formatenAan = [], merkVersie = "" } = {}) {
   const formaten = s.formaten.filter((f) => formatenAan.includes(f));
   const dias = s.soort === "carrousel" ? structuredClone(s.standaardDias) : [];
   const recept = {
-    titel: "", soort: s.soort, sjabloon: s.id,
+    titel: "",
+    soort: s.soort,
+    sjabloon: s.id,
     formaten: formaten.length ? formaten : [s.formaten[0]],
     inhoud: s.soort === "carrousel" ? {} : standaardInhoud(s),
-    dias, posttekst: {}, altTekst: "", link: "", feiten: [], campagne: null, merkVersie,
+    dias,
+    posttekst: {},
+    altTekst: "",
+    link: "",
+    feiten: [],
+    campagne: null,
+    merkVersie,
   };
   recept.titel = titelUit(recept, s);
   return recept;
@@ -74,14 +99,21 @@ export function nieuwRecept(id, { formatenAan = [], merkVersie = "" } = {}) {
  * velden die het sjabloon (of de diasoort) kent, en geen lege postteksten.
  */
 export function naarInvoer(post, s, controle) {
-  const alleen = (inhoud, velden) => Object.fromEntries(velden.map((v) => [v.id, String(inhoud?.[v.id] ?? v.standaard ?? "")]));
+  const alleen = (inhoud, velden) =>
+    Object.fromEntries(velden.map((v) => [v.id, String(inhoud?.[v.id] ?? v.standaard ?? "")]));
   return {
-    titel: String(post.titel ?? "").trim().slice(0, 120) || titelUit(post, s),
+    titel:
+      String(post.titel ?? "")
+        .trim()
+        .slice(0, 120) || titelUit(post, s),
     soort: s.soort,
     sjabloon: s.id,
     formaten: [...new Set(post.formaten)].filter((f) => s.formaten.includes(f)),
     inhoud: s.soort === "carrousel" ? {} : alleen(post.inhoud, s.velden),
-    dias: s.soort === "carrousel" ? (post.dias ?? []).map((d) => ({ soort: d.soort, inhoud: alleen(d.inhoud, veldenVan(s, d.soort)) })) : [],
+    dias:
+      s.soort === "carrousel"
+        ? (post.dias ?? []).map((d) => ({ soort: d.soort, inhoud: alleen(d.inhoud, veldenVan(s, d.soort)) }))
+        : [],
     posttekst: Object.fromEntries(Object.entries(post.posttekst ?? {}).filter(([, t]) => String(t ?? "").trim())),
     altTekst: String(post.altTekst ?? ""),
     link: String(post.link ?? "").trim(),
@@ -123,7 +155,7 @@ export function zetOm(post, doelId, { formatenAan = [], merkVersie = "" } = {}) 
   const doel = sjabloonVan(doelId);
   if (!bron || !doel) throw new Error(`Onbekend sjabloon: ${bron ? doelId : post.sjabloon}`);
   const r = nieuwRecept(doelId, { formatenAan, merkVersie });
-  const waarden = bron.soort === "carrousel" ? post.dias?.[0]?.inhoud ?? {} : post.inhoud ?? {};
+  const waarden = bron.soort === "carrousel" ? (post.dias?.[0]?.inhoud ?? {}) : (post.inhoud ?? {});
   if (doel.soort === "carrousel") neemOver(waarden, veldenVan(doel, r.dias[0].soort), r.dias[0].inhoud);
   else neemOver(waarden, doel.velden, r.inhoud);
   return Object.assign(r, {

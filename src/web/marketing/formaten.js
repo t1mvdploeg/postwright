@@ -15,21 +15,71 @@ export const KANALEN = {
  * pixels van het beeld zelf.
  */
 export const FORMATEN = [
-  { sleutel: "li-vierkant", naam: "LinkedIn vierkant", kanaal: "linkedin", breedte: 1200, hoogte: 1200, veiligeZones: [] },
+  {
+    sleutel: "li-vierkant",
+    naam: "LinkedIn vierkant",
+    kanaal: "linkedin",
+    breedte: 1200,
+    hoogte: 1200,
+    veiligeZones: [],
+  },
   { sleutel: "li-staand", naam: "LinkedIn staand", kanaal: "linkedin", breedte: 1080, hoogte: 1350, veiligeZones: [] },
-  { sleutel: "li-carrousel", naam: "LinkedIn carrousel (PDF)", kanaal: "linkedin", breedte: 1080, hoogte: 1350, veiligeZones: [], carrousel: true },
+  {
+    sleutel: "li-carrousel",
+    naam: "LinkedIn carrousel (PDF)",
+    kanaal: "linkedin",
+    breedte: 1080,
+    hoogte: 1350,
+    veiligeZones: [],
+    carrousel: true,
+  },
   { sleutel: "li-link", naam: "Linkvoorbeeld", kanaal: "linkedin", breedte: 1200, hoogte: 630, veiligeZones: [] },
   // De profielfoto valt linksonder over de achtergrond; de linkerkant blijft daarom vrij.
-  { sleutel: "li-profiel", naam: "LinkedIn profielachtergrond", kanaal: "linkedin", breedte: 1584, hoogte: 396, veiligeZones: [{ x: 0, y: 0, breedte: 420, hoogte: 396, reden: "profielfoto" }] },
+  {
+    sleutel: "li-profiel",
+    naam: "LinkedIn profielachtergrond",
+    kanaal: "linkedin",
+    breedte: 1584,
+    hoogte: 396,
+    veiligeZones: [{ x: 0, y: 0, breedte: 420, hoogte: 396, reden: "profielfoto" }],
+  },
   // Het bedrijfslogo valt linksonder over de omslag.
-  { sleutel: "li-bedrijf", naam: "LinkedIn bedrijfsomslag", kanaal: "linkedin", breedte: 1128, hoogte: 191, veiligeZones: [{ x: 0, y: 60, breedte: 260, hoogte: 131, reden: "bedrijfslogo" }] },
-  { sleutel: "ig-vierkant", naam: "Instagram vierkant", kanaal: "instagram", breedte: 1080, hoogte: 1080, veiligeZones: [] },
-  { sleutel: "ig-staand", naam: "Instagram staand", kanaal: "instagram", breedte: 1080, hoogte: 1350, veiligeZones: [] },
+  {
+    sleutel: "li-bedrijf",
+    naam: "LinkedIn bedrijfsomslag",
+    kanaal: "linkedin",
+    breedte: 1128,
+    hoogte: 191,
+    veiligeZones: [{ x: 0, y: 60, breedte: 260, hoogte: 131, reden: "bedrijfslogo" }],
+  },
+  {
+    sleutel: "ig-vierkant",
+    naam: "Instagram vierkant",
+    kanaal: "instagram",
+    breedte: 1080,
+    hoogte: 1080,
+    veiligeZones: [],
+  },
+  {
+    sleutel: "ig-staand",
+    naam: "Instagram staand",
+    kanaal: "instagram",
+    breedte: 1080,
+    hoogte: 1350,
+    veiligeZones: [],
+  },
   // 250 px boven en onder vrij voor de bediening van het platform.
-  { sleutel: "story", naam: "Story", kanaal: "instagram", breedte: 1080, hoogte: 1920, veiligeZones: [
-    { x: 0, y: 0, breedte: 1080, hoogte: 250, reden: "bediening bovenin" },
-    { x: 0, y: 1670, breedte: 1080, hoogte: 250, reden: "bediening onderin" },
-  ] },
+  {
+    sleutel: "story",
+    naam: "Story",
+    kanaal: "instagram",
+    breedte: 1080,
+    hoogte: 1920,
+    veiligeZones: [
+      { x: 0, y: 0, breedte: 1080, hoogte: 250, reden: "bediening bovenin" },
+      { x: 0, y: 1670, breedte: 1080, hoogte: 250, reden: "bediening onderin" },
+    ],
+  },
   { sleutel: "breed", naam: "Liggend (X, Facebook, blog)", kanaal: "x", breedte: 1600, hoogte: 900, veiligeZones: [] },
 ];
 
@@ -58,7 +108,8 @@ export function vormVan(f) {
 /** Een tekst als stukje bestandsnaam: kleine letters, zonder accenten, alleen a-z, 0-9 en streepjes. */
 export function slugVan(tekst, max = 40) {
   return String(tekst ?? "")
-    .normalize("NFKD").replace(/[̀-ͯ]/g, "")
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
@@ -86,6 +137,10 @@ export function kanalenVan(post) {
 
 /** Of rechthoek a rechthoek b raakt (tolerantie in pixels). */
 export function overlapt(a, b, tolerantie = 0) {
-  return a.x < b.x + b.breedte - tolerantie && b.x < a.x + a.breedte - tolerantie
-    && a.y < b.y + b.hoogte - tolerantie && b.y < a.y + a.hoogte - tolerantie;
+  return (
+    a.x < b.x + b.breedte - tolerantie &&
+    b.x < a.x + a.breedte - tolerantie &&
+    a.y < b.y + b.hoogte - tolerantie &&
+    b.y < a.y + a.hoogte - tolerantie
+  );
 }

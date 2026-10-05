@@ -9,7 +9,11 @@ const enc = new TextEncoder();
 
 /** Escapen volgens RFC 5545 §3.3.11: backslash, puntkomma, komma en regeleinden. */
 export function icsTekst(t) {
-  return String(t ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  return String(t ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
 }
 
 /**
@@ -23,7 +27,11 @@ export function vouw(regel) {
   const limiet = () => (uit.length === 0 ? 75 : 74);
   for (const teken of regel) {
     const n = enc.encode(teken).length;
-    if (bytes + n > limiet()) { uit.push(huidig); huidig = ""; bytes = 0; }
+    if (bytes + n > limiet()) {
+      uit.push(huidig);
+      huidig = "";
+      bytes = 0;
+    }
     huidig += teken;
     bytes += n;
   }
@@ -35,7 +43,10 @@ export function vouw(regel) {
 export function icsTijd(moment) {
   const d = new Date(moment);
   if (Number.isNaN(d.getTime())) throw new Error(`Ongeldig moment: ${moment}`);
-  return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  return d
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}/, "");
 }
 
 /**
@@ -58,8 +69,12 @@ export function maakIcs(posts, { basisUrl, merknaam, nu = new Date() }) {
     const begin = new Date(p.gepland);
     const eind = new Date(begin.getTime() + 15 * 60 * 1000);
     const tekst = Object.values(p.posttekst ?? {}).find((t) => t && t.trim()) ?? "";
-    const beschrijving = [tekst.length > 300 ? `${tekst.slice(0, 300)}…` : tekst, `Openen in de studio: ${basisUrl}/#maken/${p.id}`]
-      .filter(Boolean).join("\n\n");
+    const beschrijving = [
+      tekst.length > 300 ? `${tekst.slice(0, 300)}…` : tekst,
+      `Openen in de studio: ${basisUrl}/#maken/${p.id}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     const ingetrokken = p.status === "concept" || p.status === "gearchiveerd";
     regels.push(
       "BEGIN:VEVENT",
@@ -72,13 +87,15 @@ export function maakIcs(posts, { basisUrl, merknaam, nu = new Date() }) {
       `SUMMARY:${icsTekst(`Post: ${p.titel}`)}`,
       `DESCRIPTION:${icsTekst(beschrijving)}`,
       `URL:${basisUrl}/#maken/${p.id}`,
-      ...(ingetrokken ? [] : [
-        "BEGIN:VALARM",
-        "ACTION:DISPLAY",
-        `DESCRIPTION:${icsTekst(`Vandaag posten: ${p.titel}`)}`,
-        "TRIGGER:-PT15M",
-        "END:VALARM",
-      ]),
+      ...(ingetrokken
+        ? []
+        : [
+            "BEGIN:VALARM",
+            "ACTION:DISPLAY",
+            `DESCRIPTION:${icsTekst(`Vandaag posten: ${p.titel}`)}`,
+            "TRIGGER:-PT15M",
+            "END:VALARM",
+          ]),
       "END:VEVENT",
     );
   }

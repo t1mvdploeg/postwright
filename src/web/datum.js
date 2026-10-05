@@ -21,7 +21,12 @@ export function plusDagen(datum, n) {
   return d.toISOString().slice(0, 10);
 }
 
-const AMSTERDAM_DAG = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Amsterdam", year: "numeric", month: "2-digit", day: "2-digit" });
+const AMSTERDAM_DAG = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Amsterdam",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 /** FT-26: de Amsterdamse kalenderdag (JJJJ-MM-DD) van een ISO-tijdstip; de lijst toont die dag, dus filters gebruiken hem ook. */
 export function amsterdamDag(iso) {
