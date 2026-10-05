@@ -10,9 +10,14 @@ const fail = (reason: string): SvgResult => ({ ok: false, reason });
 const INSIDE = /^(#|data:image\/(png|jpeg|webp|gif);base64,)/i;
 
 const DANGEROUS: [RegExp, string][] = [
-  [/<script/i, "it contains a script"],
-  [/<foreignObject/i, "it contains a foreignObject"],
-  [/<(iframe|embed|object)\b/i, "it contains embedded content"],
+  // The element name may carry a namespace prefix (`<s:script>`).
+  [/<([\w.-]+:)?script\b/i, "it contains a script"],
+  [/<([\w.-]+:)?foreignObject\b/i, "it contains a foreignObject"],
+  [/<([\w.-]+:)?(iframe|embed|object)\b/i, "it contains embedded content"],
+  // A character reference decodes to any character, so it can hide `javascript:` in `to` or `values`.
+  [/\s[\w:.-]+\s*=\s*(["'])(?:(?!\1)[^])*&#/i, "it contains a character reference (&#...) in an attribute"],
+  // A CSS escape (`@\69mport`) hides a rule from the check above.
+  [/<([\w.-]+:)?style\b[^>]*>(?:(?!<\/)[^])*\\/i, "it contains a CSS escape in a style"],
   [/[\s"'/]on[a-z]+\s*=/i, "it contains an event handler"],
   [/javascript:/i, "it contains a javascript: link"],
   [/@import/i, "it contains an @import rule"],

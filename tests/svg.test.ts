@@ -65,12 +65,47 @@ describe("sanitiseSvg", () => {
       '<!DOCTYPE svg [<!ENTITY x "y">]><svg xmlns="http://www.w3.org/2000/svg"/>',
       /DOCTYPE|declarations/,
     ],
+    [
+      "a script with a namespace prefix",
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:s="http://www.w3.org/2000/svg"><s:script>alert(1)</s:script></svg>',
+      /script/,
+    ],
+    [
+      "a foreignObject with a namespace prefix",
+      '<svg xmlns="http://www.w3.org/2000/svg"><svg:foreignObject><p>x</p></svg:foreignObject></svg>',
+      /foreignObject/,
+    ],
+    [
+      "an iframe with a namespace prefix",
+      '<svg xmlns="http://www.w3.org/2000/svg"><h:iframe src="x"></h:iframe></svg>',
+      /embedded/,
+    ],
+    [
+      "an entity-encoded javascript: link in a set",
+      '<svg xmlns="http://www.w3.org/2000/svg"><a><set attributeName="href" to="&#106;avascript:alert(1)"/></a></svg>',
+      /character reference/,
+    ],
+    [
+      "an entity-encoded value in an animate",
+      '<svg xmlns="http://www.w3.org/2000/svg"><a><animate attributeName="href" values="&#x6a;avascript:alert(1)"/></a></svg>',
+      /character reference/,
+    ],
+    [
+      "a CSS-escaped @import",
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>@\\69mport "https://x.example/a.css";</style></svg>',
+      /escape/,
+    ],
     ["an HTML page", "<html><body><script>alert(1)</script></body></html>", /not an SVG/],
     ["plain text", "hello", /not an SVG/],
   ])("rejects %s", (_name, input, reason) => {
     const r = sanitiseSvg(input);
     expect(r.ok).toBe(false);
     expect(r.ok ? "" : r.reason).toMatch(reason);
+  });
+
+  it("keeps a character reference in text, which cannot carry a link", () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>&#169; Acme</text></svg>';
+    expect(sanitiseSvg(svg).ok).toBe(true);
   });
 
   it("rejects an SVG larger than 1 MB", () => {

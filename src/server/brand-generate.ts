@@ -88,6 +88,11 @@ export function brandGenerateRoutes(o: {
         slug: project.slug,
         ai: paid.value.proposal,
         websiteRead: paid.value.websiteRead,
+        notes: paid.value.logoOmitted
+          ? [
+              "The SVG logo was too large to send to the model, so the proposal is based on the other material only; try a PNG version of the logo.",
+            ]
+          : [],
         today,
         currentVersion,
       });

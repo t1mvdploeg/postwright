@@ -134,6 +134,16 @@ describe("a successful generation", () => {
     expect(r.body.extras.notes.some((n: string) => /could not be read/.test(n))).toBe(true);
   });
 
+  it("leaves out an SVG logo above 100 KB and suggests a PNG in the proposal", async () => {
+    const { call, upload, calls } = await start([answer()]);
+    const big = `<svg xmlns="http://www.w3.org/2000/svg"><path d="${"M0 0h1v1z".repeat(15_000)}"/></svg>`;
+    expect((await upload("logo", big)).status).toBe(201);
+    const r = await call("/api/brand/generate", "POST", {});
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(calls[0].messages)).not.toContain("M0 0h1v1zM0 0h1v1z");
+    expect(r.body.extras.notes.some((n: string) => /too large.*PNG/.test(n))).toBe(true);
+  });
+
   it("works on the material of the project in the header", async () => {
     const { call, upload, calls } = await start([answer()]);
     await call("/api/projects", "POST", { name: "Beta" });

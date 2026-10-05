@@ -327,13 +327,15 @@ describe("buildProposal", () => {
     await waiting;
     expect(existsSync(join(dir, "brand-input", "proposal", "brand.json"))).toBe(true);
 
-    // Two overlapping builds: both succeed, and what is left belongs to the second one alone.
+    // Two overlapping builds: both succeed, and what is left belongs to one build alone. Which
+    // one comes last is not fixed (both read files before they reach the lock).
     const a = build(dir, { ai: { ...AI_PROPOSAL, name: "One", tone: "One tone" } });
     const b = build(dir, { ai: { ...AI_PROPOSAL, name: "Two", tone: "Two tone" } });
     const [ra, rb] = await Promise.all([a, b]);
     expect(ra).toMatchObject({ state: "ready", brand: { name: "One" } });
     expect(rb).toMatchObject({ state: "ready", brand: { name: "Two" } });
-    expect(JSON.parse(read(dir, "brand.json").toString()).name).toBe("Two");
-    expect(JSON.parse(read(dir, "extras.json").toString()).tone).toBe("Two tone");
+    const name = JSON.parse(read(dir, "brand.json").toString()).name;
+    expect(["One", "Two"]).toContain(name);
+    expect(JSON.parse(read(dir, "extras.json").toString()).tone).toBe(`${name} tone`);
   });
 });

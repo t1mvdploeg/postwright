@@ -76,6 +76,8 @@ export async function applyProposal(project: Project): Promise<{ version: string
       if (hadBrand) await rename(previous, brand).catch(() => undefined);
       throw e;
     }
+    // extras.json was for this step; in `brand/` it would be served to the browser.
+    await rm(path(s, "brand", "extras.json"), { force: true });
     return { version: state.brand.version };
   });
 }

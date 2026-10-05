@@ -94,6 +94,16 @@ describe("POST /api/brand/apply", () => {
     });
   });
 
+  it("does not leave extras.json in the brand folder, which is served to the browser", async () => {
+    const { call, propose, projectDir, base } = await start();
+    propose("One", "acme-2026-10-05-1", { tone: "Warm.", bannedWords: [], hashtags: "" });
+    expect((await call("/api/brand/apply", "POST", {})).status).toBe(200);
+    expect(existsSync(join(projectDir, "brand", "extras.json"))).toBe(false);
+    expect((await fetch(`${base}/brand/extras.json`)).status).toBe(404);
+    // The tone did arrive in the settings.
+    expect((await call("/api/settings")).body.tone).toBe("Warm.");
+  });
+
   it("keeps the tone it has when the proposal brings none", async () => {
     const { call, propose } = await start();
     const settings = (await call("/api/settings")).body;

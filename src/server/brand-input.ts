@@ -37,6 +37,8 @@ const InputTextSchema = z
       .string()
       .trim()
       .max(300)
+      // `new URL()` ignores tabs and line breaks, so they would be stored and reach the prompt.
+      .refine((v) => !/[\s\u0000-\u001f\u007f]/.test(v), "must not contain spaces or line breaks")
       .refine((v) => {
         if (v === "") return true;
         try {

@@ -139,6 +139,9 @@ describe("website and notes", () => {
     [{ website: "http://acme.example", notes: "" }],
     [{ website: "javascript:alert(1)", notes: "" }],
     [{ website: "acme.example", notes: "" }],
+    [{ website: "https://acme.example/\nhttps://evil.example", notes: "" }],
+    [{ website: "https://acme.example/a\tb", notes: "" }],
+    [{ website: "https://acme .example", notes: "" }],
     [{ website: "", notes: "x".repeat(2001) }],
     [{ website: "", notes: "", extra: 1 }],
   ])("refuses %j", async (body) => {

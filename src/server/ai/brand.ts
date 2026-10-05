@@ -38,6 +38,8 @@ export interface BrandResult {
   model: string;
   usage: Usage;
   websiteRead: boolean;
+  /** The SVG logo was too large to send, so the model did not see it. */
+  logoOmitted: boolean;
 }
 
 const SYSTEM = `You make brand kits for Postwright, a tool that turns templates into on-brand social posts. \
@@ -48,8 +50,16 @@ words the brand should not use, and hashtags. Use only what the material shows; 
 the guide or the website do not support. Every colour is a hex value (#rrggbb).`;
 
 /** Embedded pictures (data: URIs) are cut out of an SVG: they would cost tokens and show the model nothing it can use. */
-const BASE64_URI = /data:[^;,"'()\s]*;base64,[A-Za-z0-9+/=\s]*/g;
+const BASE64_URI = /data:[^,"'()\s]*;base64,[A-Za-z0-9+/=\s]*/g;
 const withoutPictures = (svg: string) => svg.replace(BASE64_URI, (m) => `${m.slice(0, m.indexOf(",") + 1)}[removed]`);
+
+/** An SVG above this size (after cutting pictures) is not sent: one logo must not cost more than the reserve. */
+const MAX_SVG_PROMPT = 100_000;
+/** The SVG as it goes into the prompt, or `null` when it is too large to send. */
+function svgForPrompt(svg: string): string | null {
+  const text = withoutPictures(svg);
+  return text.length > MAX_SVG_PROMPT ? null : text;
+}
 
 const image = (mediaType: string, data: Buffer): Content =>
   ({ type: "image", source: { type: "base64", media_type: mediaType, data: data.toString("base64") } }) as Content;
@@ -65,11 +75,16 @@ function instructions(m: BrandMaterial, example: string): string {
 export function brandRequest(m: BrandMaterial, model: string, example: string): Params {
   const content: Content[] = [];
   if (m.logo.kind === "png") content.push({ type: "text", text: "The logo (PNG):" }, image("image/png", m.logo.data));
-  else
+  else {
+    const svg = svgForPrompt(m.logo.text);
     content.push({
       type: "text",
-      text: `The logo (SVG source):\n\n\`\`\`svg\n${withoutPictures(m.logo.text)}\n\`\`\``,
+      text:
+        svg === null
+          ? "The logo is an SVG file that is too large to include; work from the other material and the notes."
+          : `The logo (SVG source):\n\n\`\`\`svg\n${svg}\n\`\`\``,
     });
+  }
   if (m.images.length) {
     content.push({
       type: "text",
@@ -99,6 +114,14 @@ export function brandRequest(m: BrandMaterial, model: string, example: string): 
   };
 }
 
+function parseAnswer(texts: string[]): unknown {
+  try {
+    return JSON.parse(texts[texts.length - 1] ?? "");
+  } catch {
+    return JSON.parse(texts.join(""));
+  }
+}
+
 function add(total: Usage, u: Message["usage"]) {
   total.input += u.input_tokens;
   total.output += u.output_tokens;
@@ -122,6 +145,7 @@ export async function generateBrand(
   const usage: Usage = { ...EMPTY_USAGE };
   const spent = () => (usage.input || usage.output || usage.cacheRead || usage.cacheWrite ? { ...usage } : undefined);
   let websiteRead = false;
+  const logoOmitted = m.logo.kind === "svg" && svgForPrompt(m.logo.text) === null;
   for (let turn = 0; turn <= MAX_CONTINUES; turn++) {
     let reply: Message;
     try {
@@ -141,13 +165,12 @@ export async function generateBrand(
       throw new AiError("The model declined to make a brand kit from this material", { ...usage });
     if (reply.stop_reason === "max_tokens")
       throw new AiError("The answer was cut off (too long); try again with less material", { ...usage });
-    const text = reply.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
+    // The answer is the last text block (a remark before a tool call is another block); the
+    // joined text is the fallback for an answer that came in pieces.
+    const texts = reply.content.flatMap((b) => (b.type === "text" && b.text.trim() ? [b.text.trim()] : []));
     let raw: unknown;
     try {
-      raw = JSON.parse(text);
+      raw = parseAnswer(texts);
     } catch {
       throw new AiError("The model did not return valid JSON; try again", { ...usage });
     }
@@ -159,7 +182,7 @@ export async function generateBrand(
         { ...usage },
       );
     }
-    return { proposal: r.data, model: reply.model, usage, websiteRead };
+    return { proposal: r.data, model: reply.model, usage, websiteRead, logoOmitted };
   }
   throw new AiError("The website lookup did not finish; try again, or leave the website out", { ...usage });
 }

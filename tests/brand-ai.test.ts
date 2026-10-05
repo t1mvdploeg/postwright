@@ -45,6 +45,30 @@ describe("brandRequest", () => {
     expect(sent.length).toBeLessThan(20_000);
   });
 
+  it("also cuts a data URI that has parameters before ;base64,", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;charset=utf-8;base64,${"B".repeat(5000)}"/></svg>`;
+    const sent = JSON.stringify(
+      brandRequest(material({ logo: { kind: "svg", text: svg } }), BRAND_MODEL, example).messages,
+    );
+    expect(sent).not.toContain("BBBBBBBB");
+    expect(sent).toContain("data:image/png;charset=utf-8;base64,[removed]");
+  });
+
+  it("does not send an SVG logo above 100 KB, and says so in the prompt", () => {
+    const big = `<svg xmlns="http://www.w3.org/2000/svg"><path d="${"M0 0h1v1z".repeat(15_000)}"/></svg>`;
+    expect(big.length).toBeGreaterThan(100_000);
+    const sent = JSON.stringify(
+      brandRequest(material({ logo: { kind: "svg", text: big } }), BRAND_MODEL, example).messages,
+    );
+    expect(sent).not.toContain("M0 0h1v1zM0 0h1v1z");
+    expect(sent).toMatch(/too large to include/);
+    expect(sent.length).toBeLessThan(20_000);
+    const small = `<svg xmlns="http://www.w3.org/2000/svg"><path d="${"M0 0h1v1z".repeat(10_000)}"/></svg>`;
+    expect(
+      JSON.stringify(brandRequest(material({ logo: { kind: "svg", text: small } }), BRAND_MODEL, example).messages),
+    ).toContain("M0 0h1v1zM0 0h1v1z");
+  });
+
   it("sends images as image blocks and the guide as a PDF document block", () => {
     const r = brandRequest(
       material({
@@ -122,6 +146,41 @@ describe("generateBrand", () => {
     expect(r.usage).toEqual({ input: 100_000, output: 10_000, cacheRead: 0, cacheWrite: 0 });
     expect(r.websiteRead).toBe(false);
     expect(calls).toHaveLength(1);
+  });
+
+  it("reports whether the SVG logo was left out", async () => {
+    const big = `<svg xmlns="http://www.w3.org/2000/svg"><path d="${"M0 0h1v1z".repeat(15_000)}"/></svg>`;
+    const omitted = await generateBrand(
+      fakeClient([answer()]).client,
+      BRAND_MODEL,
+      material({ logo: { kind: "svg", text: big } }),
+      example,
+    );
+    expect(omitted.logoOmitted).toBe(true);
+    expect((await generateBrand(fakeClient([answer()]).client, BRAND_MODEL, material(), example)).logoOmitted).toBe(
+      false,
+    );
+  });
+
+  it("reads the last text block as the answer, so that a remark before it does not break it", async () => {
+    const r = await generateBrand(
+      fakeClient([
+        message({
+          blocks: [{ type: "text", text: "Let me look at the site first." }],
+          text: JSON.stringify(AI_PROPOSAL),
+        }),
+      ]).client,
+      BRAND_MODEL,
+      material(),
+      example,
+    );
+    expect(r.proposal).toEqual(AI_PROPOSAL);
+    // The answer split over two blocks still works through the joined text.
+    const json = JSON.stringify(AI_PROPOSAL);
+    const split = message({ blocks: [{ type: "text", text: json.slice(0, 20) }], text: json.slice(20) });
+    expect((await generateBrand(fakeClient([split]).client, BRAND_MODEL, material(), example)).proposal).toEqual(
+      AI_PROPOSAL,
+    );
   });
 
   it("continues a paused turn without a new user message and adds up the usage", async () => {

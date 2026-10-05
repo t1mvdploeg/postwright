@@ -156,6 +156,8 @@ export async function buildProposal(o: {
   slug: string;
   ai: BrandProposalAi;
   websiteRead: boolean;
+  /** Extra notices for the proposal, for things the caller knows and this function does not. */
+  notes?: string[];
   today: string;
   currentVersion: string | null;
   builtIn?: string;
@@ -202,6 +204,7 @@ export async function buildProposal(o: {
     notes.push(
       "No website was given or found, so the url in brand.json is a placeholder (https://example.com); set the real one.",
     );
+  notes.push(...(o.notes ?? []));
   if (input.website && !o.websiteRead)
     notes.push("The website could not be read, so the proposal is based on the files only.");
 
