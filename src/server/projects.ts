@@ -64,7 +64,8 @@ export async function createProject(dataDir: string, name: string): Promise<Proj
     const taken = new Set(await readdir(join(dataDir, "projects")).catch(() => [] as string[]));
     const base = slugOf(shown);
     let slug = base;
-    for (let n = 2; taken.has(slug); n++) slug = `${base.slice(0, MAX_SLUG - String(n).length - 1)}-${n}`;
+    for (let n = 2; taken.has(slug); n++)
+      slug = `${base.slice(0, MAX_SLUG - String(n).length - 1).replace(/-+$/, "")}-${n}`;
     const dir = projectDir(dataDir, slug);
     await writeJsonAtomic(join(dir, "project.json"), { name: shown, created: new Date().toISOString() });
     return { slug, name: shown, dir };
@@ -78,7 +79,11 @@ export async function createProject(dataDir: string, name: string): Promise<Proj
 export async function resolveProject(dataDir: string, header: string | undefined): Promise<Project> {
   if (header === undefined || header === "") {
     const first = (await listProjects(dataDir))[0];
-    if (!first) throw new ApiError(500, "No project found; restart the server to create one");
+    if (!first)
+      throw new ApiError(
+        500,
+        "No project found; make one with New project in the studio, or restart the server to start with an empty one",
+      );
     return first;
   }
   if (!PROJECT_SLUG.test(header)) throw new ApiError(404, "Unknown project");
@@ -88,8 +93,9 @@ export async function resolveProject(dataDir: string, header: string | undefined
 }
 
 /**
- * Runs once at start. If `data/projects/` does not exist: an old `data/marketing/` and
- * `data/brand/` move into the project `postwright`, or an empty project `postwright` is made.
+ * Runs once at start. If `data/projects/` does not exist, or holds no valid project: an old
+ * `data/marketing/` and `data/brand/` move into the project `postwright`, or an empty project
+ * `postwright` is made.
  * If a move fails, what already moved goes back and the error says what could not be moved,
  * so that nothing has changed. `move` is a parameter so that a test can make a move fail.
  */
@@ -99,7 +105,8 @@ export async function prepareData(
 ): Promise<void> {
   await mkdir(dataDir, { recursive: true });
   const projects = join(dataDir, "projects");
-  if (await exists(projects)) return;
+  const projectsExisted = await exists(projects);
+  if (projectsExisted && (await listProjects(dataDir)).length > 0) return;
   const dir = projectDir(dataDir, "postwright");
   const names: string[] = [];
   for (const name of ["marketing", "brand"]) if (await exists(join(dataDir, name))) names.push(name);
@@ -115,10 +122,12 @@ export async function prepareData(
   } catch (e) {
     for (const name of moved.reverse()) await move(join(dir, name), join(dataDir, name)).catch(() => undefined);
     await rmdir(dir).catch(() => undefined);
-    await rmdir(projects).catch(() => undefined);
+    if (!projectsExisted) await rmdir(projects).catch(() => undefined);
+    const what = current
+      ? `Could not move data/${current} into data/projects/postwright`
+      : "Could not make data/projects/postwright";
     throw new Error(
-      `Could not move data/${current} into data/projects/postwright (${reason(e)}). Nothing was changed. ` +
-        "Move the folder by hand or fix the cause, then start again.",
+      `${what} (${reason(e)}). Nothing was changed. Move the folder by hand or fix the cause, then start again.`,
     );
   }
   await writeJsonAtomic(join(dir, "project.json"), { name: "Postwright", created: new Date().toISOString() });

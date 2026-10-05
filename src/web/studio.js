@@ -2,7 +2,18 @@
 // (`src/web/studio/<screen>.js`).
 //
 // The editor needs the full width and the code loads only on this page.
-import { activeProject, api, confirmDialog, el, icon, notice, setActiveProject, textDialog } from "/ui.js";
+import {
+  activeProject,
+  api,
+  confirmDialog,
+  el,
+  emptyState,
+  icon,
+  notice,
+  pinProject,
+  setActiveProject,
+  textDialog,
+} from "/ui.js";
 import { loadBrand } from "/studio/brand.js";
 import { pickProject } from "/projects.js";
 
@@ -60,6 +71,8 @@ const projectSelect = document.getElementById("studio-project");
 
 const NEW_PROJECT = "__new__";
 let projectName = "";
+/** Set once the user has agreed to leave, so that the browser does not ask a second time. */
+let leaving = false;
 
 /** The screen that is open now, with its optional hooks `leave()` and `hasUnsaved()`. */
 let active = null;
@@ -116,6 +129,16 @@ function loadSettings(retry = false) {
   return settingsPromise;
 }
 
+/** Asks whether unsaved changes may be dropped. Resolves `true` when there are none. */
+async function confirmLeave() {
+  if (!active?.hasUnsaved?.()) return true;
+  return confirmDialog("The changes to this post are not saved yet and will be lost.", {
+    title: "Leave without saving?",
+    confirmText: "Leave and discard changes",
+    dangerous: true,
+  });
+}
+
 async function render() {
   // The skip link at the top of the page jumps to #studio-main; that is not a screen, so
   // restore the hash.
@@ -124,16 +147,9 @@ async function render() {
     mainEl.focus();
     return;
   }
-  if (active?.hasUnsaved?.() && location.hash !== previousHash) {
-    const proceed = await confirmDialog("The changes to this post are not saved yet and will be lost.", {
-      title: "Leave without saving?",
-      confirmText: "Leave and discard changes",
-      dangerous: true,
-    });
-    if (!proceed) {
-      history.replaceState(null, "", previousHash);
-      return;
-    }
+  if (location.hash !== previousHash && !(await confirmLeave())) {
+    history.replaceState(null, "", previousHash);
+    return;
   }
   const my = ++renderCounter;
   const { screen, parts } = readRoute(location.hash);
@@ -182,8 +198,13 @@ async function render() {
   }
 }
 
-/** Makes a project the active one and reloads the studio on its overview. */
+/**
+ * Makes a project the active one and reloads the studio on its overview. Call it only after
+ * `confirmLeave()`: nothing is remembered or changed in the address before the user has
+ * agreed to leave, so a cancelled switch leaves this page exactly as it was.
+ */
 function openProject(slug) {
+  leaving = true;
   setActiveProject(slug);
   history.replaceState(null, "", "#overview");
   location.reload();
@@ -197,16 +218,25 @@ async function setupProjects() {
   // This route ignores the project header, so a remembered project that is gone cannot fail it.
   const { projects } = await api("/api/projects");
   const slug = pickProject(projects, activeProject());
-  setActiveProject(slug);
-  projectName = projects.find((p) => p.slug === slug).name;
-  document.querySelector(".app-page-headline span").textContent = `Marketing studio · ${projectName}`;
+  if (slug) {
+    // The calls of this page keep to this project, whatever the browser remembers later.
+    pinProject(slug);
+    setActiveProject(slug);
+    projectName = projects.find((p) => p.slug === slug).name;
+    document.querySelector(".app-page-headline span").textContent = `Marketing studio · ${projectName}`;
+  }
+  // With no project at all the picker still offers "New project…".
+  const none = slug ? [] : [el("option", { value: "", text: "No project yet", selected: "" })];
   projectSelect.replaceChildren(
+    ...none,
     ...projects.map((p) => el("option", { value: p.slug, text: p.name, ...(p.slug === slug ? { selected: "" } : {}) })),
     el("option", { value: NEW_PROJECT, text: "New project…" }),
   );
   projectSelect.addEventListener("change", async () => {
-    if (projectSelect.value !== NEW_PROJECT) return openProject(projectSelect.value);
-    projectSelect.value = slug; // back to the current one while the dialog is open
+    const chosen = projectSelect.value;
+    projectSelect.value = slug ?? ""; // stays on the current project unless the switch goes ahead
+    if (!(await confirmLeave())) return;
+    if (chosen !== NEW_PROJECT) return openProject(chosen);
     const name = await textDialog("New project", "Name of the brand or project");
     if (!name) return;
     try {
@@ -215,6 +245,7 @@ async function setupProjects() {
       notice(e.message, "error");
     }
   });
+  return slug;
 }
 
 async function start() {
@@ -225,7 +256,7 @@ async function start() {
   });
   overlayEl.addEventListener("click", closeMenu);
   window.addEventListener("beforeunload", (e) => {
-    if (active?.hasUnsaved?.()) {
+    if (!leaving && active?.hasUnsaved?.()) {
       e.preventDefault();
       e.returnValue = "";
     }
@@ -234,10 +265,16 @@ async function start() {
     void render();
   });
   if (!location.hash) history.replaceState(null, "", "#overview");
+  let slug;
   try {
-    await setupProjects();
+    slug = await setupProjects();
   } catch (e) {
     notice(e.message, "error");
+    return;
+  }
+  if (!slug) {
+    // Every project folder is gone; nothing can load until one is made.
+    contentEl.replaceChildren(emptyState("No project yet", 'Choose "New project…" in the picker to make one.'));
     return;
   }
   await render();

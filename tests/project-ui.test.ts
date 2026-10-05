@@ -1,7 +1,7 @@
 // The browser side of projects: which project is active, the header on every call, and the
 // brand loader. No DOM needed.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { activeProject, api, projectHeaders, setActiveProject } from "../src/web/ui.js";
+import { activeProject, api, pinProject, projectHeaders, setActiveProject } from "../src/web/ui.js";
 import { pickProject } from "../src/web/projects.js";
 import { loadBrand, loadMedia } from "../src/web/studio/brand.js";
 
@@ -13,7 +13,10 @@ function stubStorage(initial: Record<string, string> = {}) {
   });
   return data;
 }
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  pinProject(null);
+});
 
 describe("the active project", () => {
   it("is null and sends no header until one is chosen", () => {
@@ -43,6 +46,16 @@ describe("the active project", () => {
   });
 });
 
+describe("a pinned project", () => {
+  it("keeps the header on the page's project when the remembered one changes", () => {
+    stubStorage({ "postwright-project": "acme" });
+    pinProject("acme");
+    setActiveProject("beta"); // another tab, or a switch that was cancelled
+    expect(activeProject()).toBe("beta");
+    expect(projectHeaders()).toEqual({ "x-postwright-project": "acme" });
+  });
+});
+
 describe("api()", () => {
   it("puts the project header on every call", async () => {
     stubStorage({ "postwright-project": "acme" });
@@ -66,6 +79,10 @@ describe("pickProject", () => {
   it("falls back to the first project when the remembered one is gone or nothing is remembered", () => {
     expect(pickProject(list, "deleted-by-hand")).toBe("postwright");
     expect(pickProject(list, null)).toBe("postwright");
+  });
+  it("gives null, and does not throw, when there is no project at all", () => {
+    expect(pickProject([], "acme")).toBeNull();
+    expect(pickProject([], null)).toBeNull();
   });
 });
 

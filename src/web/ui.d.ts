@@ -4,4 +4,5 @@ export function debounce<A extends unknown[]>(fn: (...a: A) => void, ms: number)
 export function api(path: string, options?: { method?: string; body?: unknown; signal?: AbortSignal }): Promise<any>;
 export function activeProject(): string | null;
 export function setActiveProject(slug: string): void;
+export function pinProject(slug: string | null): void;
 export function projectHeaders(): Record<string, string>;

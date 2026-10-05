@@ -54,6 +54,16 @@ describe("createProject and listProjects", () => {
     expect(b.slug.endsWith("-2")).toBe(true);
   });
 
+  it("does not leave a double dash when the cut-off name ends in a dash", async () => {
+    const data = tmp();
+    // 38 x, a dash, then more: cut for the suffix "-2", the dash would end up next to it.
+    const name = `${"x".repeat(38)}-yyyy`;
+    expect((await createProject(data, name)).slug).toBe(`${"x".repeat(38)}-yy`);
+    const second = await createProject(data, name);
+    expect(second.slug).toBe(`${"x".repeat(38)}-2`);
+    expect(second.slug).toMatch(PROJECT_SLUG);
+  });
+
   it("writes project.json with the shown name", async () => {
     const data = tmp();
     const p = await createProject(data, "  Acme Studio ");
@@ -130,6 +140,41 @@ describe("prepareData", () => {
     await prepareData(data);
     expect(existsSync(at(data, "marketing", "facts.json"))).toBe(true);
     expect(existsSync(at(data, "projects", "postwright"))).toBe(false);
+  });
+
+  it("makes the project postwright when data/projects exists but holds no valid project", async () => {
+    const data = tmp();
+    mkdirSync(at(data, "projects", "broken"), { recursive: true });
+    mkdirSync(at(data, "marketing"), { recursive: true });
+    writeFileSync(at(data, "marketing", "facts.json"), "[]");
+    await prepareData(data);
+    expect((await listProjects(data)).map((p) => p.slug)).toEqual(["postwright"]);
+    expect(readFileSync(at(data, "projects", "postwright", "marketing", "facts.json"), "utf8")).toBe("[]");
+    expect(existsSync(at(data, "projects", "broken"))).toBe(true);
+    // And an empty data/projects/ too.
+    const empty = tmp();
+    mkdirSync(at(empty, "projects"), { recursive: true });
+    await prepareData(empty);
+    expect((await listProjects(empty)).map((p) => p.slug)).toEqual(["postwright"]);
+  });
+
+  it("keeps an existing data/projects when a move fails", async () => {
+    const data = tmp();
+    mkdirSync(at(data, "projects", "broken"), { recursive: true });
+    mkdirSync(at(data, "marketing"), { recursive: true });
+    const failing = async () => {
+      throw new Error("no");
+    };
+    await expect(prepareData(data, failing)).rejects.toThrow(/Could not move data\/marketing/);
+    expect(existsSync(at(data, "projects", "broken"))).toBe(true);
+  });
+
+  it("says so when the project folder itself cannot be made", async () => {
+    const data = tmp();
+    mkdirSync(at(data, "projects"), { recursive: true });
+    // A file where the folder of the project should go.
+    writeFileSync(at(data, "projects", "postwright"), "x");
+    await expect(prepareData(data)).rejects.toThrow(/Could not make data\/projects\/postwright.*Nothing was changed/s);
   });
 
   it("stops with a message and puts back what it moved when a move fails", async () => {

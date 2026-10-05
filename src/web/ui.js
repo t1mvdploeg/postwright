@@ -15,6 +15,16 @@ export function activeProject() {
   }
 }
 
+// The project this page was opened for. `activeProject()` is what the browser remembers for
+// the next load and can change under us (another tab, a cancelled switch), so the calls of
+// one page keep to the project it showed from the start.
+let pinned = null;
+
+/** Fixes the project of this page: from now on its calls carry this slug, whatever is remembered. */
+export function pinProject(slug) {
+  pinned = slug;
+}
+
 /** Remembers the project. A browser that blocks storage just forgets it; that is not an error. */
 export function setActiveProject(slug) {
   try {
@@ -29,7 +39,7 @@ export function setActiveProject(slug) {
  * `api()` does so itself, and a plain `fetch` has to add it.
  */
 export function projectHeaders() {
-  const slug = activeProject();
+  const slug = pinned ?? activeProject();
   return slug ? { "x-postwright-project": slug } : {};
 }
 
