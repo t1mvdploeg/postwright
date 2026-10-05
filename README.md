@@ -47,7 +47,7 @@ Open `http://127.0.0.1:4173` and choose **Add sample content** on the overview f
 
 ## What it does
 
-- **Templates.** Nine of them: statement, question and answer, steps, statistic, product image, carousel, link preview, LinkedIn profile banner and company cover. Each comes in the formats it suits, ten in all, from a LinkedIn square to an Instagram story.
+- **Templates.** Nine of them: statement, question and answer, steps, statistic, product image, carousel, link preview, LinkedIn profile banner and company cover. Each comes in the formats it suits, ten in all, from a LinkedIn square to an Instagram story. Your own come on top (see below).
 - **Brand check.** Text that runs out of its box, contrast below WCAG, banned words, too many hashtags, a missing alt text, and any number without an active fact behind it. Errors block scheduling; the rest are points of attention.
 - **Facts and snippets.** A fact bank with a source and an optional end date per claim, and a snippet bank for openers, closers and hashtags.
 - **Planning.** Weeks and months, campaigns with UTM tags, and a calendar export (`.ics`).
@@ -65,6 +65,10 @@ Either way you see the proposal first, with a sample post on each ground. **Use 
 
 You can also write a brand by hand: a `brand.json` with the files next to it in `data/projects/<project>/brand/`, with the built-in brand in `src/web/brand/` as the example.
 
+## Make your own templates
+
+On the **Templates** screen, give the studio screenshots of old posts (up to six), the text of some posts and a short brief, and choose single image or carousel and the formats. **Generate with Claude** proposes a template in your brand (about 10 to 50 cents, counted towards the cap); without an API key it gives a fixed sample so you can try the screen. Or **Download the prompt**, run it in Claude Code or Codex, and check for the proposal; `npm run template:check -- <project>` checks it from the command line. You see the proposal in every format with the brand check before you keep it. A kept template sits next to the built-in ones in the editor, Convert, the library filter and the planner, and can be renamed or deleted.
+
 ## AI writing help
 
 Writing help suggests captions and headlines, and the planner suggests post ideas for a period. Both use the company profile in **Settings** (what you do, sector, offer, audience, region) to stay on topic; numbers still come only from your facts. Without an API key you get sample answers, clearly marked, so you can try everything for free. To use Claude, start with your key in the environment:
@@ -77,10 +81,10 @@ The key is read from the environment only: never written to a file, sent to the 
 
 ## How it works
 
-The browser does the drawing. A template is a small module that turns fields into HTML and CSS; the preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas, so preview equals export. The server is a small Node http server on `127.0.0.1` only, which stores everything as JSON files and talks to the Claude API. There is no build step: plain ES modules in the browser, TypeScript on the server through `tsx`.
+The browser does the drawing. A template is a small module that turns fields into HTML and CSS; the preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas, so preview equals export. The server is a small Node http server on `127.0.0.1` only, which stores everything as JSON files and talks to the Claude API. There is no build step: plain ES modules in the browser, TypeScript on the server through `tsx`. A built-in template is code; one of your own is data (fields, a tree of elements and some CSS) that a single validator checks before it is ever drawn: no scripts, no remote loads, no colours outside the brand.
 
 ```bash
-npm test            # 726 tests, among them a leak check on every tracked file and a phone-width check in Chrome
+npm test            # 981 tests, among them a leak check on every tracked file and a phone-width check in Chrome
 npm run typecheck
 npm run format:check
 ```
