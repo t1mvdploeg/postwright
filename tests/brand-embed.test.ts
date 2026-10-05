@@ -41,4 +41,18 @@ describe("embedBrand", () => {
     );
     await expect(embedBrand(manifest, "/brand")).rejects.toThrow(/Could not load \/brand\/(logo|fonts)\//);
   });
+
+  it("keeps only a plain name of the font, so a family cannot break out of the CSS", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => undefined });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(new Uint8Array([1]))),
+    );
+    const brand = await embedBrand(
+      { ...manifest, font: { family: 'Acme "Sans"\n} body { display: none; }', files: ["fonts/a.woff2"] } },
+      "/brand",
+    );
+    expect(brand.fontCss).toContain('font-family: "Acme Sans body display none"');
+    expect(String(brand.fontCss).split("{").length).toBe(2);
+  });
 });

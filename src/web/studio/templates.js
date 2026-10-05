@@ -117,8 +117,17 @@ const SYMBOLS =
 const ROUTE =
   '<svg class="route" viewBox="5.5 7.5 21 17" aria-hidden="true"><path d="M7 9l5 14 4-10 4 10 5-14"/></svg>';
 
-/** The name of a font family as a CSS string; quotes and backslashes are dropped. */
-const fontName = (family) => String(family).replace(/["\\]/g, "");
+/**
+ * The name of a font as it may stand in CSS: letters, digits, spaces, dots, underscores and
+ * hyphens. Anything else (a quote, a brace, a line break) could break out of the @font-face
+ * rule, so it becomes a space.
+ */
+export function fontFamilyName(name) {
+  return String(name)
+    .replace(/[^\p{L}\p{N} ._-]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 /** The colours, the grounds and the font of the brand, on the wrapper of the image. */
 function brandCss(brand) {
@@ -130,7 +139,7 @@ function brandCss(brand) {
     ]),
   ].join(" ");
   return `${brand.fontCss ?? ""}
-.brand { ${variables} font-family: "${fontName(brand.font.family)}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+.brand { ${variables} font-family: "${fontFamilyName(brand.font.family)}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
 .brand figure { margin: 0; }`;
 }
 

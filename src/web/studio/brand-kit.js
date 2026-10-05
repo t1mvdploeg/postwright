@@ -3,6 +3,7 @@
 // (`brand.json` and the files next to it, see `src/server/brand.ts`).
 import { el, icon, notice, projectHeaders } from "/ui.js";
 import { asDataUri } from "/studio/brand.js";
+import { fontFamilyName } from "/studio/templates.js";
 import { slugOf } from "/studio/formats.js";
 import { download } from "/studio/render.js";
 import { colorsView, contrastView, logosView } from "/studio/brand-views.js";
@@ -74,7 +75,7 @@ export async function show(container, ctx) {
 
   // The font of the brand, so the specimen is set in it (the face is a data URI already).
   const fontStyle = el("style", { text: m.fontCss });
-  const family = m.font.family.replace(/["\\]/g, "");
+  const family = fontFamilyName(m.font.family);
   const tone = ctx.settings.tone?.trim();
 
   container.replaceChildren(

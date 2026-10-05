@@ -5,6 +5,7 @@
 // active project: its folder `data/projects/<slug>/brand/` if a custom brand is there. Every
 // fetch carries the project header, since an `<img>` or `@font-face` would not.
 import { projectHeaders } from "../ui.js";
+import { fontFamilyName } from "./templates.js";
 
 let brandPromise = null;
 const mediaCache = new Map();
@@ -47,7 +48,7 @@ export async function embedBrand(m, folder) {
       ]),
     ),
   );
-  const family = m.font.family.replace(/["\\]/g, "");
+  const family = fontFamilyName(m.font.family);
   const fontFaces = await Promise.all(
     m.font.files.map((path) => {
       const ext = path.split(".").pop().toLowerCase();
