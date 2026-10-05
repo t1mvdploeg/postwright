@@ -28,6 +28,7 @@ async function getDataUri(path, type) {
 
 const FONT_FORMAT = { woff2: "woff2", woff: "woff", ttf: "truetype", otf: "opentype" };
 const FONT_MIME = { woff2: "font/woff2", woff: "font/woff", ttf: "font/ttf", otf: "font/otf" };
+const LOGO_MIME = { svg: "image/svg+xml", png: "image/png" };
 const BRAND_FOLDER = "/brand";
 
 /**
@@ -43,7 +44,10 @@ export function loadBrand() {
       await Promise.all(
         Object.entries(m.logos).map(async ([mode, path]) => [
           mode,
-          await getDataUri(`${BRAND_FOLDER}/${path}`, "image/svg+xml"),
+          await getDataUri(
+            `${BRAND_FOLDER}/${path}`,
+            LOGO_MIME[path.split(".").pop().toLowerCase()] ?? "image/svg+xml",
+          ),
         ]),
       ),
     );

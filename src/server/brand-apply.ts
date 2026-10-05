@@ -51,15 +51,29 @@ export async function applyProposal(project: Project): Promise<{ version: string
     });
     const brand = path(s, "brand");
     const previous = path(s, "brand-previous");
+    // The older brand-previous only expires once the apply has succeeded: until then it waits
+    // under another name, so that every failure can put everything back.
+    const expiring = path(s, "brand-previous-expiring");
     const hadBrand = await exists(brand);
+    const hadPrevious = hadBrand && (await exists(previous));
+    const putBack = async () => {
+      if (hadBrand) await rename(previous, brand).catch(() => undefined);
+      if (hadPrevious) await rename(expiring, previous).catch(() => undefined);
+    };
     if (hadBrand) {
-      await rm(previous, { recursive: true, force: true });
-      await rename(brand, previous);
+      await rm(expiring, { recursive: true, force: true });
+      if (hadPrevious) await rename(previous, expiring);
+      try {
+        await rename(brand, previous);
+      } catch (e) {
+        if (hadPrevious) await rename(expiring, previous).catch(() => undefined);
+        throw e;
+      }
     }
     try {
       await rename(proposalDir(project.dir), brand);
     } catch (e) {
-      if (hadBrand) await rename(previous, brand).catch(() => undefined);
+      await putBack();
       throw e;
     }
     const { extras } = state;
@@ -73,9 +87,10 @@ export async function applyProposal(project: Project): Promise<{ version: string
     } catch (e) {
       // The settings could not be written: put everything back, so that the old brand stays.
       await rename(brand, proposalDir(project.dir)).catch(() => undefined);
-      if (hadBrand) await rename(previous, brand).catch(() => undefined);
+      await putBack();
       throw e;
     }
+    await rm(expiring, { recursive: true, force: true });
     // extras.json was for this step; in `brand/` it would be served to the browser.
     await rm(path(s, "brand", "extras.json"), { force: true });
     return { version: state.brand.version };

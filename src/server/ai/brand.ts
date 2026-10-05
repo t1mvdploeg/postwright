@@ -114,6 +114,46 @@ export function brandRequest(m: BrandMaterial, model: string, example: string): 
   };
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const cut = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : v);
+/** `#abc` becomes `#aabbcc`; anything else is left for the schema to judge. */
+const fullHex = (v: unknown) =>
+  typeof v === "string" && /^#[0-9a-fA-F]{3}$/.test(v) ? `#${[...v.slice(1)].map((c) => c + c).join("")}` : v;
+
+/**
+ * The structured-output format only states min, max and pattern in the field descriptions, so
+ * the model may break them. Code repairs what it can (too many items, too long a text, a short
+ * hex colour); what it cannot repair (too few colours, a missing field) is left to the schema.
+ */
+export function repairAnswer(raw: unknown): unknown {
+  if (!isRecord(raw)) return raw;
+  const mapRecord = (v: unknown, f: (x: unknown) => unknown) =>
+    isRecord(v) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, f(x)])) : v;
+  return {
+    ...raw,
+    name: cut(raw.name, 60),
+    url: cut(raw.url, 300),
+    colors: Array.isArray(raw.colors)
+      ? raw.colors
+          .slice(0, 14)
+          .map((c) =>
+            isRecord(c) ? { ...c, name: cut(c.name, 40), hex: fullHex(c.hex), usage: cut(c.usage, 200) } : c,
+          )
+      : raw.colors,
+    css: mapRecord(raw.css, fullHex),
+    grounds: mapRecord(raw.grounds, (g) => mapRecord(g, fullHex)),
+    fontFamily: cut(raw.fontFamily, 60),
+    tone: cut(raw.tone, 1500),
+    bannedWords: Array.isArray(raw.bannedWords)
+      ? raw.bannedWords
+          .slice(0, 30)
+          .map((w) => cut(w, 60))
+          .filter((w) => w !== "")
+      : raw.bannedWords,
+    hashtags: cut(raw.hashtags, 300),
+  };
+}
+
 function parseAnswer(texts: string[]): unknown {
   try {
     return JSON.parse(texts[texts.length - 1] ?? "");
@@ -174,7 +214,7 @@ export async function generateBrand(
     } catch {
       throw new AiError("The model did not return valid JSON; try again", { ...usage });
     }
-    const r = BrandProposalSchema.safeParse(raw);
+    const r = BrandProposalSchema.safeParse(repairAnswer(raw));
     if (!r.success) {
       const first = r.error.issues[0];
       throw new AiError(

@@ -130,8 +130,9 @@ export async function prepareData(
       `${what} (${reason(e)}). Nothing was changed. Move the folder by hand or fix the cause, then start again.`,
     );
   }
-  await writeJsonAtomic(join(dir, "project.json"), { name: "Postwright", created: new Date().toISOString() });
   // The cap is one setting for all projects now: take the one of the old settings file along.
+  // This comes first: project.json is what tells the next start that all is done, so a failed
+  // write here leaves the project unfinished and the next start tries again.
   const oldSettings = await readJson<{ writingHelp?: { capUsdPerMonth?: unknown } }>(
     join(dir, "marketing", "settings.json"),
   ).catch(() => null);
@@ -139,6 +140,7 @@ export async function prepareData(
   if (typeof cap === "number" && Number.isFinite(cap) && cap >= 0 && cap <= 1000) {
     await writeJsonAtomic(join(dataDir, "settings.json"), { capUsdPerMonth: cap });
   }
+  await writeJsonAtomic(join(dir, "project.json"), { name: "Postwright", created: new Date().toISOString() });
 }
 
 function firstIssue(error: z.ZodError): string {

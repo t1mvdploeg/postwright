@@ -1,6 +1,6 @@
 // "Use this brand kit": the proposal becomes the brand of the project, the old brand is kept
 // once, and tone, banned words and hashtags go to the settings of the project.
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mergeHashtags, mergeWords } from "../src/server/brand-apply.js";
@@ -151,6 +151,34 @@ describe("POST /api/brand/apply", () => {
     expect((await call("/api/brand")).body.name).toBe("One");
     expect(existsSync(join(projectDir, "brand-input", "proposal", "brand.json"))).toBe(true);
     expect(existsSync(join(projectDir, "brand-previous"))).toBe(false);
+    log.mockRestore();
+  });
+
+  it("keeps the older brand-previous when the apply fails, and only drops it after it succeeded", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { call, propose, projectDir } = await start();
+    const name = (dir: string) => JSON.parse(readFileSync(join(projectDir, dir, "brand.json"), "utf8")).name;
+    propose("One", "acme-2026-10-05-1");
+    await call("/api/brand/apply", "POST", {});
+    propose("Two", "acme-2026-10-05-2");
+    await call("/api/brand/apply", "POST", {});
+    propose("Three", "acme-2026-10-05-3");
+    mkdirSync(join(projectDir, "marketing"), { recursive: true });
+    chmodSync(join(projectDir, "marketing"), 0o555);
+    try {
+      expect((await call("/api/brand/apply", "POST", {})).status).toBe(500);
+    } finally {
+      chmodSync(join(projectDir, "marketing"), 0o755);
+    }
+    expect(name("brand")).toBe("Two");
+    expect(name("brand-previous")).toBe("One");
+    expect(existsSync(join(projectDir, "brand-input", "proposal", "brand.json"))).toBe(true);
+    expect(readdirSync(projectDir).filter((n) => n.startsWith("brand-previous"))).toEqual(["brand-previous"]);
+    // Once the cause is gone, the same apply goes through and the older one expires.
+    expect((await call("/api/brand/apply", "POST", {})).status).toBe(200);
+    expect(name("brand")).toBe("Three");
+    expect(name("brand-previous")).toBe("Two");
+    expect(readdirSync(projectDir).filter((n) => n.startsWith("brand-previous"))).toEqual(["brand-previous"]);
     log.mockRestore();
   });
 

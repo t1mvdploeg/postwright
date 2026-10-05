@@ -138,6 +138,32 @@ describe("brandRequest", () => {
 });
 
 describe("generateBrand", () => {
+  it("repairs what code can before the schema judges: too many colours or words, long strings, short hex", async () => {
+    const colors = Array.from({ length: 16 }, (_, k) => ({ name: `Colour ${k}`, hex: "#fff", usage: "u".repeat(250) }));
+    const proposal = {
+      ...AI_PROPOSAL,
+      name: "N".repeat(80),
+      colors,
+      css: { ...AI_PROPOSAL.css, "--accent": "#abc" },
+      bannedWords: Array.from({ length: 35 }, (_, k) => `word${k}`),
+      tone: "t".repeat(2000),
+    };
+    const { client } = fakeClient([answer(proposal)]);
+    const r = await generateBrand(client, BRAND_MODEL, material(), example);
+    expect(r.proposal.colors).toHaveLength(14);
+    expect(r.proposal.colors[0].hex).toBe("#ffffff");
+    expect(r.proposal.colors[0].usage).toHaveLength(200);
+    expect(Object.values(r.proposal.css)).toContain("#aabbcc");
+    expect(r.proposal.bannedWords).toHaveLength(30);
+    expect(r.proposal.name).toHaveLength(60);
+    expect(r.proposal.tone).toHaveLength(1500);
+  });
+
+  it("still refuses what cannot be repaired, such as too few colours", async () => {
+    const { client } = fakeClient([answer({ ...AI_PROPOSAL, colors: AI_PROPOSAL.colors.slice(0, 3) })]);
+    await expect(generateBrand(client, BRAND_MODEL, material(), example)).rejects.toThrow(/does not fit the schema/);
+  });
+
   it("turns a valid answer into a proposal and reports model and usage", async () => {
     const { client, calls } = fakeClient([answer()]);
     const r = await generateBrand(client, BRAND_MODEL, material(), example);

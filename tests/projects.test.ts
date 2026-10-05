@@ -1,6 +1,6 @@
 // Projects: the slug of a name, creating and finding projects, and the one-off move of the
 // old single-brand folders into the project "postwright".
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { rename } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -123,6 +123,21 @@ describe("prepareData", () => {
     expect(existsSync(at(data, "brand"))).toBe(false);
     expect(readFileSync(at(data, "ai-usage.jsonl"), "utf8")).toBe("x\n");
     expect(JSON.parse(readFileSync(at(project, "project.json"), "utf8"))).toMatchObject({ name: "Postwright" });
+  });
+
+  it("takes the old cap along, and when that fails leaves a state the next start repairs", async () => {
+    const data = tmp();
+    mkdirSync(at(data, "marketing"), { recursive: true });
+    writeFileSync(at(data, "marketing", "settings.json"), JSON.stringify({ writingHelp: { capUsdPerMonth: 25 } }));
+    // A folder where the settings file should go makes the write fail.
+    mkdirSync(at(data, "settings.json", "blocker"), { recursive: true });
+    await expect(prepareData(data)).rejects.toThrow();
+    expect(await listProjects(data)).toEqual([]);
+    rmSync(at(data, "settings.json"), { recursive: true });
+    await prepareData(data);
+    expect(JSON.parse(readFileSync(at(data, "settings.json"), "utf8"))).toEqual({ capUsdPerMonth: 25 });
+    expect((await listProjects(data)).map((p) => p.slug)).toEqual(["postwright"]);
+    expect(existsSync(at(data, "projects", "postwright", "marketing", "settings.json"))).toBe(true);
   });
 
   it("makes an empty project postwright when there is no data", async () => {

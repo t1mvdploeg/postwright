@@ -104,7 +104,10 @@ export async function checkProposal(projectDir: string): Promise<ProposalState> 
   const problems: string[] = [];
 
   // A post stores the version of the brand it was made with, at most 40 characters (`brandVersion`).
-  if (brand.version.trim().length > 40) problems.push("brand.json: version: longer than 40 characters");
+  // It is trimmed in a post, so a version with spaces around it would never match the brand's.
+  if (brand.version.length > 40) problems.push("brand.json: version: longer than 40 characters");
+  if (brand.version.trim() === "" || brand.version !== brand.version.trim())
+    problems.push("brand.json: version: empty, or with spaces around it");
   for (const k of CSS_VARIABLES) {
     const v = brand.css[k];
     if (v === undefined) problems.push(`brand.json: css.${k}: missing`);

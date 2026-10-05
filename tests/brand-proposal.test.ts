@@ -103,6 +103,17 @@ describe("checkProposal", () => {
     expect(await problems(dir)).toContain("brand.json: version: longer than 40 characters");
   });
 
+  it("refuses a version that is blank or has spaces around it, since a post would not accept or match it", async () => {
+    for (const version of ["   ", " v1", "v1 "]) {
+      const dir = tmp();
+      writeProposal(dir, (b) => (b.version = version));
+      expect(await problems(dir)).toContain("brand.json: version: empty, or with spaces around it");
+    }
+    const ok = tmp();
+    writeProposal(ok, (b) => (b.version = "v1"));
+    expect((await checkProposal(ok)).state).not.toBe("invalid");
+  });
+
   it("names the schema field that is wrong, and nothing else", async () => {
     const dir = tmp();
     writeProposal(dir, (b) => (b.colors = []));
