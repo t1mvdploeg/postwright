@@ -50,7 +50,7 @@ describe("the built-in brand", () => {
     for (const path of [...Object.values(m.logos), ...m.font.files]) {
       expect(existsSync(join(BUILT_IN, path)), path).toBe(true);
     }
-    expect(existsSync(join(BUILT_IN, "fonts", "LICENSE.txt"))).toBe(true);
+    expect(existsSync(join(BUILT_IN, "fonts", "OFL.txt"))).toBe(true);
   });
 
   it("reaches contrast 4.5 to 1 on every ground", () => {
