@@ -1,6 +1,7 @@
 // The example template and variants of it, as plain data that a test can break.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { message } from "./brand-ai.js";
 
 /** The worked example: a statement in tree form, as a proposal (no id, no created). */
 export function exampleTemplate(): any {
@@ -84,3 +85,7 @@ export function writeOwn(projectDir: string, template: any = exampleTemplate(), 
   writeFileSync(join(projectDir, "templates", `${id}.json`), JSON.stringify(saved(template, id), null, 2));
   return id;
 }
+
+/** The reply of the model that holds a template: 100,000 tokens in and 10,000 out, which is $0.60 at Opus 5.5 prices. */
+export const templateReply = (file: any = exampleTemplate(), notes: string[] = ["Based on the statements."]) =>
+  message({ text: JSON.stringify(answerOf(file, notes)) });

@@ -56,12 +56,12 @@ const withoutPictures = (svg: string) => svg.replace(BASE64_URI, (m) => `${m.sli
 /** An SVG above this size (after cutting pictures) is not sent: one logo must not cost more than the reserve. */
 const MAX_SVG_PROMPT = 100_000;
 /** The SVG as it goes into the prompt, or `null` when it is too large to send. */
-function svgForPrompt(svg: string): string | null {
+export function svgForPrompt(svg: string): string | null {
   const text = withoutPictures(svg);
   return text.length > MAX_SVG_PROMPT ? null : text;
 }
 
-const image = (mediaType: string, data: Buffer): Content =>
+export const image = (mediaType: string, data: Buffer): Content =>
   ({ type: "image", source: { type: "base64", media_type: mediaType, data: data.toString("base64") } }) as Content;
 
 function instructions(m: BrandMaterial, example: string): string {
@@ -154,7 +154,7 @@ export function repairAnswer(raw: unknown): unknown {
   };
 }
 
-function parseAnswer(texts: string[]): unknown {
+export function parseAnswer(texts: string[]): unknown {
   try {
     return JSON.parse(texts[texts.length - 1] ?? "");
   } catch {
@@ -162,7 +162,7 @@ function parseAnswer(texts: string[]): unknown {
   }
 }
 
-function add(total: Usage, u: Message["usage"]) {
+export function addUsage(total: Usage, u: Message["usage"]) {
   total.input += u.input_tokens;
   total.output += u.output_tokens;
   total.cacheRead += u.cache_read_input_tokens ?? 0;
@@ -193,7 +193,7 @@ export async function generateBrand(
     } catch (error) {
       throw new AiError(error instanceof Error ? error.message : String(error), spent());
     }
-    add(usage, reply.usage);
+    addUsage(usage, reply.usage);
     for (const block of reply.content) {
       if (block.type === "web_fetch_tool_result" && block.content.type === "web_fetch_result") websiteRead = true;
     }
