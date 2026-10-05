@@ -36,8 +36,8 @@ Export, brand check, overflow measurement, the feed preview and thumbnails go th
 
 A post can only have formats that every slide's template has. `sharedFormats(templateIds)` (in `recipe.js`) returns the intersection.
 
-- Editor: a format checkbox that not all slides share is disabled, with the note "not in every slide's template".
-- "Add slide" offers only templates that have all of the post's chosen formats, and no carousel templates.
+- Editor: the format checkboxes are slide 1's template's formats; one that not all slides share is disabled, with the note "not in every slide".
+- "Add slide" and "Change template" offer every image template (no carousel templates) that shares at least one format with the post. Choosing one narrows the post's formats to the shared ones, and a notice names what was dropped ("Story is off: Question has no Story format"). A new Statement post has Story on by default, and Question has no Story; a stricter rule would hide Question until you unticked Story yourself.
 - `toInput` keeps only shared formats; if none are left it refuses with a message instead of saving.
 
 ## Editor
@@ -46,7 +46,8 @@ Internally the editor works on one list of slides, `state.pages = [{ template, c
 
 - The slide list that carousels have now (`renderSlides`, `editor.js`) also appears for image posts: select, move, duplicate, delete, and **Add slide** with a template choice instead of a slide-kind choice. With one slide, the list shows a single **Add slide** button and nothing else.
 - Fields, preview, format tabs, overflow and writing help work on the chosen slide; `currentFields()` uses that slide's template.
-- **Convert** converts the chosen slide to another template (the existing `convert`), offering only templates with the post's formats.
+- **Change template** (in the slide actions) gives the chosen slide another template and takes over the values that fit (same field id, a valid choice, a media id), like `convert` does now.
+- **Convert** keeps its meaning: a new post from slide 1 in another template. Extra slides do not come along.
 - The automatic title and the alt text come from slide 1, as now.
 - The slide navigation under the preview ("← Previous slide / Slide 2 of 4 / Next slide →") also works for image posts with more than one slide.
 - Writing help reads the chosen slide's content. This also fixes the existing bug where it reads the empty `post.content` of a carousel (`writing-help-ui.js`).
@@ -60,7 +61,7 @@ Internally the editor works on one list of slides, `state.pages = [{ template, c
 
 ## Brand check, numbers, overflow
 
-- `brand-check.js` runs its checks over every slide from `imagesOf`, using each slide's own template fields. A finding on a slide other than the first names it: "Slide 3: …". The slide-count rules (too few slides, no cover) stay for carousels only.
+- `brand-check.js` runs its checks over every slide from `imagesOf`, using each slide's own template fields. When a post has more than one slide, every finding on a field names its slide ("Slide 3: headline …"), as for carousels now; a one-slide post reads as today. The slide-count rules (too few slides, no cover) stay for carousels only.
 - Number checks see the texts of every slide.
 - `measureAll` measures every format × every slide.
 
@@ -84,6 +85,6 @@ Internally the editor works on one list of slides, `state.pages = [{ template, c
 - Schema: `moreSlides` defaults to `[]`, max 19, rejected on a carousel post; an old post file without `slides` or `moreSlides` loads, lists and counts media without crashing.
 - `contentDiffers` drops the check when only `moreSlides` changes.
 - Export enumeration: names and count of PNGs for 3 slides × 2 formats, and the PDF only with a LinkedIn format.
-- Brand check: a finding on slide 3 is reported as "Slide 3: …".
+- Brand check: a finding on slide 3 is reported as "Slide 3: …"; a slide with a missing template is an error.
 - Browser (existing playwright-core setup): make a post with three slides of different templates, move one, save, reopen; and a slide whose own template is gone does not break the editor.
 - Afterwards: look at the editor in the browser, on desktop and phone width.
