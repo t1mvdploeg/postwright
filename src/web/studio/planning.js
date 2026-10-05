@@ -188,7 +188,7 @@ export async function show(container, ctx) {
     const complete = Boolean(from && to);
     const n = complete ? workdayCount(from, to) : 0;
     const mode = complete
-      ? `${n} workday${n === 1 ? "" : "en"}`
+      ? `${n} workday${n === 1 ? "" : "s"}`
       : from
         ? "Click the end day, or enter the end date."
         : "Click a start and an end day in the month, or enter the dates.";
@@ -687,7 +687,7 @@ export async function show(container, ctx) {
       "postwright.ics",
       "text/calendar;charset=utf-8",
     );
-    notice(`${scheduled.length} event${scheduled.length === 1 ? "ak" : "ken"} in the calendar export`);
+    notice(`${scheduled.length} event${scheduled.length === 1 ? "" : "s"} in the calendar export`);
   });
 
   // ---------------- campaigns ----------------

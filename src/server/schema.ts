@@ -297,7 +297,7 @@ export const DEFAULT_SETTINGS: Settings = {
     "error-free",
     "never again",
     "best",
-    "revolutionair",
+    "revolutionary",
   ],
   defaultHashtags: "#postwright",
   writingHelp: { enabled: true, capUsdPerMonth: 10 },

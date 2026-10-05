@@ -361,7 +361,7 @@ describe("settings and overview", () => {
     const initial = await ask(`${API}/settings`);
     expect(initial.body.channels).toEqual(["linkedin"]);
     expect(initial.body.writingHelp).toEqual({ enabled: true, capUsdPerMonth: 10 });
-    const isNew = { ...initial.body, channels: ["linkedin", "instagram"], bannedWords: ["gratis"] };
+    const isNew = { ...initial.body, channels: ["linkedin", "instagram"], bannedWords: ["free"] };
     expect((await ask(`${API}/settings`, { method: "PUT", body: isNew })).status).toBe(200);
     expect((await ask(`${API}/settings`)).body.channels).toEqual(["linkedin", "instagram"]);
     expect((await ask(`${API}/settings`, { method: "PUT", body: { ...isNew, channels: ["tiktok"] } })).status).toBe(
@@ -689,8 +689,8 @@ describe("stored settings that do not look right", () => {
     expect(r.status).toBe(200);
     expect(r.body.writingHelp).toEqual({ enabled: false, capUsdPerMonth: 10 });
     expect(r.body.channels).toEqual(DEFAULT_SETTINGS.channels);
-    const custom = await withFile('{"bannedWords":["gratis"]}');
-    expect(custom.body.bannedWords).toEqual(["gratis"]);
+    const custom = await withFile('{"bannedWords":["free"]}');
+    expect(custom.body.bannedWords).toEqual(["free"]);
     expect(custom.body.writingHelp).toEqual({ enabled: true, capUsdPerMonth: 10 });
   });
 

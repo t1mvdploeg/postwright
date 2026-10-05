@@ -187,7 +187,7 @@ async function showEditor(container, ctx, begin) {
   const captionHolder = el("div", { class: "studio-caption" });
   const statusHolder = el("div", { class: "studio-status" });
   const showZones = el("input", { type: "checkbox", id: "studio-show-zones" });
-  const zoneToggle = el("label", { class: "studio-radio studio-zonestoggle" }, [
+  const zoneToggle = el("label", { class: "studio-radio studio-zone-toggle" }, [
     showZones,
     el("span", { text: "Show safe zones" }),
   ]);
@@ -306,7 +306,7 @@ async function showEditor(container, ctx, begin) {
       })
     : null;
 
-  const exportButtons = el("div", { class: "button-row studio-exportknoppen" }, [
+  const exportButtons = el("div", { class: "button-row studio-export-buttons" }, [
     el("button", {
       type: "button",
       class: "secondary",
@@ -615,7 +615,7 @@ async function showEditor(container, ctx, begin) {
         [
           el("header", { class: "studio-feed-headline" }, [
             el("img", { src: ctx.brand.logos.mark, alt: "" }),
-            el("div", {}, [el("b", { text: ctx.brand.name }), el("span", { text: "zojuist" })]),
+            el("div", {}, [el("b", { text: ctx.brand.name }), el("span", { text: "just now" })]),
           ]),
           el("p", { class: "studio-feed-text" }, [
             above.trimEnd() || "(No caption for this channel yet.)",
@@ -697,7 +697,7 @@ async function showEditor(container, ctx, begin) {
   function renderCheck() {
     const u = currentCheck();
     checkHeadline.textContent = u.errors
-      ? `Brand check: ${u.errors} error${u.errors === 1 ? "" : "en"}`
+      ? `Brand check: ${u.errors} error${u.errors === 1 ? "" : "s"}`
       : u.attention
         ? `Brand check: ${u.attention} to watch`
         : "Brand check: OK";
@@ -726,7 +726,7 @@ async function showEditor(container, ctx, begin) {
         ? [
             el("li", { class: "studio-check-ok" }, [
               el("details", {}, [
-                el("summary", { text: `${ok.length} item${ok.length === 1 ? "" : "en"} OK` }),
+                el("summary", { text: `${ok.length} item${ok.length === 1 ? "" : "s"} OK` }),
                 el("ul", { class: "studio-check" }, ok.map(line)),
               ]),
             ]),
@@ -1359,7 +1359,7 @@ async function showEditor(container, ctx, begin) {
     if (
       u.errors &&
       !(await confirmDialog(
-        `The brand check still found ${u.errors} error${u.errors === 1 ? "" : "en"}. Export anyway?`,
+        `The brand check still found ${u.errors} error${u.errors === 1 ? "" : "s"}. Export anyway?`,
         { title: "Export with errors?", confirmText: "Export anyway" },
       ))
     )

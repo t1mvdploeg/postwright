@@ -388,14 +388,14 @@ describe("routes", () => {
       };
     });
     const { ask } = await start(spy);
-    await ask("/api/settings", { ...DEFAULT_SETTINGS, bannedWords: ["wonderbaarlijk", "nr. 1"] }, "PUT");
+    await ask("/api/settings", { ...DEFAULT_SETTINGS, bannedWords: ["amazing", "nr. 1"] }, "PUT");
     expect((await ask("/api/writing-help", request)).status).toBe(200);
     expect(
       (await ask("/api/ideas/suggest", { from: "2099-01-01", to: "2099-01-05", count: 1, channel: "linkedin" })).status,
     ).toBe(200);
     expect(seen).toEqual([
-      { task: "writingHelp", banned: ["wonderbaarlijk", "nr. 1"] },
-      { task: "ideas", banned: ["wonderbaarlijk", "nr. 1"] },
+      { task: "writingHelp", banned: ["amazing", "nr. 1"] },
+      { task: "ideas", banned: ["amazing", "nr. 1"] },
     ]);
   });
 

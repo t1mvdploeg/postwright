@@ -146,7 +146,7 @@ export async function show(container, ctx) {
       notice(
         r.facts || r.snippets || r.posts
           ? // The draft part only if facts were added: with 0 facts there is nothing to review.
-            `${r.facts} fact${r.facts === 1 ? "" : "en"}, ${r.snippets} text${r.snippets === 1 ? "" : "en"} and ${r.posts} post${r.posts === 1 ? "" : "s"} added.${r.facts ? ` ${r.facts === 1 ? "The fact is" : "The facts are"} in draft: review ${r.facts === 1 ? "het" : "ze"} and set ${r.facts === 1 ? "het" : "ze"} to active.` : ""}`
+            `${r.facts} fact${r.facts === 1 ? "" : "s"}, ${r.snippets} snippet${r.snippets === 1 ? "" : "s"} and ${r.posts} post${r.posts === 1 ? "" : "s"} added.${r.facts ? ` ${r.facts === 1 ? "The fact is" : "The facts are"} in draft: review ${r.facts === 1 ? "it" : "them"} and set ${r.facts === 1 ? "it" : "them"} to active.` : ""}`
           : "The sample content was already there",
       );
       ({ facts } = await ctx.api("/api/facts"));

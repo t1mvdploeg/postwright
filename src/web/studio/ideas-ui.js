@@ -95,7 +95,7 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
   const closeButton = el("button", { type: "button", class: "secondary", text: "Close" });
   const buttons = [saveButton, createButton, openButton, deleteButton, closeButton];
 
-  const element = el("section", { class: "card studio-ideepaneel", role: "region", "aria-label": "Idea", hidden: "" }, [
+  const element = el("section", { class: "card studio-idea-panel", role: "region", "aria-label": "Idea", hidden: "" }, [
     headline,
     el("div", { class: "field-row" }, [
       field("idea-date", "Date", date),
@@ -506,7 +506,7 @@ export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
       renderList();
       const n = suggestions.length;
       const from = data?.from && data.from !== body.from ? `, from today (${shortDay(data.from)})` : "";
-      mode.textContent = n ? `${n} suggestion${n === 1 ? "" : "len"}${from}` : "No usable suggestion received.";
+      mode.textContent = n ? `${n} suggestion${n === 1 ? "" : "s"}${from}` : "No usable suggestion received.";
     } catch (e) {
       mode.textContent = e.name === "AbortError" ? "Stopped." : "";
       if (e.name !== "AbortError") notice(e.message, "error");
@@ -557,7 +557,7 @@ export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
     } else {
       // The status line still showed the count from before saving.
       const n = suggestions.length;
-      mode.textContent = `Remaining: ${n} suggestion${n === 1 ? "" : "len"} in the list`;
+      mode.textContent = `Remaining: ${n} suggestion${n === 1 ? "" : "s"} in the list`;
     }
     for (const k of [set, remove]) k.disabled = false;
     ask.disabled = !enabled;
@@ -570,7 +570,7 @@ export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
       }
     }
     if (all) {
-      notice(`${saved} idea${saved === 1 ? "" : "ën"} placed in the planner`);
+      notice(`${saved} idea${saved === 1 ? "" : "s"} placed in the planner`);
       ask.focus();
     } else set.focus();
   });

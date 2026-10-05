@@ -85,7 +85,7 @@ export async function show(container, ctx) {
       ? [
           el("div", { class: "card studio-signal", role: "status" }, [
             el("b", {
-              text: `${o.withUnusableFact} post${o.withUnusableFact === 1 ? "" : "s"} rel${o.withUnusableFact === 1 ? "t" : "en"} on a fact that expired, got withdrawn or got deleted.`,
+              text: `${o.withUnusableFact} post${o.withUnusableFact === 1 ? "" : "s"} ${o.withUnusableFact === 1 ? "relies" : "rely"} on a fact that has expired, been withdrawn or been deleted.`,
             }),
             " ",
             el("a", { href: "#library/fact", text: "See which" }),
@@ -149,7 +149,7 @@ export async function show(container, ctx) {
         ]),
         el("div", { class: "card" }, [
           el("h2", { text: "Ideas" }),
-          el("p", { text: `${o.openIdeas} open idea${o.openIdeas === 1 ? "" : "ën"}` }),
+          el("p", { text: `${o.openIdeas} open idea${o.openIdeas === 1 ? "" : "s"}` }),
           el("a", { href: "#planning", text: "To the planner" }),
         ]),
         el("div", { class: "card" }, [
@@ -189,7 +189,7 @@ export async function show(container, ctx) {
         el("div", { class: "card" }, [
           el("h2", { text: "Uploaded images" }),
           el("div", { class: "status-row" }, [
-            el("span", { text: `${o.media.count} image${o.media.count === 1 ? "" : "en"}` }),
+            el("span", { text: `${o.media.count} image${o.media.count === 1 ? "" : "s"}` }),
             el("b", {
               class: mb > 100 ? "status-attention" : "status-good",
               text: `${mb.toFixed(1).replace(".", ",")} MB`,

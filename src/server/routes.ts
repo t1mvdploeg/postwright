@@ -554,7 +554,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
             throw new ApiError(
               409,
               p.check
-                ? `The brand check still found ${p.check.errors} error${p.check.errors === 1 ? "" : "en"}; fix those first`
+                ? `The brand check still found ${p.check.errors} error${p.check.errors === 1 ? "" : "s"}; fix those first`
                 : "This post has no brand check yet for its current content; open and save it first",
             );
           }
@@ -566,7 +566,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
             if (unusable.length) {
               throw new ApiError(
                 409,
-                `This post relies on ${unusable.length === 1 ? "a fact that" : `${unusable.length} facts that`} expired, got withdrawn or got deleted ${unusable.length === 1 ? "is" : "zijn"}; replace ${unusable.length === 1 ? "het" : "ze"} first`,
+                `This post relies on ${unusable.length === 1 ? "a fact that has" : `${unusable.length} facts that have`} expired, been withdrawn or been deleted; replace ${unusable.length === 1 ? "it" : "them"} first`,
               );
             }
           }

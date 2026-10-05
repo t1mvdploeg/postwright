@@ -125,7 +125,7 @@ describe("writingHelp", () => {
     const draft = await fact("A draft with € 5", "draft");
     expect((await ask(`${API}/writing-help`, request([draft]))).status).toBe(400);
     expect((await ask(`${API}/writing-help`, request(["f-00000000-0000-4000-8000-000000000000"]))).status).toBe(400);
-    expect((await ask(`${API}/writing-help`, request([], { task: "gedicht" }))).status).toBe(400);
+    expect((await ask(`${API}/writing-help`, request([], { task: "poem" }))).status).toBe(400);
   });
 
   it("sends the model only the facts that the server loads itself, and checks numbers", async () => {

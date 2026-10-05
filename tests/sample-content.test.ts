@@ -61,7 +61,7 @@ describe("POST /sample-content", () => {
 
   it("puts down three sample posts, one of which is scheduled in seven days with a green check", async () => {
     const posts: Post[] = (await get("/api/posts")).posts;
-    expect(posts.map((p) => p.template).sort()).toEqual(["statistic", "statement", "steps"]);
+    expect(posts.map((p) => p.template).sort()).toEqual(["statement", "statistic", "steps"]);
     const scheduled = posts.filter((p) => p.status === "scheduled");
     expect(scheduled).toHaveLength(1);
     expect(scheduled[0].template).toBe("steps");

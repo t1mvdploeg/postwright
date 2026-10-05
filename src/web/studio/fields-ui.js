@@ -109,7 +109,7 @@ export function buildFields(fields, values, { change, media = [], onUpload }) {
       // typos.
       const button = el("button", {
         type: "button",
-        class: "secondary small studio-nadrukknop",
+        class: "secondary small studio-emphasis-button",
         text: "Selection as emphasis",
       });
       button.addEventListener("click", () => {

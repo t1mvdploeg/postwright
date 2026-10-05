@@ -43,10 +43,10 @@ describe("caption", () => {
   });
 
   it("finds hashtags, duplicate and truncated ones, and counts them for Instagram", () => {
-    const h = hashtags("Read #Planning and #planning, #brand-aware-posts. Not a tag: a#b or &#39;");
-    expect(h.list).toEqual(["Planning", "planning", "brand-aware"]);
+    const h = hashtags("Read #Planning and #planning, #brandsafe-posts. Not a tag: a#b or &#39;");
+    expect(h.list).toEqual(["Planning", "planning", "brandsafe"]);
     expect(h.duplicate).toEqual(["planning"]);
-    expect(h.truncated).toEqual(["brand-aware-posts"]);
+    expect(h.truncated).toEqual(["brandsafe-posts"]);
     const tooMany = Array.from({ length: 31 }, (_, i) => `#tag${i}`).join(" ");
     expect(checkCaption("instagram", tooMany).some((b) => b.code === "too-many-hashtags")).toBe(true);
     expect(checkCaption("linkedin", tooMany).some((b) => b.code === "too-many-hashtags")).toBe(false);
@@ -228,7 +228,7 @@ describe("brand-check", () => {
       settings,
       today: "2026-10-01",
     });
-    expect(two.findings.find((b) => b.code === "emphasis")!.text).toMatch(/nu 2/);
+    expect(two.findings.find((b) => b.code === "emphasis")!.text).toMatch(/now 2/);
     expect(
       codes(
         runCheck({
