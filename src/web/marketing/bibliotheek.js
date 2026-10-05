@@ -1,6 +1,6 @@
 // Marketingstudio — Bibliotheek: alle posts (recepten), met filters. Een miniatuur wordt pas
 // getekend als de rij in beeld komt; een recept is klein, een beeld niet.
-import { bevestigDialoog, el, legeStaat, melding } from "/app.js";
+import { bevestigDialoog, el, legeStaat, melding } from "/ui.js";
 import { SJABLONEN, bouwBeeld, sjabloon as sjabloonVan } from "/marketing/sjablonen.js";
 import { toonVoorbeeld } from "/marketing/render.js";
 import { laadMedia } from "/marketing/merk.js";

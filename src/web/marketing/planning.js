@@ -5,7 +5,7 @@
 // Golf 2: een periode aanvinken (in de maand een begin- en einddag aanklikken, of de twee
 // datumvelden, die dezelfde keuze tonen), daarvoor ideeën laten voorstellen of er zelf een
 // toevoegen. Het ideepaneel en de voorstellen staan in ideeen-ui.js.
-import { bevestigDialoog, el, legeStaat, melding, veldFout } from "/app.js";
+import { bevestigDialoog, el, legeStaat, melding, veldFout } from "/ui.js";
 import { download } from "/marketing/render.js";
 import { maakIcs } from "/marketing/ics.js";
 import { aantalWerkdagen, dagVan, kiesPeriode, komendeWeken, maandRaster, plusDagen, standaardAantal, verzetNaarDag, volgendeMaand } from "/marketing/kalender.js";

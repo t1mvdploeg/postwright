@@ -1,6 +1,6 @@
 // Marketingstudio — Teksten: herbruikbare stukken voor de posttekst (openingszinnen, afsluiters,
 // hashtagsets, de vaste "over ons"-tekst). In de editor met één keuze in te voegen.
-import { bevestigDialoog, el, legeStaat, melding } from "/app.js";
+import { bevestigDialoog, el, legeStaat, melding } from "/ui.js";
 
 const SOORTEN = { opening: "Openingszinnen", afsluiter: "Afsluiters met actie", hashtags: "Hashtagsets", boilerplate: "Vaste teksten" };
 

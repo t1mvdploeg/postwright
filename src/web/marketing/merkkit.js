@@ -1,10 +1,9 @@
 // Marketingstudio — Merkkit: het merkboek in de tool. Kleuren met contrast, logo's (SVG en PNG),
-// iconen, motieven, de regels uit de kit en een generator voor de e-mailhandtekening. Alles komt
+// iconen, motieven en de regels uit de kit. Alles komt
 // uit src/web/marketing/merk/, byte-gelijk aan de gekozen kit (tests/marketing-merk.test.ts).
-import { el, melding } from "/app.js";
+import { el, melding } from "/ui.js";
 import { contrastenOp } from "/marketing/kleur.js";
 import { download } from "/marketing/render.js";
-import { handtekeningHtml } from "/marketing/handtekening.js";
 
 const MAP = "/marketing/merk";
 
@@ -83,27 +82,6 @@ export async function toon(container, ctx) {
     el("a", { class: "knop-link klein", href: `${MAP}/${pad}`, download: naamVan(pad), text: "SVG" }),
   ])));
 
-  // E-mailhandtekening
-  const velden = ["naam", "functie", "telefoon", "email"].map((id) => el("input", { type: id === "email" ? "email" : id === "telefoon" ? "tel" : "text", id: `ht-${id}`, maxlength: "120" }));
-  const [naam, functie, telefoon, email] = velden;
-  const voorbeeld = el("iframe", { class: "studio-handtekening", sandbox: "", title: "Voorbeeld van de e-mailhandtekening" });
-  const logoUrl = `${location.origin}${MAP}/${m.bestanden.eMailLogo}`;
-  const html = () => handtekeningHtml({ naam: naam.value, functie: functie.value, telefoon: telefoon.value, email: email.value, logoUrl });
-  const ververs = () => { voorbeeld.srcdoc = `<!doctype html><html><body style="margin:16px;background:#fff">${html()}</body></html>`; };
-  for (const v of velden) v.addEventListener("input", ververs);
-  ververs();
-  const kopieer = el("button", { type: "button", text: "Kopieer handtekening" });
-  kopieer.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([html()], { type: "text/html" }), "text/plain": new Blob([[naam.value, functie.value, telefoon.value, email.value, "mijntarieftool.nl"].filter(Boolean).join("\n")], { type: "text/plain" }) })]);
-      melding("Handtekening gekopieerd; plak hem in de instellingen van uw mailprogramma");
-    } catch { melding("Kopiëren lukte niet; gebruik Kopieer HTML", "fout"); }
-  });
-  const kopieerHtml = el("button", { type: "button", class: "secundair", text: "Kopieer HTML" });
-  kopieerHtml.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(html()); melding("HTML gekopieerd"); } catch { melding("Kopiëren lukte niet", "fout"); }
-  });
-
   container.replaceChildren(
     el("section", { class: "pagina-intro" }, [el("div", {}, [
       el("p", { class: "intro-label", text: `Merkversie ${m.versie}` }),
@@ -123,18 +101,6 @@ export async function toon(container, ctx) {
         "Alleen feiten die ook op de site staan, en elk getal met een bron.",
         "De route is een watermerk, nooit in een accentkleur.",
       ].map((t) => el("li", { text: t }))),
-    ]),
-    el("section", { class: "kaart" }, [
-      el("h2", { text: "E-mailhandtekening" }),
-      el("p", { class: "hulptekst", text: "Het logo staat online op deze site, zodat ook Gmail en Outlook op het web het tonen." }),
-      el("div", { class: "veldrij" }, [
-        el("div", { class: "veld" }, [el("label", { for: "ht-naam", text: "Naam" }), naam]),
-        el("div", { class: "veld" }, [el("label", { for: "ht-functie", text: "Functie" }), functie]),
-        el("div", { class: "veld" }, [el("label", { for: "ht-telefoon", text: "Telefoon" }), telefoon]),
-        el("div", { class: "veld" }, [el("label", { for: "ht-email", text: "E-mail" }), email]),
-      ]),
-      voorbeeld,
-      el("div", { class: "knoppenrij" }, [kopieer, kopieerHtml]),
     ]),
   );
 }

@@ -1,6 +1,6 @@
 // Marketingstudio — de invoervelden van een sjabloon (of diasoort) als formulier. Elk veld krijgt
 // een vast id (`veld-<id>`), zodat de merkcontrole er met één klik de focus op kan zetten.
-import { el } from "/app.js";
+import { el } from "/ui.js";
 import { nadrukOmSelectie } from "/marketing/sjablonen.js";
 
 /** Een teller "12 / 90" die rood wordt boven het maximum. */
