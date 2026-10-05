@@ -118,7 +118,7 @@ export async function show(container, ctx) {
                   }),
                 ]),
                 el("td", {
-                  text: `${m.width ?? "?"}×${m.height ?? "?"} px · ${(m.bytes / 1048576).toFixed(1).replace(".", ",")} MB`,
+                  text: `${m.width ?? "?"}×${m.height ?? "?"} px · ${(m.bytes / 1048576).toFixed(1)} MB`,
                 }),
                 el("td", {
                   text: m.used > 0 ? `${m.used} post${m.used === 1 ? "" : "s"}` : "Not used",

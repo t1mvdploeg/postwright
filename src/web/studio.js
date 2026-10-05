@@ -20,7 +20,7 @@ const NAV_GROUPS = [
     [
       ["facts", "Fact bank"],
       ["snippets", "Snippets"],
-      ["brandKit", "Brand kit"],
+      ["brand-kit", "Brand kit"],
     ],
   ],
   ["System", [["settings", "Settings"]]],
@@ -34,7 +34,7 @@ const SCREEN_ICON = {
   planning: "calendar",
   facts: "source",
   snippets: "document",
-  brandKit: "layers",
+  "brand-kit": "layers",
   settings: "settings",
 };
 const MODULES = {
@@ -44,7 +44,7 @@ const MODULES = {
   planning: () => import("/studio/planning.js"),
   facts: () => import("/studio/facts.js"),
   snippets: () => import("/studio/snippets.js"),
-  brandKit: () => import("/studio/brand-kit.js"),
+  "brand-kit": () => import("/studio/brand-kit.js"),
   settings: () => import("/studio/settings.js"),
 };
 

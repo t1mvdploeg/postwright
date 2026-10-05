@@ -26,20 +26,20 @@ import { ideaPanel, shortDay, longDay, suggestionsPanel, fillCampaigns } from "/
 
 const STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published", archived: "Archived" };
 const MONTHS = [
-  "january",
-  "february",
-  "march",
-  "april",
-  "may",
-  "june",
-  "july",
-  "august",
-  "september",
-  "october",
-  "november",
-  "december",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
-const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export async function show(container, ctx) {
   const begin = localToday();
@@ -503,7 +503,7 @@ export async function show(container, ctx) {
           `Week ${w.week}${w.year !== now.getFullYear() ? ` of ${w.year}` : ""}`,
           rows.sort((x, y) => x.sort.localeCompare(y.sort)).map((x) => x.tr),
           {
-            sub: `${shortDay(w.monday)} t/m ${shortDay(w.sunday)}`,
+            sub: `${shortDay(w.monday)} – ${shortDay(w.sunday)}`,
             below: filled ? null : emptyWeek(w),
           },
         ),
@@ -749,7 +749,7 @@ export async function show(container, ctx) {
       el("tr", {}, [
         el("td", {}, [el("b", { text: c.name }), c.goal ? el("span", { class: "table-subtext", text: c.goal }) : null]),
         el("td", { text: c.utmCampaign }),
-        el("td", { text: [c.from, c.to].filter(Boolean).join(" t/m ") || "–" }),
+        el("td", { text: [c.from, c.to].filter(Boolean).join(" – ") || "–" }),
         el("td", { text: String(posts.filter((p) => p.campaign === c.id).length) }),
         el("td", {}, [
           el("div", { class: "row-actions" }, [
@@ -827,7 +827,7 @@ export async function show(container, ctx) {
                 el(
                   "tr",
                   {},
-                  ["Campaign", "UTM-name", "Period", "Posts", ""].map((t) => el("th", { scope: "col", text: t })),
+                  ["Campaign", "UTM name", "Period", "Posts", ""].map((t) => el("th", { scope: "col", text: t })),
                 ),
               ]),
               el("tbody", {}, rows),
@@ -836,7 +836,7 @@ export async function show(container, ctx) {
         : el("p", { class: "help-text", text: "No campaigns yet." }),
       el("div", { class: "field-row" }, [
         el("div", { class: "field" }, [el("label", { for: "campaign-name", text: "Name" }), name]),
-        el("div", { class: "field" }, [el("label", { for: "campaign-utm", text: "UTM-campaign-name" }), utm]),
+        el("div", { class: "field" }, [el("label", { for: "campaign-utm", text: "UTM campaign name" }), utm]),
         el("div", { class: "field" }, [el("label", { for: "campaign-from", text: "From" }), from]),
         el("div", { class: "field" }, [el("label", { for: "campaign-to", text: "Up to and including" }), to]),
       ]),

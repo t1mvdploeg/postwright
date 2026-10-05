@@ -28,7 +28,7 @@
     { "name": "pale accent", "hex": "#FFD3C6", "usage": "Circles, accent emphasis and soft text on ink" },
     { "name": "deep accent", "hex": "#B02D17", "usage": "Action on hover" },
     { "name": "muted", "hex": "#7A5548", "usage": "Secondary text on paper" },
-    { "name": "stroke", "hex": "#EBD8CF", "usage": "Borders and hairlines" },
+    { "name": "line", "hex": "#EBD8CF", "usage": "Borders and hairlines" },
     { "name": "confirmed", "hex": "#2E7D32", "usage": "Status with text and icon" },
     { "name": "warning", "hex": "#8A4D00", "usage": "Status with text and icon" },
     { "name": "error", "hex": "#B3261E", "usage": "Status with text and icon" }

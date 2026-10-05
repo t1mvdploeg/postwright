@@ -144,15 +144,32 @@ describe("numbers", () => {
     expect(values("eight percent")).toEqual([]);
   });
 
-  it("does not read other notations as a number", () => {
-    // Comma decimals and dots as thousands separators are not English notation.
-    expect(values("€ 12,50 per hour")).toEqual([]);
-    expect(values("12,50 euro")).toEqual([]);
-    expect(values("8,33 %")).toEqual([]);
-    // A version number is not a claim.
-    expect(values("version 1.2.3")).toEqual([]);
+  it("reports other notations as unclear, so they need a fact too", () => {
+    // Comma decimals and dots as thousands separators are not English notation, but they are numbers.
+    expect(values("€ 12,50 per hour")).toEqual([["unclear", "12,50"]]);
+    expect(values("12,50 euro")).toEqual([["unclear", "12,50"]]);
+    expect(values("2,5% more")).toEqual([["unclear", "2,5"]]);
+    expect(values("8,33 %")).toEqual([["unclear", "8,33"]]);
+    expect(values("10.000 euro")).toEqual([["unclear", "10.000"]]);
     // Thousands that are not groups of three digits.
-    expect(values("code 1,23,456")).toEqual([]);
+    expect(values("code 1,23,456")).toEqual([["unclear", "1,23,456"]]);
+    // English notation next to it is still read normally.
+    expect(values("1,250 users and 12.5% growth, € 12,50 per seat")).toEqual([
+      ["unclear", "12,50"],
+      ["percent", 12.5],
+      ["number", 1250],
+    ]);
+    // A version number or a date is not a claim.
+    expect(values("version 1.2.3")).toEqual([]);
+    expect(values("on 01.10.2026")).toEqual([]);
+  });
+
+  it("needs a fact for a number in another notation", () => {
+    expect(uncoveredNumbers("Only € 12,50 per seat", []).map((g) => g.text)).toEqual(["12,50"]);
+    expect(uncoveredNumbers("Only € 12,50 per seat", [{ text: "Seat price € 12.50" }]).map((g) => g.text)).toEqual([
+      "12,50",
+    ]);
+    expect(uncoveredNumbers("Only € 12,50 per seat", [{ text: "Seat price 12,50" }])).toEqual([]);
   });
 
   it("compares by value, not by notation", () => {

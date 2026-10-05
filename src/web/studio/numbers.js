@@ -21,34 +21,49 @@ const AMOUNT = new RegExp(
   "gi",
 );
 const PERCENT = /(?<![\d.,])(\d+(?:\.\d+)?)\s?(?:%|percent\b)/gi;
+// A run of digits with separators. English notation ("1,250.75") is read normally; a version
+// or date ("1.2.3", "01.10.2026") is not a claim; everything else ("12,50", "10.000",
+// "1,23,456") is a number in some other notation and is reported as "unclear", so the
+// brand check fails closed instead of letting it through.
+const RUN = /(?<![\p{L}\p{N}.,])\d+(?:[.,]\d+)+(?![\p{L}\p{N}])/gu;
+const ENGLISH = /^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?$/;
+const DOTS = /^\d{1,3}(?:\.\d{3})+$/; // dots as thousands separators: "10.000"
+const NOT_A_CLAIM = /^\d+(?:\.\d+){2,}$/;
 const NUMBER = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![\p{L}\p{N}]|[.,]\d)/gu;
 
 /**
  * The numbers in a text, normalised: `{ kind, value, text }`. Amounts and percentages always;
  * bare numbers from two digits upwards or with decimals (a lone 1 or 4 is usually just a
- * numeral, not a claim). Years (1900–2100) without decimals do not count: "from 1 July
- * 2026" is a date, not a claim that needs a source.
+ * numeral, not a claim). A number in another notation ("€ 12,50", "10.000") is `kind: "unclear"`
+ * with its text as value, so it needs a fact too. Years (1900–2100) without decimals do not
+ * count: "from 1 July 2026" is a date, not a claim that needs a source.
  */
 export function getNumbers(text) {
   // Strip links first: a UTM link with a post id (p-3fa2c1d0-7731-4821-…) or a date in a
   // path is not a claim. Replacing them with spaces keeps the positions the same.
   const t = String(text ?? "").replace(/\b(?:https?:\/\/|www\.)[^\s<>"]+/gi, (l) => " ".repeat(l.length));
-  const off = [];
+  const out = [];
   const occupied = [];
   const free = (i, j) => !occupied.some(([a, b]) => i < b && a < j);
+  for (const m of t.matchAll(RUN)) {
+    if (!DOTS.test(m[0]) && (ENGLISH.test(m[0]) || NOT_A_CLAIM.test(m[0]))) continue;
+    out.push({ kind: "unclear", value: m[0], text: m[0] });
+    occupied.push([m.index, m.index + m[0].length]);
+  }
   for (const m of t.matchAll(AMOUNT)) {
+    if (!free(m.index, m.index + m[0].length)) continue;
     const integer = m[1] ?? m[3];
     const dec = m[2] ?? m[4];
     const value = toNumber(dec ? `${integer}.${dec}` : integer);
     if (value === null) continue;
-    off.push({ kind: "amount", value, text: m[0].trim() });
+    out.push({ kind: "amount", value, text: m[0].trim() });
     occupied.push([m.index, m.index + m[0].length]);
   }
   for (const m of t.matchAll(PERCENT)) {
     if (!free(m.index, m.index + m[0].length)) continue;
     const value = toNumber(m[1]);
     if (value === null) continue;
-    off.push({ kind: "percent", value, text: m[0].trim() });
+    out.push({ kind: "percent", value, text: m[0].trim() });
     occupied.push([m.index, m.index + m[0].length]);
   }
   for (const m of t.matchAll(NUMBER)) {
@@ -59,9 +74,9 @@ export function getNumbers(text) {
     const decimal = raw.includes(".");
     if (!decimal && value < 10) continue;
     if (!decimal && Number.isInteger(value) && value >= 1900 && value <= 2100) continue;
-    off.push({ kind: "number", value, text: raw });
+    out.push({ kind: "number", value, text: raw });
   }
-  return off;
+  return out;
 }
 
 /**

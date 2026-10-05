@@ -179,7 +179,7 @@ export function runCheck({
     if (!c) continue;
     if (c.ratio < c.threshold)
       add("error", "contrast", `Contrast of the text on ${ground} is ${c.ratio}:1; minimum ${c.threshold}:1`);
-    else add("ok", "contrast", `Contrast on ${ground}: ${String(c.ratio).replace(".", ",")}:1`);
+    else add("ok", "contrast", `Contrast on ${ground}: ${c.ratio}:1`);
   }
 
   // Caption per active channel, link and alt text.

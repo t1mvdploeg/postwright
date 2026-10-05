@@ -131,7 +131,7 @@ export async function show(container, ctx) {
             el("a", { href: "#library", text: "All posts" }),
             el("a", { href: "#facts", text: "Fact bank" }),
             el("a", { href: "#brand-kit", text: "Brand kit" }),
-            el("a", { href: "#planning", text: "Agenda-export" }),
+            el("a", { href: "#planning", text: "Calendar export" }),
           ]),
         ]),
         el("div", { class: "card" }, [
@@ -192,7 +192,7 @@ export async function show(container, ctx) {
             el("span", { text: `${o.media.count} image${o.media.count === 1 ? "" : "s"}` }),
             el("b", {
               class: mb > 100 ? "status-attention" : "status-good",
-              text: `${mb.toFixed(1).replace(".", ",")} MB`,
+              text: `${mb.toFixed(1)} MB`,
             }),
           ]),
           mb > 100 ? el("p", { class: "help-text", text: "Clear out old uploaded images under Settings." }) : null,

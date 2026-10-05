@@ -60,7 +60,7 @@ export async function show(container, ctx) {
           const c = contrastOn(m, g);
           return el("tr", {}, [
             el("td", { text: { light: "Light", ink: "Ink", accent: "Accent" }[g] ?? g }),
-            el("td", { text: `${String(c.ratio).replace(".", ",")}:1 ${c.ratio >= c.threshold ? "✓" : "✗"}` }),
+            el("td", { text: `${c.ratio}:1 ${c.ratio >= c.threshold ? "✓" : "✗"}` }),
           ]);
         }),
       ),
