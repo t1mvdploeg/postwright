@@ -35,7 +35,7 @@ function recept(extra: Record<string, unknown> = {}) {
     soort: "beeld",
     sjabloon: "stelling",
     formaten: ["li-vierkant", "li-staand"],
-    inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een korte tekst bij de kop." },
+    inhoud: { ondergrond: "accent", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een korte tekst bij de kop." },
     merkVersie: "test-1.0",
     controle: GROEN(),
     ...extra,

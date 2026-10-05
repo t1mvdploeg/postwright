@@ -40,17 +40,17 @@ export function icsTijd(moment) {
 
 /**
  * @param {Array<{ id: string, titel: string, gepland: string, status?: string, posttekst?: Record<string, string>, kop?: string }>} posts
- * @param {{ basisUrl: string, nu?: Date }} opties
+ * @param {{ basisUrl: string, merknaam: string, nu?: Date }} opties
  * @returns {string}
  */
-export function maakIcs(posts, { basisUrl, nu = new Date() }) {
+export function maakIcs(posts, { basisUrl, merknaam, nu = new Date() }) {
   const regels = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Mijntarieftool//Marketingstudio//NL",
+    "PRODID:-//Postwright//Postwright//NL",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:Marketing Mijntarieftool",
+    `X-WR-CALNAME:${icsTekst(`Marketing ${merknaam}`)}`,
   ];
   const stempel = icsTijd(nu);
   for (const p of posts) {

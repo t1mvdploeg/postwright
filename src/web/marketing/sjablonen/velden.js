@@ -1,23 +1,23 @@
 // Marketingstudio — gedeelde velddefinities voor de sjablonen, zodat "ondergrond" of "voetregel"
 // overal hetzelfde heten, dezelfde opties hebben en dezelfde hulptekst.
 
-/** De drie ondergronden van de kit ("The Three-Grounds Rule"). */
-export function ondergrond(standaard = "licht", toegestaan = ["licht", "inkt", "blauw"]) {
-  const namen = { licht: "Licht", inkt: "Dossierinkt", blauw: "Actieblauw" };
+/** De drie ondergronden van het merk: licht, inkt en accent. De kleuren staan in `merk.gronden`. */
+export function ondergrond(standaard = "licht", toegestaan = ["licht", "inkt", "accent"]) {
+  const namen = { licht: "Licht", inkt: "Inkt", accent: "Accent" };
   return {
     id: "ondergrond", label: "Ondergrond", soort: "keuze", standaard,
     opties: toegestaan.map((w) => ({ waarde: w, tekst: namen[w] })),
   };
 }
 
-/** Het logo dat bij een ondergrond hoort: op inkt en blauw de witte versie (regel uit de kit). */
+/** Het logo dat bij een ondergrond hoort: op inkt en accent de lichte versie. */
 export function logoStand(grond) {
-  return grond === "inkt" ? "op-inkt" : grond === "blauw" ? "op-blauw" : "standaard";
+  return grond === "inkt" ? "op-inkt" : grond === "accent" ? "op-accent" : "standaard";
 }
 
 /** De klasse van een ondergrond op `.beeld`; licht is de standaard en heeft geen klasse. */
 export function grondKlasse(grond) {
-  return grond === "inkt" ? "grond-inkt" : grond === "blauw" ? "grond-blauw" : "";
+  return grond === "inkt" ? "grond-inkt" : grond === "accent" ? "grond-accent" : "";
 }
 
 export function kop(standaard, max = 80, hulp = "Zet precies één frase tussen *sterretjes*; die krijgt de accentkleur.") {

@@ -42,9 +42,9 @@ describe("tijd", () => {
 
 describe("recepten", () => {
   it("maakt een nieuw recept met de standaardinhoud en de formaten die aan staan", () => {
-    const r = nieuwRecept("stelling", { formatenAan: ["li-vierkant", "li-staand", "li-link"], merkVersie: "mixed-1.0" });
+    const r = nieuwRecept("stelling", { formatenAan: ["li-vierkant", "li-staand", "li-link"], merkVersie: "postwright-1.0" });
     expect(r.formaten).toEqual(["li-vierkant", "li-staand"]);
-    expect(r.inhoud.ondergrond).toBe("blauw");
+    expect(r.inhoud.ondergrond).toBe("accent");
     expect(r.titel).toBe("Genoeg gezien. Nu bent u aan zet.");
     expect(nieuwRecept("linkvoorbeeld", { formatenAan: [] }).formaten).toEqual(["li-link"]);
     const c = nieuwRecept("carrousel", { formatenAan: ["li-carrousel"] });
@@ -55,15 +55,15 @@ describe("recepten", () => {
 
   it("stuurt alleen velden die het sjabloon kent, en dat komt door het serverschema", () => {
     const s = sjabloon("stelling")!;
-    const r = { ...nieuwRecept("stelling", { formatenAan: ["li-vierkant"], merkVersie: "mixed-1.0" }), inhoud: { kop: "Een *kop*", vreemd: "weg" }, posttekst: { linkedin: "Tekst", x: "  " } };
+    const r = { ...nieuwRecept("stelling", { formatenAan: ["li-vierkant"], merkVersie: "postwright-1.0" }), inhoud: { kop: "Een *kop*", vreemd: "weg" }, posttekst: { linkedin: "Tekst", x: "  " } };
     const invoer = naarInvoer(r, s, { fouten: 0, letOp: 1, op: "2026-10-01T10:00:00.000Z" });
     expect(invoer.inhoud).not.toHaveProperty("vreemd");
     expect(invoer.inhoud.kop).toBe("Een *kop*");
-    expect(invoer.inhoud.ondergrond).toBe("blauw");
+    expect(invoer.inhoud.ondergrond).toBe("accent");
     expect(invoer.posttekst).toEqual({ linkedin: "Tekst" });
     expect(PostInvoerSchema.safeParse(invoer).success).toBe(true);
     const c = sjabloon("carrousel")!;
-    const ci = naarInvoer(nieuwRecept("carrousel", { formatenAan: ["li-carrousel"], merkVersie: "mixed-1.0" }), c, null);
+    const ci = naarInvoer(nieuwRecept("carrousel", { formatenAan: ["li-carrousel"], merkVersie: "postwright-1.0" }), c, null);
     expect(ci.dias).toHaveLength(6);
     expect(PostInvoerSchema.safeParse(ci).success).toBe(true);
   });
@@ -93,15 +93,15 @@ describe("ideeNaarRecept", () => {
 });
 
 describe("zetOm", () => {
-  const stelling = { ...nieuwRecept("stelling"), titel: "Mijn post", inhoud: { ...nieuwRecept("stelling").inhoud, ondergrond: "blauw", kop: "Mijn *kop.*", tekst: "Mijn tekst." }, posttekst: { linkedin: "Hallo" }, feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://mijntarieftool.nl/" };
+  const stelling = { ...nieuwRecept("stelling"), titel: "Mijn post", inhoud: { ...nieuwRecept("stelling").inhoud, ondergrond: "accent", kop: "Mijn *kop.*", tekst: "Mijn tekst." }, posttekst: { linkedin: "Hallo" }, feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://postwright.example/" };
   it("neemt velden met dezelfde naam over; keuzes alleen als het daar een optie is", () => {
     const r = zetOm(stelling, "merkverhaal");
-    expect(r).toMatchObject({ sjabloon: "merkverhaal", titel: "Mijn post (Merkverhaal)", feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://mijntarieftool.nl/" });
+    expect(r).toMatchObject({ sjabloon: "merkverhaal", titel: "Mijn post (Merkverhaal)", feiten: ["f-1"], campagne: "c-1", altTekst: "Alt", link: "https://postwright.example/" });
     expect(r.inhoud.kop).toBe("Mijn *kop.*");
     expect(r.inhoud.tekst).toBe("Mijn tekst.");
     expect(r.inhoud).not.toHaveProperty("ondergrond");
     expect(zetOm({ ...stelling, inhoud: { ...stelling.inhoud, ondergrond: "licht" } }, "carrousel").dias[0].inhoud.ondergrond).toBe("inkt");
-    expect(zetOm(stelling, "carrousel").dias[0].inhoud).toMatchObject({ ondergrond: "blauw", kop: "Mijn *kop.*", tekst: "Mijn tekst." });
+    expect(zetOm(stelling, "carrousel").dias[0].inhoud).toMatchObject({ ondergrond: "accent", kop: "Mijn *kop.*", tekst: "Mijn tekst." });
   });
   it("haalt uit een carrousel de omslag en kopieert de posttekst los van het origineel", () => {
     const c = { ...nieuwRecept("carrousel"), titel: "Reeks" };

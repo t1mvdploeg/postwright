@@ -11,7 +11,7 @@ export default {
   formaten: ["li-profiel"],
   voorbeelddata: false,
   velden: [
-    kop("Mijntarieftool*.*", 30),
+    kop("Postwright*.*", 30),
     regel("adres", "Regel eronder", "Gelijkwaardige beloning, helder berekend.", 60),
   ],
   html(v, c) {
@@ -32,6 +32,6 @@ export default {
 .merkregel { display: flex; align-items: center; gap: 3.2rem; }
 .teken { height: 11rem; width: auto; flex-shrink: 0; }
 .kop { font-size: 8rem; font-weight: 630; line-height: 1; letter-spacing: -.035em; white-space: nowrap; }
-.adres { margin-top: 2rem; font-size: 2rem; font-weight: 500; color: var(--bleek-blauw); }
+.adres { margin-top: 2rem; font-size: 2rem; font-weight: 500; color: var(--accent-bleek); }
 `,
 };

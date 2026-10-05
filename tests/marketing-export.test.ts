@@ -92,16 +92,16 @@ describe("ics", () => {
 
   it("maakt per geplande post een afspraak met vast UID, herinnering en link, met CRLF", () => {
     const ics = maakIcs([
-      { id: "p-1", titel: "Stelling, blauw", gepland: "2026-10-06T08:30:00+02:00", posttekst: { linkedin: "Genoeg gezien." } },
+      { id: "p-1", titel: "Stelling, accent", gepland: "2026-10-06T08:30:00+02:00", posttekst: { linkedin: "Genoeg gezien." } },
       { id: "p-2", titel: "Zonder datum", gepland: null },
-    ], { basisUrl: "https://postwright.example", nu: new Date("2026-10-01T00:00:00Z") });
+    ], { basisUrl: "https://postwright.example", merknaam: "Postwright", nu: new Date("2026-10-01T00:00:00Z") });
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
     expect(ics).toContain("UID:p-1@postwright.local");
     expect(ics).toContain("DTSTART:20261006T063000Z");
     expect(ics).toContain("DTEND:20261006T064500Z");
-    expect(ics).toContain("SUMMARY:Post: Stelling\\, blauw");
+    expect(ics).toContain("SUMMARY:Post: Stelling\\, accent");
     expect(ics).toContain("TRIGGER:-PT15M");
     expect(ics.replace(/\r\n /g, "")).toContain("URL:https://postwright.example/#maken/p-1");
     expect(ics.split("\r\n").every((r) => !r.includes("\n"))).toBe(true);
@@ -111,7 +111,7 @@ describe("ics", () => {
     const ics = maakIcs([
       { id: "p-1", titel: "Gepland", gepland: "2026-10-06T08:30:00+02:00", status: "gepland" },
       { id: "p-2", titel: "Terug naar concept", gepland: "2026-10-07T08:30:00+02:00", status: "concept" },
-    ], { basisUrl: "https://postwright.example" });
+    ], { basisUrl: "https://postwright.example", merknaam: "Postwright" });
     const [gepland, ingetrokken] = ics.split("BEGIN:VEVENT").slice(1);
     expect(gepland).toContain("SEQUENCE:0");
     expect(gepland).not.toContain("STATUS:CANCELLED");
@@ -122,8 +122,9 @@ describe("ics", () => {
   });
 
   it("geeft een geldige lege agenda zonder afspraken", () => {
-    const ics = maakIcs([], { basisUrl: "https://postwright.example" });
+    const ics = maakIcs([], { basisUrl: "https://postwright.example", merknaam: "Ander Merk" });
     expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).toContain("X-WR-CALNAME:Marketing Ander Merk");
     expect(ics).not.toContain("VEVENT");
   });
 });

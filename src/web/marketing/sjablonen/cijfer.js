@@ -26,7 +26,7 @@ export default {
     ${c.leeg("eenheid") ? "" : `<p class="eenheid" data-veld="eenheid">${c.e("eenheid")}</p>`}
     <h1 class="kop klein" data-veld="kop">${c.t("kop")}</h1>
   </main>
-  <footer class="voet" data-veld="bron"><span>${c.e("bron")}</span><strong>mijntarieftool.nl</strong></footer>
+  <footer class="voet" data-veld="bron"><span>${c.e("bron")}</span><strong>${c.merkUrl}</strong></footer>
 </div>`;
   },
   css: `

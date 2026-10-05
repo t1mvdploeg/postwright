@@ -25,6 +25,6 @@ export const FORMATEN: Formaat[];
 export function formaat(sleutel: string): Formaat;
 export function vormVan(f: Pick<Formaat, "breedte" | "hoogte">): Vorm;
 export function slugVan(tekst: unknown, max?: number): string;
-export function bestandsnaam(o: { campagne?: string; post?: string; formaat: string; dia?: number | null; extensie?: string }): string;
+export function bestandsnaam(o: { merk?: string; campagne?: string; post?: string; formaat: string; dia?: number | null; extensie?: string }): string;
 export function overlapt(a: Rechthoek, b: Rechthoek, tolerantie?: number): boolean;
 export function kanalenVan(post: { formaten?: string[]; posttekst?: Record<string, string> }): string[];

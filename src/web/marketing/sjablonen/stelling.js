@@ -1,5 +1,4 @@
-// Stelling: één uitspraak met een gekleurde frase, op licht, inkt of blauw.
-// Bron: stelling-{licht,inkt,blauw}.html in de Mixed-kit; de ondergrond is hier een veld.
+// Stelling: één uitspraak met een gekleurde frase, op licht, inkt of accent; de ondergrond is een veld.
 import { KOPGROOTTE, grondKlasse, kop, kopKlasse, logoStand, ondergrond, regel, tekst } from "./velden.js";
 
 export default {
@@ -10,12 +9,12 @@ export default {
   formaten: ["li-vierkant", "li-staand", "ig-vierkant", "ig-staand", "story", "breed"],
   voorbeelddata: false,
   velden: [
-    ondergrond("blauw"),
+    ondergrond("accent"),
     kop("Genoeg gezien. *Nu bent u aan zet.*", 90),
     KOPGROOTTE,
     tekst("Een uitvraag vol afspraken. Een berekening die u kunt volgen.", 160),
     regel("voetLinks", "Voetregel links", "Probeer de tool op"),
-    regel("voetRechts", "Voetregel rechts", "mijntarieftool.nl", 40),
+    regel("voetRechts", "Voetregel rechts", "", 40, { hulp: "Leeg: de website van het merk." }),
     { id: "motief", label: "Routemotief", soort: "keuze", standaard: "aan", opties: [{ waarde: "aan", tekst: "Tonen" }, { waarde: "uit", tekst: "Verbergen" }] },
   ],
   html(v, c) {
@@ -26,7 +25,7 @@ export default {
     <h1 class="${kopKlasse(v.kopgrootte, v.kop)}" data-veld="kop">${c.t("kop")}</h1>
     ${c.leeg("tekst") ? "" : `<p class="tekst" data-veld="tekst">${c.t("tekst")}</p>`}
   </main>
-  <footer class="voet" data-veld="voet"><span>${c.e("voetLinks")}</span><strong>${c.e("voetRechts")}</strong></footer>
+  <footer class="voet" data-veld="voet"><span>${c.e("voetLinks")}</span><strong>${c.voet("voetRechts")}</strong></footer>
 </div>`;
   },
   css: `

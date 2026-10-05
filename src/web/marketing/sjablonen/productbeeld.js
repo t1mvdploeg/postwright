@@ -34,7 +34,7 @@ figure { flex: 1; display: grid; place-items: center; margin: 3rem 0 5rem; min-h
 .schermbeeld { display: block; max-width: 86rem; max-height: calc(var(--hoogte) - 52rem); width: auto; height: auto; border-radius: 1rem; }
 .schermbeeld.leeg { display: grid; place-items: center; width: 80rem; height: 45rem; border: .3rem dashed var(--lijn); color: var(--gedempt); font-size: 3rem; }
 .tekst { margin-top: 2.4rem; }
-.grond-inkt .voorbeeld, .grond-blauw .voorbeeld { color: var(--zacht); }
+.grond-inkt .voorbeeld, .grond-accent .voorbeeld { color: var(--zacht); }
 .vorm-liggend .beeld { padding: 6rem 7rem; display: grid; grid-template-columns: 1fr 1.25fr; grid-template-rows: auto 1fr auto; column-gap: 6rem; }
 .vorm-liggend .kopregel { grid-column: 1 / -1; }
 .vorm-liggend figure { grid-column: 2; grid-row: 2 / 4; margin: 0; }

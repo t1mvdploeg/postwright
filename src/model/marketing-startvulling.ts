@@ -44,7 +44,7 @@ export const STARTPOSTS: Startpost[] = [
     titel: "Example: no account needed",
     sjabloon: "stelling",
     inhoud: {
-      ondergrond: "blauw",
+      ondergrond: "accent",
       kop: "Your posts. *Your computer.*",
       tekst: "Postwright runs locally. There is no account.",
       voetLinks: "Try it yourself",

@@ -1,5 +1,5 @@
 // Typedeclaratie naast merkcontrole.js (platte browser-ESM, geen build-stap).
-import type { Sjabloon, Dia } from "./sjablonen.js";
+import type { Sjabloon, Dia, Merk } from "./sjablonen.js";
 import type { Bevinding } from "./posttekst.js";
 
 export interface ControlePost {
@@ -27,6 +27,7 @@ export function controleer(invoer: {
   feiten?: ControleFeit[] | null;
   vandaag: string;
   merkVersie?: string | null;
+  merk?: Pick<Merk, "gronden"> | null;
   overloop?: Overloop[];
 }): { bevindingen: Bevinding[]; fouten: number; letOp: number };
 export function titelUit(post: ControlePost, s: Sjabloon): string;
