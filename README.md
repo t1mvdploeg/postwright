@@ -35,7 +35,7 @@ Open `http://127.0.0.1:4173` and choose **Add sample content** on the Overview t
 ## What it does
 
 - **Templates.** Nine templates: statement, question and answer, steps, statistic, product image, carousel, link preview, LinkedIn profile banner and company cover. Each one comes in the formats it suits, ten in all, from a LinkedIn square to an Instagram story.
-- **Brand check.** Text that runs out of its box, contrast below WCAG, banned words, too many hashtags, a missing alt text, and any number without an active fact behind it. Errors block scheduling; the rest are points of attention.
+- **Brand check.** Text that runs out of its box, contrast below WCAG, banned words, too many hashtags, a missing alt text, and any number without an active fact behind it. The editor blocks scheduling while the check has errors; the rest are points of attention.
 - **Facts and snippets.** A fact bank with a source and optional end date per claim, and a snippet bank for openers, closers and hashtags.
 - **Planning.** A week list and a month view with ideas, scheduled posts and recurring moments, campaigns with UTM tags, and a calendar export (`.ics`).
 - **Export.** PNG or JPEG per format, a ZIP with every format and the captions, and a PDF for a LinkedIn carousel.
@@ -50,7 +50,7 @@ To use Claude, start with your key in the environment:
 ANTHROPIC_API_KEY=sk-ant-... npm start
 ```
 
-The key is read from the environment only, and never written to a file, sent to the browser or logged. The default model is `claude-sonnet-5-5` (set `POSTWRIGHT_MODEL` to change it), and a monthly spending cap in Settings, $10 by default, stops live calls when it is reached. Every call is counted in `data/ai-usage.jsonl`.
+The key is read from the environment only, and never written to a file, sent to the browser or logged. The default model is `claude-sonnet-5-5` (set `POSTWRIGHT_MODEL` to change it), and a monthly spending cap in Settings ($10 by default, checked before each call, per UTC month) stops live calls once reached. Every call is counted in `data/ai-usage.jsonl`.
 
 ## Use your own brand
 
@@ -60,7 +60,7 @@ The built-in brand is Postwright's own, in `src/web/brand/`. To use yours, put a
 
 The browser does the drawing. A template is a small module that turns fields into HTML and CSS. The preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas through an SVG `foreignObject`, so preview equals export. The server is a small Node http server that stores posts, lists and settings as JSON files and talks to the Claude API. It listens on `127.0.0.1` only. There is no build step: plain ES modules in the browser and TypeScript on the server through `tsx`.
 
-`npm test` runs 382 tests. 259 cover the routes, storage errors, the brand check, templates, the calendar and the AI paths with a fake client; the other 123 are a leak check, one per tracked file, that fails on a local path, an e-mail address or an API key.
+`npm test` runs 388 tests, among them a leak check on every tracked text file that fails on a local path, an e-mail address or an API key.
 
 ## What it does not do
 
