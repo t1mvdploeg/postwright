@@ -6,12 +6,19 @@ import { join } from "node:path";
 import { createApp } from "../../src/server/app.js";
 import { startServer } from "../../src/server/http.js";
 import { prepareData } from "../../src/server/projects.js";
+import type { BrandClient } from "../../src/server/ai/brand.js";
 import type { AiProvider } from "../../src/server/ai/provider.js";
 
-export async function startStudio(options: { provider?: AiProvider } = {}) {
+export async function startStudio(
+  options: { provider?: AiProvider; brand?: { client: BrandClient; model: string } | null } = {},
+) {
   const dataDir = mkdtempSync(join(tmpdir(), "pw-studio-"));
   await prepareData(dataDir);
-  const s = await startServer({ dataDir, port: 0, ...createApp({ dataDir, provider: options.provider }) });
+  const s = await startServer({
+    dataDir,
+    port: 0,
+    ...createApp({ dataDir, provider: options.provider, brand: options.brand ?? null }),
+  });
   return {
     dataDir,
     /** The folder of the project `postwright`, where the studio data and the brand live. */
