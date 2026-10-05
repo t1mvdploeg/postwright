@@ -19,13 +19,13 @@ function mediaIds(post) {
 
 /** The caption per channel as a readable text file, for the ZIP. */
 export function captionFile(post) {
-  const share = Object.entries(post.caption ?? {})
+  const sections = Object.entries(post.caption ?? {})
     .filter(([, t]) => t?.trim())
     .map(([k, t]) => `== ${CHANNELS[k] ?? k} ==\n${t.trim()}\n`);
   if (post.altText?.trim())
-    share.push(`== Alt text ==
+    sections.push(`== Alt text ==
 ${post.altText.trim()}\n`);
-  return share.join("\n") || "(No caption yet.)\n";
+  return sections.join("\n") || "(No caption yet.)\n";
 }
 
 /**
@@ -37,7 +37,7 @@ export async function allImages(post, s, brand, progress = () => {}) {
   const tasks = post.formats.flatMap((f) =>
     Array.from({ length: imageCount(s, post.slides ?? []) }, (_, slide) => ({ f, slide })),
   );
-  const off = [];
+  const out = [];
   for (const [i, t] of tasks.entries()) {
     progress(i + 1, tasks.length);
     const image = buildImage({
@@ -49,9 +49,9 @@ export async function allImages(post, s, brand, progress = () => {}) {
       brand,
       media,
     });
-    off.push({ ...t, image });
+    out.push({ ...t, image });
   }
-  return off;
+  return out;
 }
 
 /**

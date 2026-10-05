@@ -22,7 +22,7 @@ export async function show(container, ctx) {
   const usable = new Set(factsResponse.facts.filter((f) => factUsable(f, today)).map((f) => f.id));
   const withProblem = (p) => p.facts.some((id) => !usable.has(id));
 
-  const beginFilter = ctx.share[0] ?? "active";
+  const beginFilter = ctx.parts[0] ?? "active";
   const status = el(
     "select",
     { id: "filter-status" },

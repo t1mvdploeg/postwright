@@ -304,7 +304,7 @@ describe("brand-check", () => {
     const expired = runCheck({ post, template: statement, settings, facts: [fact], today: "2027-01-01" });
     expect(codes(expired)).toContain("fact-unusable");
     expect(codes(runCheck({ post, template: statement, settings, facts: [], today: "2026-10-01" }))).toContain(
-      "fact-remove",
+      "fact-missing",
     );
     // If the fact bank could not be loaded, the numbers check has not been done.
     // That is an error (the check fails closed), not a silent skip that opens the gate

@@ -299,7 +299,7 @@ describe("carousel", () => {
       { kind: "cover", content: {} },
       { kind: "step", content: { illustration: "none" } },
       { kind: "step", content: { illustration: "checklist" } },
-      { kind: "slot", content: {} },
+      { kind: "closing", content: {} },
     ];
     const second = buildImage({ template: "carousel", slides, slide: 2, format: "li-carousel", brand });
     expect(second.html).toContain('aria-label="Step 2 of 2"');

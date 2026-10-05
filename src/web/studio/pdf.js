@@ -14,8 +14,8 @@ const enc = new TextEncoder();
 function pdfText(t) {
   if (/^[\x20-\x7e]*$/.test(t)) return `(${t.replace(/[\\()]/g, "\\$&")})`;
   let hex = "FEFF";
-  for (const render of t) {
-    const code = render.codePointAt(0);
+  for (const char of t) {
+    const code = char.codePointAt(0);
     if (code > 0xffff) {
       const v = code - 0x10000;
       hex += ((0xd800 + (v >> 10)).toString(16) + (0xdc00 + (v & 0x3ff)).toString(16)).toUpperCase();
@@ -31,12 +31,12 @@ function pdfText(t) {
  */
 export function createPdf(pages, { title = "" } = {}) {
   if (!pages.length) throw new Error("A PDF needs at least one page");
-  const share = [];
+  const chunks = [];
   const offsets = [];
   let length = 0;
   const write = (d) => {
     const b = typeof d === "string" ? enc.encode(d) : d;
-    share.push(b);
+    chunks.push(b);
     length += b.length;
   };
   const object = (nr, content) => {
@@ -77,11 +77,11 @@ export function createPdf(pages, { title = "" } = {}) {
   for (let nr = 1; nr < count; nr++) write(`${String(offsets[nr]).padStart(10, "0")} 00000 n \n`);
   write(`trailer\n<< /Size ${count} /Root 1 0 R /Info 3 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
 
-  const off = new Uint8Array(length);
+  const out = new Uint8Array(length);
   let p = 0;
-  for (const d of share) {
-    off.set(d, p);
+  for (const d of chunks) {
+    out.set(d, p);
     p += d.length;
   }
-  return off;
+  return out;
 }

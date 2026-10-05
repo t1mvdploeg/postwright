@@ -87,7 +87,7 @@ export interface PromptBrand {
 }
 
 /** The tone is the same for every brand: the brand (`brand.json`) has no tone rules. */
-export const SHOW_LINE =
+export const TONE_LINE =
   "Tone: plain and calm, no exclamation marks, no superlatives and no promises such as guaranteed or flawless. Shorter is better.";
 
 /**
@@ -103,7 +103,7 @@ export function writingInstruction(brand: PromptBrand): string {
   return (
     `You write social media copy for ${brand.brandName}. You write for LinkedIn and similar channels, for the audience the facts describe. ` +
     "Write in English unless the facts are in another language.\n" +
-    `${SHOW_LINE}\n` +
+    `${TONE_LINE}\n` +
     bannedLine(brand.bannedWords) +
     "Facts: use only the facts provided. Do not state any number, amount, percentage, customer name or result that does not " +
     "appear verbatim in one of those facts. If no fact is provided, write without numbers. List the ids of the facts you use in " +

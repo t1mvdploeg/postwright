@@ -572,14 +572,14 @@ export async function show(container, ctx) {
             el("span", { class: "studio-moment", title: m.sentence, text: m.title }),
           ),
           ...(ideasOn.get(date) ?? []).map((i) => {
-            const resolve = used(i);
+            const alreadyUsed = used(i);
             const button = el("button", {
               type: "button",
-              class: `studio-chip studio-idea${resolve ? " used" : ""}`,
+              class: `studio-chip studio-idea${alreadyUsed ? " used" : ""}`,
               "data-focus": `idea-${i.id}`,
               title: i.title,
               text: `Idea: ${i.title}`,
-              ...(resolve ? { "aria-label": `Idea: ${i.title} (post made)` } : {}),
+              ...(alreadyUsed ? { "aria-label": `Idea: ${i.title} (post made)` } : {}),
             });
             button.addEventListener("click", () => panel.open(i, button));
             button.draggable = true;

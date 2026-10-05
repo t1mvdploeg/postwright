@@ -14,7 +14,7 @@ afterEach(async () => {
 async function start() {
   const s = await startStudio();
   studios.push(s);
-  const file = (...share: string[]) => join(s.dataDir, ...share);
+  const file = (...parts: string[]) => join(s.dataDir, ...parts);
   const set = (name: string, content: string) => {
     mkdirSync(join(file(name), ".."), { recursive: true });
     writeFileSync(file(name), content);

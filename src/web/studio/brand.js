@@ -46,7 +46,7 @@ export function loadBrand() {
       ),
     );
     const family = m.font.family.replace(/["\\]/g, "");
-    const letters = await Promise.all(
+    const fontFaces = await Promise.all(
       m.font.files.map((path) => {
         const ext = path.split(".").pop().toLowerCase();
         return getDataUri(`${BRAND_FOLDER}/${path}`, FONT_MIME[ext] ?? "application/octet-stream").then(
@@ -55,7 +55,7 @@ export function loadBrand() {
         );
       }),
     );
-    return { ...m, logos, fontCss: letters.join("\n") };
+    return { ...m, logos, fontCss: fontFaces.join("\n") };
   })();
   brandPromise.catch(() => {
     brandPromise = null;
@@ -69,7 +69,7 @@ export function loadBrand() {
  * the largest format anyway.
  */
 export async function loadMedia(ids, maxSide = 3200) {
-  const off = {};
+  const out = {};
   await Promise.all(
     [...new Set(ids)]
       .filter((id) => /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id))
@@ -99,9 +99,9 @@ export async function loadMedia(ids, maxSide = 3200) {
         const source = await mediaCache.get(id);
         // Do not remember a failed load: otherwise the image stays empty in preview and export
         // until a reload, without a notice. Next time just try again.
-        if (source) off[id] = source;
+        if (source) out[id] = source;
         else mediaCache.delete(id);
       }),
   );
-  return off;
+  return out;
 }

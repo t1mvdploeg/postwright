@@ -326,12 +326,12 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
   function close() {
     element.hidden = true;
     const same = openerKey ? document.querySelector(`[data-focus="${CSS.escape(openerKey)}"]`) : null;
-    const goal = opener?.isConnected ? opener : (same ?? fallback());
+    const focusTarget = opener?.isConnected ? opener : (same ?? fallback());
     idea = null;
     begin = null;
     opener = null;
     openerKey = null;
-    goal?.focus();
+    focusTarget?.focus();
   }
 
   saveButton.addEventListener("click", () =>

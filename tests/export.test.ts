@@ -24,10 +24,10 @@ describe("zip", () => {
       ],
       new Date(2026, 8, 24, 13, 30, 10),
     );
-    const off = unzipSync(zip);
-    expect(Object.keys(off)).toEqual(["postwright_statement_li-square_1200x1200.png", "caption café.txt"]);
-    expect([...off["postwright_statement_li-square_1200x1200.png"]]).toEqual([...png]);
-    expect(strFromU8(off["caption café.txt"])).toBe("Seen enough. Your turn has come.");
+    const files = unzipSync(zip);
+    expect(Object.keys(files)).toEqual(["postwright_statement_li-square_1200x1200.png", "caption café.txt"]);
+    expect([...files["postwright_statement_li-square_1200x1200.png"]]).toEqual([...png]);
+    expect(strFromU8(files["caption café.txt"])).toBe("Seen enough. Your turn has come.");
   });
 
   it("makes a valid empty ZIP", () => {

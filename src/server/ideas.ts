@@ -4,7 +4,7 @@
 // instruction is a request, not a boundary.
 import { z } from "zod";
 import { CAMPAIGN_ID, CHANNELS } from "./schema.js";
-import { SHOW_LINE, bannedLine, type PromptBrand } from "./writing-help.js";
+import { TONE_LINE, bannedLine, type PromptBrand } from "./writing-help.js";
 import type { ResultEntry } from "./results.js";
 import { uncoveredNumbers } from "../web/studio/numbers.js";
 // Month 13 or day 0 gives an invalid Date in JavaScript; 2026-02-30 silently rolls over
@@ -76,7 +76,7 @@ export function ideasInstruction(brand: PromptBrand): string {
     "at most 90 characters, with exactly one phrase between *asterisks*); `facts` (the ids of the facts the idea uses); `moment` (the " +
     "`key` of a moment from `moments` if the idea builds on it, otherwise an empty string).\n" +
     "Moments are dates that mean something to the audience. Build on them around that date.\n" +
-    `${SHOW_LINE}\n` +
+    `${TONE_LINE}\n` +
     bannedLine(brand.bannedWords) +
     "Facts: use only the facts provided. Do not state any number, amount, percentage, date, customer name or result that does not " +
     "appear verbatim in a fact or moment provided. Without a fitting fact, write without numbers.\n" +
@@ -92,13 +92,13 @@ ${JSON.stringify(rest, null, 1)}`;
 
 /** Monday to Friday within [from, to], as dates. */
 export function workdays(from: string, to: string): string[] {
-  const off: string[] = [];
+  const workdays: string[] = [];
   const d = new Date(`${from}T12:00:00Z`);
   for (let day = from; day <= to; d.setUTCDate(d.getUTCDate() + 1), day = d.toISOString().slice(0, 10)) {
     const w = d.getUTCDay();
-    if (w !== 0 && w !== 6) off.push(day);
+    if (w !== 0 && w !== 6) workdays.push(day);
   }
-  return off;
+  return workdays;
 }
 
 /**
@@ -115,10 +115,10 @@ export function tidyIdeas(v: IdeasSuggestion, o: IdeasPrompt): IdeaSuggestion[] 
     .filter((i) => realDate(i.date) && i.date >= o.from && i.date <= o.to && i.title.trim())
     .slice(0, o.count)
     .map((i) => {
-      const custom = [...new Set(i.facts)].filter((id) => facts.has(id)).slice(0, 10);
+      const factIds = [...new Set(i.facts)].filter((id) => facts.has(id)).slice(0, 10);
       const moment = moments.has(i.moment) ? i.moment : null;
       const sources = [
-        ...custom.map((id) => ({ text: facts.get(id)!.text })),
+        ...factIds.map((id) => ({ text: facts.get(id)!.text })),
         ...(moment ? [{ text: moments.get(moment)!.sentence }] : []),
       ];
       const title = i.title.trim().slice(0, 120);
@@ -130,7 +130,7 @@ export function tidyIdeas(v: IdeasSuggestion, o: IdeasPrompt): IdeaSuggestion[] 
         note,
         template: templates.has(i.template) ? i.template : null,
         headline,
-        facts: custom,
+        facts: factIds,
         moment,
         uncovered: [...new Set(uncoveredNumbers(`${title}\n${note}\n${headline}`, sources).map((g) => g.text))],
       };

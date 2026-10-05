@@ -94,10 +94,10 @@ export async function show(container, ctx) {
       };
       save.disabled = true; // no duplicate request on a double click
       try {
-        const off = existing
+        const saved = existing
           ? await ctx.api(`/api/facts/${existing.id}`, { method: "PUT", body })
           : await ctx.api("/api/facts", { method: "POST", body });
-        facts = existing ? facts.map((x) => (x.id === off.id ? off : x)) : [...facts, off];
+        facts = existing ? facts.map((x) => (x.id === saved.id ? saved : x)) : [...facts, saved];
         formHolder.replaceChildren(newButton());
         renderList();
         notice("Fact saved");

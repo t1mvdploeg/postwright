@@ -22,22 +22,22 @@ export function icsText(t) {
  * Never in the middle of a UTF-8 character, so counting is per character, in bytes.
  */
 export function fold(line) {
-  const off = [];
+  const out = [];
   let current = "";
   let bytes = 0;
-  const limit = () => (off.length === 0 ? 75 : 74);
-  for (const render of line) {
-    const n = enc.encode(render).length;
+  const limit = () => (out.length === 0 ? 75 : 74);
+  for (const char of line) {
+    const n = enc.encode(char).length;
     if (bytes + n > limit()) {
-      off.push(current);
+      out.push(current);
       current = "";
       bytes = 0;
     }
-    current += render;
+    current += char;
     bytes += n;
   }
-  off.push(current);
-  return off.map((r, i) => (i === 0 ? r : ` ${r}`)).join("\r\n");
+  out.push(current);
+  return out.map((r, i) => (i === 0 ? r : ` ${r}`)).join("\r\n");
 }
 
 /** A moment as a UTC timestamp: 20261006T063000Z. */

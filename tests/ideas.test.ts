@@ -76,7 +76,7 @@ describe("workdays", () => {
 
 describe("tidyIdeas", () => {
   it("drops invalid and out-of-period dates and empty titles, truncates and sorts", () => {
-    const off = tidyIdeas(
+    const tidied = tidyIdeas(
       {
         ideas: [
           idea({ date: "2026-10-09", title: "B" }),
@@ -90,7 +90,7 @@ describe("tidyIdeas", () => {
       },
       PROMPT,
     );
-    expect(off.map((i) => i.title)).toEqual(["A", "C", "B"]);
+    expect(tidied.map((i) => i.title)).toEqual(["A", "C", "B"]);
   });
   it("does not stumble over a date that is not a date (month 13 gives an invalid Date in JavaScript)", () => {
     expect(
@@ -131,14 +131,14 @@ describe("sample provider and instruction", () => {
     const r = await sampleProvider.suggestIdeas(PROMPT);
     expect(IdeasSuggestionSchema.safeParse(r.suggestion).success).toBe(true);
     expect(r.suggestion.ideas).toHaveLength(3);
-    const off = tidyIdeas(r.suggestion, PROMPT);
-    expect(off).toHaveLength(3);
+    const tidied = tidyIdeas(r.suggestion, PROMPT);
+    expect(tidied).toHaveLength(3);
     expect(
-      off.every(
+      tidied.every(
         (i) => workdays(PROMPT.from, PROMPT.to).includes(i.date) && i.template !== null && i.uncovered.length === 0,
       ),
     ).toBe(true);
-    expect(off[0].moment).toBe("signup-transition");
+    expect(tidied[0].moment).toBe("signup-transition");
     expect(r.usage).toEqual(EMPTY_USAGE);
   });
 

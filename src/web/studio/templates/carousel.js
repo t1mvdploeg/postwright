@@ -83,19 +83,19 @@ const STEP = {
     line("tick3", "Tick 3", "Third point", 34),
   ],
   html(v, c) {
-    const lang = String(v.text ?? "").length > 150 ? " lang" : "";
+    const long = String(v.text ?? "").length > 150 ? " long" : "";
     const ill = illustration(v.illustration, v, c);
     return `${c.symbols}<section class="image slide ${groundClass(v.ground)}">
   <header class="headline-row">${c.logo(logoMode(v.ground))}${stepChain(c)}</header>
   ${ill ? `<figure class="ill-${v.illustration}">${ill}</figure>` : '<div class="space"></div>'}
   <h2 class="headline small" data-field="headline">${c.t("headline")}</h2>
-  ${c.empty("text") ? "" : `<p class="text${lang}" data-field="text">${c.t("text")}</p>`}
+  ${c.empty("text") ? "" : `<p class="text${long}" data-field="text">${c.t("text")}</p>`}
 </section>`;
   },
 };
 
 const CLOSING = {
-  kind: "slot",
+  kind: "closing",
   name: "Closing",
   counts: false,
   fields: [
@@ -181,7 +181,7 @@ export default {
       },
     },
     {
-      kind: "slot",
+      kind: "closing",
       content: {
         ground: "accent",
         headline: "Make your first *post.*",
@@ -198,7 +198,7 @@ main .text { margin-top: 4.4rem; }
 .slide .space { flex: 1; }
 .slide > .headline { margin-top: 2rem; }
 .slide > .text { margin-top: 2.6rem; }
-.slide > .text.lang { max-width: 42ch; font-size: 2.7rem; }
+.slide > .text.long { max-width: 42ch; font-size: 2.7rem; }
 .footer .icon { width: 3rem; height: 3rem; color: var(--emphasis); }
 .footer span:has(.icon) { display: inline-flex; align-items: center; gap: 1.6rem; }
 /* Checklist: a list of ticks on a sheet. */

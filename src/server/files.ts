@@ -13,9 +13,9 @@ export interface Storage {
  * rejected, so that a single forgotten validation in a route gives an error instead of a
  * file elsewhere.
  */
-export function path(o: Storage, ...share: string[]): string {
+export function path(o: Storage, ...parts: string[]): string {
   const root = o.dir;
-  const p = join(root, ...share);
+  const p = join(root, ...parts);
   const rel = relative(root, p);
   if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error("Path is outside the data folder");
   return p;

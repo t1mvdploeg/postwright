@@ -77,14 +77,14 @@ export function nextMonth(year, month, step) {
 export function upcomingWeeks(today, n) {
   const d = new Date(`${today}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-  const off = [];
+  const weeks = [];
   for (let i = 0; i < n; i++) {
     const monday = d.toISOString().slice(0, 10);
     const sunday = new Date(d.getTime() + 6 * 86400000).toISOString().slice(0, 10);
-    off.push({ ...isoWeek(monday), monday, sunday });
+    weeks.push({ ...isoWeek(monday), monday, sunday });
     d.setUTCDate(d.getUTCDate() + 7);
   }
-  return off;
+  return weeks;
 }
 
 /**

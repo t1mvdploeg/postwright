@@ -86,10 +86,10 @@ describe("recipes", () => {
     const slides: Slide[] = [
       { kind: "cover", content: {} },
       { kind: "step", content: { headline: "a" } },
-      { kind: "slot", content: {} },
+      { kind: "closing", content: {} },
     ];
     expect(moveSlide(slides, 1, -1)).toBe(0);
-    expect(slides.map((d) => d.kind)).toEqual(["step", "cover", "slot"]);
+    expect(slides.map((d) => d.kind)).toEqual(["step", "cover", "closing"]);
     expect(moveSlide(slides, 0, -1)).toBe(0);
     expect(moveSlide(slides, 2, 1)).toBe(2);
   });

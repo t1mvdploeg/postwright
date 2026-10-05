@@ -58,7 +58,7 @@ export async function measureOverflow(image, format, { slide = null, names = {} 
     const elements = [...doc.querySelectorAll("[data-field]")]
       .map((el) => ({ el, id: el.getAttribute("data-field"), r: el.getBoundingClientRect() }))
       .filter((x) => x.r.width > 0 && x.r.height > 0);
-    const off = [];
+    const out = [];
     const rel = (r) => ({ x: r.left - b.left, y: r.top - b.top, width: r.width, height: r.height });
     for (const x of elements) {
       const r = rel(x.r);
@@ -66,12 +66,12 @@ export async function measureOverflow(image, format, { slide = null, names = {} 
       // 1.03, so the letters always stick out a fraction beyond their line box without anything
       // being cut off (the first browser check therefore gave a false alarm on every headline).
       if (r.x < -1 || r.y < -1 || r.x + r.width > b.width + 1 || r.y + r.height > b.height + 1) {
-        off.push({ format: format.key, slide, field: name(x.id), fieldId: x.id, kind: "outside-image" });
+        out.push({ format: format.key, slide, field: name(x.id), fieldId: x.id, kind: "outside-image" });
         continue;
       }
       for (const z of format.safeZones) {
         if (overlaps(r, z, 1)) {
-          off.push({
+          out.push({
             format: format.key,
             slide,
             field: name(x.id),
@@ -89,7 +89,7 @@ export async function measureOverflow(image, format, { slide = null, names = {} 
         const c = elements[j];
         if (a.el.contains(c.el) || c.el.contains(a.el)) continue;
         if (overlaps(rel(a.r), rel(c.r), 2))
-          off.push({
+          out.push({
             format: format.key,
             slide,
             field: name(a.id),
@@ -99,7 +99,7 @@ export async function measureOverflow(image, format, { slide = null, names = {} 
           });
       }
     }
-    return off;
+    return out;
   } finally {
     delete iframe.dataset.occupied;
   }

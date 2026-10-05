@@ -32,13 +32,13 @@ export function containsWord(text, word) {
  * anyone reads.
  */
 export function textsOf(post, s) {
-  const off = [];
+  const out = [];
   const fields = (list, content, slide) => {
     for (const v of list) {
       if (v.kind === "choice" || v.kind === "media") continue;
       const text = content?.[v.id] ?? v.defaultValue ?? "";
       if (String(text).trim())
-        off.push({
+        out.push({
           where: slide === null ? v.label : `Slide ${slide + 1}, ${v.label.toLowerCase()}`,
           field: v.id,
           slide,
@@ -51,7 +51,7 @@ export function textsOf(post, s) {
   } else fields(s.fields, post.content, null);
   for (const [channel, text] of Object.entries(post.caption ?? {})) {
     if (String(text ?? "").trim())
-      off.push({
+      out.push({
         where: `Caption ${CHANNEL_RULES[channel]?.name ?? channel}`,
         field: null,
         slide: null,
@@ -60,8 +60,8 @@ export function textsOf(post, s) {
       });
   }
   if (String(post.altText ?? "").trim())
-    off.push({ where: "Alt-text", field: "altText", slide: null, text: post.altText });
-  return off;
+    out.push({ where: "Alt-text", field: "altText", slide: null, text: post.altText });
+  return out;
 }
 
 /**
@@ -206,7 +206,7 @@ export function runCheck({
     for (const id of post.facts ?? []) {
       const f = byId.get(id);
       if (!f) {
-        add("error", "fact-remove", "A linked fact no longer exists; unlink it");
+        add("error", "fact-missing", "A linked fact no longer exists; unlink it");
         continue;
       }
       if (!factUsable(f, today)) {

@@ -19,16 +19,16 @@ export default {
       id: "motif",
       label: "Route motif",
       kind: "choice",
-      defaultValue: "enabled",
+      defaultValue: "show",
       options: [
-        { value: "enabled", text: "Show" },
-        { value: "off", text: "Hide" },
+        { value: "show", text: "Show" },
+        { value: "hide", text: "Hide" },
       ],
     },
   ],
   html(v, c) {
     return `<div class="image ${groundClass(v.ground)}">
-  ${v.motif === "enabled" ? c.route() : ""}
+  ${v.motif === "show" ? c.route() : ""}
   ${c.logo(logoMode(v.ground))}
   <main>
     <h1 class="${headlineClass(v.headlineSize, v.headline)}" data-field="headline">${c.t("headline")}</h1>

@@ -127,9 +127,9 @@ export function slugOf(text, max = 40) {
  */
 export function fileName({ brand = "", campaign = "", post = "", format: key, slide = null, extension = "png" }) {
   const f = format(key);
-  const share = [slugOf(brand), slugOf(campaign), slugOf(post) || "post", key, `${f.width}x${f.height}`];
-  if (slide !== null) share.push(`slide-${String(slide).padStart(2, "0")}`);
-  return `${share.filter(Boolean).join("_")}.${extension}`;
+  const parts = [slugOf(brand), slugOf(campaign), slugOf(post) || "post", key, `${f.width}x${f.height}`];
+  if (slide !== null) parts.push(`slide-${String(slide).padStart(2, "0")}`);
+  return `${parts.filter(Boolean).join("_")}.${extension}`;
 }
 
 /**
@@ -137,9 +137,9 @@ export function fileName({ brand = "", campaign = "", post = "", format: key, sl
  * caption.
  */
 export function channelsOf(post) {
-  const off = new Set((post.formats ?? []).map((f) => BY_KEY.get(f)?.channel).filter(Boolean));
-  for (const [k, t] of Object.entries(post.caption ?? {})) if (String(t ?? "").trim()) off.add(k);
-  return [...off];
+  const channels = new Set((post.formats ?? []).map((f) => BY_KEY.get(f)?.channel).filter(Boolean));
+  for (const [k, t] of Object.entries(post.caption ?? {})) if (String(t ?? "").trim()) channels.add(k);
+  return [...channels];
 }
 
 /** Whether rectangle a touches rectangle b (tolerance in pixels). */

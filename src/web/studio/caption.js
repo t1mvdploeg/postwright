@@ -152,12 +152,12 @@ export function linksWithoutUtm(text) {
 export function checkCaption(channel, text) {
   const r = CHANNEL_RULES[channel];
   if (!r) return [];
-  const off = [];
+  const out = [];
   const t = String(text ?? "");
   if (!t.trim()) return [{ level: "attention", code: "caption-empty", text: `No caption for ${r.name}`, channel }];
   const length = lengthFor(channel, t);
   if (length > r.maxCharacters)
-    off.push({
+    out.push({
       level: "error",
       code: "caption-too-long",
       text: `The caption for ${r.name} is ${length} characters; ${r.name} allows ${r.maxCharacters} characters`,
@@ -165,7 +165,7 @@ export function checkCaption(channel, text) {
     });
   const h = hashtags(t);
   if (r.maxHashtags !== null && h.list.length > r.maxHashtags) {
-    off.push({
+    out.push({
       level: "error",
       code: "too-many-hashtags",
       text: `${h.list.length} hashtags for ${r.name}; at most ${r.maxHashtags}`,
@@ -173,25 +173,25 @@ export function checkCaption(channel, text) {
     });
   }
   for (const d of h.duplicate)
-    off.push({
+    out.push({
       level: "attention",
       code: "hashtag-duplicate",
       text: `#${d} appears more than once (${r.name})`,
       channel,
     });
   for (const a of h.truncated)
-    off.push({
+    out.push({
       level: "attention",
       code: "hashtag-truncated",
       text: `#${a} breaks at the punctuation mark; write it as one word (${r.name})`,
       channel,
     });
   for (const l of linksWithoutUtm(t))
-    off.push({
+    out.push({
       level: "attention",
       code: "link-without-utm",
       text: `Link without UTM in the caption for ${r.name}: ${l.length > 60 ? `${l.slice(0, 57)}…` : l}`,
       channel,
     });
-  return off;
+  return out;
 }

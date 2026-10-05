@@ -49,7 +49,7 @@ export const SAMPLE_POSTS: SamplePost[] = [
       text: "Postwright runs locally. There is no account.",
       footerLeft: "Try it yourself",
       footerRight: "Postwright",
-      motif: "enabled",
+      motif: "show",
     },
     caption: "Postwright runs on your own computer. There is no account.",
     altText: "Statement: Your posts. Your computer.",

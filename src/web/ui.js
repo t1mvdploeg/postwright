@@ -132,8 +132,8 @@ export function notice(text, kind = "info") {
  * `withoutDescription` removes exactly that one id again.
  */
 function withDescription(existing, id) {
-  const share = (existing ?? "").split(" ").filter(Boolean);
-  return share.includes(id) ? share.join(" ") : [...share, id].join(" ");
+  const tokens = (existing ?? "").split(" ").filter(Boolean);
+  return tokens.includes(id) ? tokens.join(" ") : [...tokens, id].join(" ");
 }
 function withoutDescription(existing, id) {
   return (existing ?? "")
@@ -214,10 +214,10 @@ function dialog({ title, confirmText = "Confirm", cancelText = "Cancel", dangero
     const d = el("dialog", { class: "dialog" }, [el("h2", { text: title }), form]);
     document.body.append(d);
 
-    // Closing always goes through `round`: the `close` event is not reliable everywhere, and a
+    // Closing always goes through `finish`: the `close` event is not reliable everywhere, and a
     // dialog that never settles its promise leaves the caller hanging forever.
     let finished = false;
-    const round = (value) => {
+    const finish = (value) => {
       if (finished) return;
       finished = true;
       if (d.open) d.close();
@@ -225,20 +225,20 @@ function dialog({ title, confirmText = "Confirm", cancelText = "Cancel", dangero
       resolve(value);
     };
 
-    cancel?.addEventListener("click", () => round(null));
+    cancel?.addEventListener("click", () => finish(null));
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const value = readValue();
       // `false` means "input not valid"; the dialog then stays open.
       if (value === false) return;
-      round(value);
+      finish(value);
     });
     // Clicking outside the dialog (on the ::backdrop) closes it, just like Escape.
     d.addEventListener("click", (e) => {
-      if (e.target === d) round(null);
+      if (e.target === d) finish(null);
     });
-    d.addEventListener("cancel", () => round(null));
-    d.addEventListener("close", () => round(null));
+    d.addEventListener("cancel", () => finish(null));
+    d.addEventListener("close", () => finish(null));
 
     d.showModal();
   });
@@ -246,7 +246,7 @@ function dialog({ title, confirmText = "Confirm", cancelText = "Cancel", dangero
 
 /** Yes/no question. Returns `true` on confirm, `false` on cancel or Escape. */
 export async function confirmDialog(question, options = {}) {
-  const off = await dialog({
+  const confirmed = await dialog({
     title: options.title ?? "Are you sure?",
     confirmText: options.confirmText ?? "Yes, continue",
     dangerous: options.dangerous ?? false,
@@ -255,7 +255,7 @@ export async function confirmDialog(question, options = {}) {
       return () => true;
     },
   });
-  return off === true;
+  return confirmed === true;
 }
 export function debounce(fn, ms) {
   let t;

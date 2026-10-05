@@ -35,11 +35,11 @@ export function brandFolder(dataDir: string, builtIn: string = BUILT_IN): string
  * disk.
  */
 export async function loadBrand(dataDir: string, builtIn: string = BUILT_IN): Promise<Brand> {
-  const map = brandFolder(dataDir, builtIn);
-  const label = map === builtIn ? "brand/brand.json" : "data/brand/brand.json";
+  const folder = brandFolder(dataDir, builtIn);
+  const label = folder === builtIn ? "brand/brand.json" : "data/brand/brand.json";
   let raw: unknown;
   try {
-    raw = JSON.parse(await readFile(join(map, "brand.json"), "utf8"));
+    raw = JSON.parse(await readFile(join(folder, "brand.json"), "utf8"));
   } catch {
     throw new ApiError(500, `${label}: not valid JSON`);
   }

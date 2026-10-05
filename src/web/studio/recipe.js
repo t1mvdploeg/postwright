@@ -40,9 +40,9 @@ export function withOffset(local) {
   const offsetAt = (ms) => Math.round((Date.parse(`${localClock(ms)}Z`) - ms) / 60000);
   let min = offsetAt(wall);
   min = offsetAt(wall - min * 60000);
-  const render = min >= 0 ? "+" : "-";
+  const sign = min >= 0 ? "+" : "-";
   const p = (n) => String(Math.abs(n)).padStart(2, "0");
-  return `${m[1]}T${m[2]}:${m[3]}:00${render}${p(Math.trunc(min / 60))}:${p(min % 60)}`;
+  return `${m[1]}T${m[2]}:${m[3]}:00${sign}${p(Math.trunc(min / 60))}:${p(min % 60)}`;
 }
 
 /** An ISO timestamp back to the value of a `datetime-local` field, in local time. */
@@ -128,11 +128,11 @@ export function toInput(post, s, check) {
  * happens.
  */
 export function moveSlide(slides, index, direction) {
-  const goal = index + direction;
-  if (index < 0 || index >= slides.length || goal < 0 || goal >= slides.length) return index;
+  const target = index + direction;
+  if (index < 0 || index >= slides.length || target < 0 || target >= slides.length) return index;
   const [slide] = slides.splice(index, 1);
-  slides.splice(goal, 0, slide);
-  return goal;
+  slides.splice(target, 0, slide);
+  return target;
 }
 
 const MEDIA_ID = /^[0-9a-f]{32}\.(png|jpg|webp)$/;
@@ -141,13 +141,13 @@ const MEDIA_ID = /^[0-9a-f]{32}\.(png|jpg|webp)$/;
  * Values that fit in `fields`: same id, a choice only as an option, an image only as a
  * media id.
  */
-function takeOver(source, fields, goal) {
+function takeOver(source, fields, target) {
   for (const v of fields) {
     const w = source?.[v.id];
     if (typeof w !== "string" || !w.trim()) continue;
     if (v.kind === "choice" && !v.options.some((o) => o.value === w)) continue;
     if (v.kind === "media" && !MEDIA_ID.test(w)) continue;
-    goal[v.id] = w;
+    target[v.id] = w;
   }
 }
 
@@ -158,14 +158,14 @@ function takeOver(source, fields, goal) {
  */
 export function convert(post, targetId, { enabledFormats = [], brandVersion = "" } = {}) {
   const source = templateOf(post.template);
-  const goal = templateOf(targetId);
-  if (!source || !goal) throw new Error(`Unknown template: ${source ? targetId : post.template}`);
+  const target = templateOf(targetId);
+  if (!source || !target) throw new Error(`Unknown template: ${source ? targetId : post.template}`);
   const r = newRecipe(targetId, { enabledFormats, brandVersion });
   const values = source.kind === "carousel" ? (post.slides?.[0]?.content ?? {}) : (post.content ?? {});
-  if (goal.kind === "carousel") takeOver(values, fieldsOf(goal, r.slides[0].kind), r.slides[0].content);
-  else takeOver(values, goal.fields, r.content);
+  if (target.kind === "carousel") takeOver(values, fieldsOf(target, r.slides[0].kind), r.slides[0].content);
+  else takeOver(values, target.fields, r.content);
   return Object.assign(r, {
-    title: `${post.title} (${goal.name})`.slice(0, 120),
+    title: `${post.title} (${target.name})`.slice(0, 120),
     caption: structuredClone(post.caption ?? {}),
     altText: post.altText ?? "",
     link: post.link ?? "",
@@ -183,9 +183,9 @@ export function ideaToRecipe(idea, { enabledFormats = [], brandVersion = "" } = 
   const s = templateOf(idea.template);
   if (idea.headline) {
     const carousel = s.kind === "carousel";
-    const goal = carousel ? r.slides[0]?.content : r.content;
-    if (goal && fieldsOf(s, carousel ? r.slides[0]?.kind : null).some((v) => v.id === "headline"))
-      goal.headline = idea.headline;
+    const target = carousel ? r.slides[0]?.content : r.content;
+    if (target && fieldsOf(s, carousel ? r.slides[0]?.kind : null).some((v) => v.id === "headline"))
+      target.headline = idea.headline;
   }
   r.title = String(idea.title ?? "").slice(0, 120) || r.title;
   r.facts = [...(idea.facts ?? [])];

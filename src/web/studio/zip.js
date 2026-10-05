@@ -81,10 +81,10 @@ export function createZip(files, now = new Date()) {
   slot.setUint16(10, files.length, true);
   slot.setUint32(12, centralSize, true);
   slot.setUint32(16, offset, true);
-  const share = [...local, ...central, new Uint8Array(slot.buffer)];
-  const off = new Uint8Array(share.reduce((s, d) => s + d.length, 0));
+  const chunks = [...local, ...central, new Uint8Array(slot.buffer)];
+  const off = new Uint8Array(chunks.reduce((s, d) => s + d.length, 0));
   let p = 0;
-  for (const d of share) {
+  for (const d of chunks) {
     off.set(d, p);
     p += d.length;
   }

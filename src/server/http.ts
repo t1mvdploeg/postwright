@@ -190,18 +190,18 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: 
     ) {
       throw new ApiError(415, "Content-Type must be application/json");
     }
-    const off = await chosen.handler(createCtx(req, url, params));
-    if (!isReply(off)) return sendJson(res, 200, off);
-    const status = off.status ?? 200;
-    const { body } = off;
+    const reply = await chosen.handler(createCtx(req, url, params));
+    if (!isReply(reply)) return sendJson(res, 200, reply);
+    const status = reply.status ?? 200;
+    const { body } = reply;
     if (Buffer.isBuffer(body) || typeof body === "string")
-      return send(res, status, off.contentType ?? "application/octet-stream", body, off.headers);
+      return send(res, status, reply.contentType ?? "application/octet-stream", body, reply.headers);
     return send(
       res,
       status,
-      off.contentType ?? "application/json; charset=utf-8",
+      reply.contentType ?? "application/json; charset=utf-8",
       JSON.stringify(body ?? null),
-      off.headers,
+      reply.headers,
     );
   } catch (error) {
     if (error instanceof ApiError) return sendJson(res, error.status, { error: error.message });

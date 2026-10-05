@@ -62,13 +62,13 @@ let previousHash = "";
 let renderCounter = 0;
 let settingsPromise = null;
 
-/** `#editor/p-…` → { screen: "editor", share: ["p-…"] }. Unknown becomes the overview. */
+/** `#editor/p-…` → { screen: "editor", parts: ["p-…"] }. Unknown becomes the overview. */
 export function readRoute(hash) {
-  const [screen, ...share] = String(hash ?? "")
+  const [screen, ...parts] = String(hash ?? "")
     .replace(/^#/, "")
     .split("/")
     .map(decodeURIComponent);
-  return SCREENS.has(screen) ? { screen, share } : { screen: "overview", share: [] };
+  return SCREENS.has(screen) ? { screen, parts } : { screen: "overview", parts: [] };
 }
 
 function closeMenu() {
@@ -131,7 +131,7 @@ async function render() {
     }
   }
   const my = ++renderCounter;
-  const { screen, share } = readRoute(location.hash);
+  const { screen, parts } = readRoute(location.hash);
   previousHash = location.hash || "#overview";
   active?.leave?.();
   active = null;
@@ -147,7 +147,7 @@ async function render() {
       api,
       brand,
       settings,
-      share,
+      parts,
       /**
        * Whether this screen is still the active one; a late response must not overwrite a newer
        * screen.

@@ -113,11 +113,11 @@ export function buildFields(fields, values, { change, media = [], onUpload }) {
         text: "Selection as emphasis",
       });
       button.addEventListener("click", () => {
-        const off = emphasiseSelection(input.value, input.selectionStart, input.selectionEnd);
+        const result = emphasiseSelection(input.value, input.selectionStart, input.selectionEnd);
         input.focus();
-        if (!off) return;
-        input.value = off.text;
-        input.setSelectionRange(off.begin, off.end);
+        if (!result) return;
+        input.value = result.text;
+        input.setSelectionRange(result.begin, result.end);
         input.dispatchEvent(new Event("input"));
       });
       children.push(el("div", { class: "studio-emphasis" }, [button]));

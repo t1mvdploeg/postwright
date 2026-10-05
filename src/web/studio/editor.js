@@ -41,7 +41,7 @@ const STATUS_LABELS = {
 };
 
 export async function show(container, ctx) {
-  const [first, second] = ctx.share;
+  const [first, second] = ctx.parts;
   if (!first) return showGallery(container, ctx);
   if (first === "new") {
     if (!templateOf(second)) {
@@ -290,9 +290,9 @@ async function showEditor(container, ctx, begin) {
         currentPost: () => state.post,
         currentChannel: () => state.channel,
         apply: (fields) => {
-          const goal = currentContent();
+          const content = currentContent();
           for (const [k, v] of Object.entries(fields))
-            if (k in goal || currentFields().some((x) => x.id === k)) goal[k] = v;
+            if (k in content || currentFields().some((x) => x.id === k)) content[k] = v;
           renderFields();
           changed();
         },
@@ -499,7 +499,7 @@ async function showEditor(container, ctx, begin) {
     });
     add.addEventListener("click", () => {
       const kind = kindChoice.value;
-      const position = kind === "slot" ? slides().length : Math.min(state.slide + 1, slides().length);
+      const position = kind === "closing" ? slides().length : Math.min(state.slide + 1, slides().length);
       slides().splice(position, 0, { kind, content: defaultContent(s, kind) });
       state.slide = position;
       renderAll();
@@ -704,9 +704,9 @@ async function showEditor(container, ctx, begin) {
         ? `Brand check: ${u.attention} to watch`
         : "Brand check: OK";
     const line = (b) => {
-      const render = b.level === "error" ? "Error" : b.level === "attention" ? "Attention" : "OK";
+      const label = b.level === "error" ? "Error" : b.level === "attention" ? "Attention" : "OK";
       const text = el("span", { text: b.text });
-      const content = [el("b", { class: `studio-level level-${b.level}`, text: render }), text];
+      const content = [el("b", { class: `studio-level level-${b.level}`, text: label }), text];
       if (b.field || b.channel) {
         const go = el("button", {
           type: "button",
@@ -750,8 +750,8 @@ async function showEditor(container, ctx, begin) {
       state.slide = b.slide;
       renderAll();
     }
-    const goal = document.getElementById(`field-${b.field}`);
-    (goal?.matches("fieldset") ? goal.querySelector("input") : goal)?.focus();
+    const fieldTarget = document.getElementById(`field-${b.field}`);
+    (fieldTarget?.matches("fieldset") ? fieldTarget.querySelector("input") : fieldTarget)?.focus();
   }
 
   function renderFacts() {
@@ -936,16 +936,16 @@ async function showEditor(container, ctx, begin) {
     const button = el("button", { type: "button", class: "secondary", text: "Convert" });
     button.addEventListener("click", async () => {
       try {
-        const goal = templateOf(choice.value);
+        const target = templateOf(choice.value);
         const created = await ctx.api("/api/posts", {
           method: "POST",
           body: toInput(
-            convert(state.post, goal.id, { enabledFormats: ctx.settings.formats, brandVersion: ctx.brand.version }),
-            goal,
+            convert(state.post, target.id, { enabledFormats: ctx.settings.formats, brandVersion: ctx.brand.version }),
+            target,
             null,
           ),
         });
-        notice(`New post as ${goal.name} created; the original is unchanged`);
+        notice(`New post as ${target.name} created; the original is unchanged`);
         ctx.navigate(`#editor/${created.id}`);
       } catch (e) {
         notice(e.message, "error");
@@ -1196,7 +1196,7 @@ async function showEditor(container, ctx, begin) {
   async function measureAll() {
     const list = s.kind === "carousel" ? slides().map((_, i) => i) : [0];
     const names = {};
-    const off = [];
+    const out = [];
     for (const f of state.post.formats) {
       for (const slide of list) {
         const fields = s.kind === "carousel" ? fieldsOf(s, slides()[slide]?.kind) : s.fields;
@@ -1211,7 +1211,7 @@ async function showEditor(container, ctx, begin) {
             brand: ctx.brand,
             media: state.media,
           });
-          off.push(
+          out.push(
             ...(await measureOverflow(image, formatOf(f), { slide: s.kind === "carousel" ? slide : null, names })),
           );
         } catch {
@@ -1220,7 +1220,7 @@ async function showEditor(container, ctx, begin) {
       }
     }
     if (!ctx.valid()) return;
-    state.overflow = off;
+    state.overflow = out;
     renderCheck();
   }
 
