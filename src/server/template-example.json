@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "name": "Statement",
+  "goal": "One statement with a coloured phrase, on light, ink or accent.",
+  "kind": "image",
+  "formats": ["li-square", "li-portrait", "ig-square", "ig-portrait", "story", "wide"],
+  "fields": [
+    { "preset": "ground", "defaultValue": "accent" },
+    {
+      "id": "headline",
+      "label": "Headline",
+      "kind": "headline",
+      "max": 90,
+      "defaultValue": "On-brand posts, *without the design tool.*"
+    },
+    { "preset": "headlineSize" },
+    {
+      "id": "text",
+      "label": "Text",
+      "kind": "text",
+      "max": 160,
+      "defaultValue": "Pick a template, fill in the fields and export. Everything runs on your own computer."
+    },
+    { "id": "footerLeft", "label": "Footer left", "kind": "line", "max": 60, "defaultValue": "Try it yourself" },
+    {
+      "id": "footerRight",
+      "label": "Footer right",
+      "kind": "line",
+      "max": 40,
+      "defaultValue": "",
+      "help": "Empty: the website of the brand."
+    }
+  ],
+  "tree": [
+    { "slot": "route" },
+    { "slot": "logo" },
+    {
+      "tag": "main",
+      "children": [
+        {
+          "tag": "h1",
+          "headlineOf": "headline",
+          "dataField": "headline",
+          "children": [{ "field": "headline", "as": "rich" }]
+        },
+        {
+          "tag": "p",
+          "classes": ["text"],
+          "showIf": "text",
+          "dataField": "text",
+          "children": [{ "field": "text", "as": "rich" }]
+        }
+      ]
+    },
+    {
+      "tag": "footer",
+      "classes": ["footer"],
+      "dataField": "footerLeft",
+      "children": [
+        { "tag": "span", "children": [{ "field": "footerLeft", "as": "plain" }] },
+        { "tag": "strong", "children": [{ "field": "footerRight", "as": "footer" }] }
+      ]
+    }
+  ],
+  "css": "main { margin-block: auto 7rem; }\n.text { margin-top: 4.4rem; }\n.shape-landscape .image { padding: 6rem 7rem; }\n.shape-landscape .headline { font-size: 7.6rem; }\n.shape-landscape .headline.medium { font-size: 6.2rem; }\n.shape-landscape .headline.small { font-size: 5rem; }\n.shape-landscape .text { margin-top: 3rem; max-width: 48ch; font-size: 2.6rem; }\n.shape-landscape main { margin-block: auto 4rem; }\n.shape-landscape .footer { padding-top: 2.4rem; font-size: 2rem; }"
+}

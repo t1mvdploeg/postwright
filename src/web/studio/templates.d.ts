@@ -60,6 +60,8 @@ export interface Template {
   slides?: SlideKind[];
   defaultSlides?: Slide[];
   maxSlides?: number;
+  /** An own template of the project (see own-template.js); built-in ones do not have it. */
+  own?: boolean;
 }
 
 export interface Brand {
@@ -98,7 +100,8 @@ export function remToPx(css: string, width: number): string;
 export function defaultContent(s: Template, slideKind?: string | null): Record<string, string>;
 export function fieldsOf(s: Template, slideKind?: string | null): Field[];
 export function buildImage(o: {
-  template: string;
+  /** An id, or a template object (a proposal that is not saved yet). */
+  template: string | Template;
   content?: Record<string, string>;
   slides?: Slide[];
   slide?: number;

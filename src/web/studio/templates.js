@@ -150,9 +150,10 @@ function brandCss(brand) {
  * @returns {{ html: string, css: string, width: number, height: number, shape: string, title: string }}
  */
 export function buildImage({ template: id, content = {}, slides = [], slide = 0, format: key, brand, media = {} }) {
-  const s = template(id);
+  // A template object (a proposal that has not been saved yet) works like an id.
+  const s = typeof id === "object" && id !== null ? id : template(id);
   if (!s) throw new Error(`Unknown template: ${id}`);
-  if (!s.formats.includes(key)) throw new Error(`Template ${id} has no format ${key} defined`);
+  if (!s.formats.includes(key)) throw new Error(`Template ${s.id} has no format ${key} defined`);
   const f = formatOf(key);
   const shape = shapeOf(f);
 
