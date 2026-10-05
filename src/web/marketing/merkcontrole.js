@@ -1,6 +1,5 @@
-// Marketingstudio — de merkcontrole. Automatiseert de controlelijst van de kit ("Controleren
-// voordat u post" in HANDLEIDING.md) plus wat de studio zelf weet: limieten per kanaal, feiten,
-// alt-tekst, UTM. Puur; de overloopmeting (die een echte browser nodig heeft) komt als invoer mee.
+// Marketingstudio — de merkcontrole. Automatiseert de controlelijst voor een post plus wat de
+// studio zelf weet: limieten per kanaal, feiten, alt-tekst, UTM. Puur; de overloopmeting (die een echte browser nodig heeft) komt als invoer mee.
 //
 // "fout" houdt een post tegen bij Gepland (de server weigert dan); "let op" houdt niets tegen;
 // "ok" is een bevestiging die het paneel toont zodat je ziet wát er is nagelopen.
@@ -65,7 +64,7 @@ export function tekstenVan(post, s) {
 
 /**
  * Of een feit bruikbaar is op `vandaag` (JJJJ-MM-DD): actief en niet verlopen. Een feit dat pas
- * later ingaat ("per 1 januari stijgt het minimumloon naar …") mag wél: de aankondiging klopt nu
+ * later ingaat ("per 1 januari stijgt de prijs naar …") mag wél: de aankondiging klopt nu
  * al. Zelfde regel als `feitOnbruikbaar` in src/server/api-marketing.ts.
  */
 export function feitBruikbaar(f, vandaag) {

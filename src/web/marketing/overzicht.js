@@ -1,5 +1,5 @@
 // Marketingstudio — Overzicht: wat staat er deze week, wat is blijven liggen, en waar leunt een
-// post op een feit dat niet meer klopt. Golf 2: ook het ritme (laatste publicatie, lege weken),
+// post op een feit dat niet meer klopt. Ook het ritme (laatste publicatie, lege weken),
 // de actualiteitenkalender en de handmatige resultaten.
 import { el, legeStaat, melding } from "/ui.js";
 import { leesbaarMoment } from "/marketing/recept.js";

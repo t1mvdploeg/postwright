@@ -2,7 +2,7 @@
 // (standaard, ook op een telefoon) of als maand, de agenda-export (.ics) en de campagnes. Verzetten
 // kan altijd met een datumveld; slepen in de maandweergave is een extra, nooit de enige manier.
 //
-// Golf 2: een periode aanvinken (in de maand een begin- en einddag aanklikken, of de twee
+// Een periode aanvinken (in de maand een begin- en einddag aanklikken, of de twee
 // datumvelden, die dezelfde keuze tonen), daarvoor ideeën laten voorstellen of er zelf een
 // toevoegen. Het ideepaneel en de voorstellen staan in ideeen-ui.js.
 import { bevestigDialoog, el, legeStaat, melding, veldFout } from "/ui.js";
@@ -187,9 +187,8 @@ export async function toon(container, ctx) {
   }
 
   /**
-   * Van een moment een concept-feit maken. Via ctx.api, zodat een verlopen sessie naar de loginpagina
-   * gaat. Nieuw of al bestaand krijgt dezelfde melding; een ingetrokken feit geeft 409 en die
-   * foutmelding (afsluitende review, A3 en A10).
+   * Van een moment een concept-feit maken. Nieuw of al bestaand krijgt dezelfde melding; een
+   * ingetrokken feit geeft 409 en die foutmelding.
    */
   async function maakFeit(m) {
     try {
@@ -300,7 +299,7 @@ export async function toon(container, ctx) {
     const weken = new Map(komendeWeken(vandaag, 6).map((w) => [w.maandag, { w, rijen: [], gevuld: false }]));
     const eerste = komendeWeken(vandaag, 1)[0].maandag;
     // Open ideeën van vóór deze week raken anders zoek: bovenaan, met dezelfde rij en knoppen als in
-    // de weken. Het Overzicht telt ze ook mee. Gebruikte ideeën uit het verleden blijven weg (A7).
+    // de weken. Het Overzicht telt ze ook mee. Gebruikte ideeën uit het verleden blijven weg.
     const eerder = ideeen.filter((i) => i.datum < eerste && !gebruikt(i)).sort((a, b) => a.datum.localeCompare(b.datum) || a.titel.localeCompare(b.titel));
     if (eerder.length) {
       blokken.push(tabel("Open ideeën van eerder", eerder.map(ideeRij), { sub: "Nog niet opgepakt. Open een idee om het een nieuwe datum te geven, er een post van te maken of het te wissen." }));
@@ -458,7 +457,7 @@ export async function toon(container, ctx) {
     annuleren.addEventListener("click", leeg);
     opslaan.addEventListener("click", async () => {
       const body = { naam: naam.value, utmCampagne: utm.value, doel: doel.value, van: van.value || null, tot: tot.value || null, gearchiveerd: bewerkt?.gearchiveerd ?? false };
-      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
+      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik
       try {
         const c = bewerkt
           ? await ctx.api(`/api/campagnes/${bewerkt.id}`, { method: "PUT", body })

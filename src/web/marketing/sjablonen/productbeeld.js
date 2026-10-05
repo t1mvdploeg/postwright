@@ -1,5 +1,5 @@
 // Productbeeld: een schermafbeelding van de tool op een papieren laag, met kop en tekst.
-// Nieuw in de studio, opgebouwd uit de bouwstenen van de kit (.papier, de schaduw, de ondergronden).
+// Nieuw in de studio, opgebouwd uit de bouwstenen van de sjablonen (.papier, de schaduw, de ondergronden).
 import { grondKlasse, kop, logoStand, ondergrond, tekst } from "./velden.js";
 
 export default {

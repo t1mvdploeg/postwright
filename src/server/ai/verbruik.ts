@@ -6,8 +6,8 @@ import type { Usage } from "./provider.js";
 
 /**
  * Dollars per miljoen tokens: [invoer, uitvoer, cache lezen]. Cache schrijven (5 minuten) kost 1,25 keer
- * de invoerprijs. Bron: de modellentabel van de skill `claude-api` (prijzen per 2026-09-25) en de
- * cache-uitleg in `shared/prompt-caching.md`; cache lezen is 0,1 keer de invoerprijs, behalve waar de
+ * de invoerprijs. Bron: de modellentabel van Anthropic (prijzen per 2026-09-25) en de
+ * uitleg over prompt caching; cache lezen is 0,1 keer de invoerprijs, behalve waar de
  * bron een eigen bedrag noemt (Fable 5.1: 0,25; Opus 5.5: 0,20).
  */
 const PRIJZEN: Record<string, readonly [number, number, number]> = {

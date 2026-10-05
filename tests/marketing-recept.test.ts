@@ -29,7 +29,7 @@ describe("tijd", () => {
     expect(naarLokaal("x")).toBe("");
   });
 
-  it("leest de invoer als Amsterdamse kloktijd, ongeacht de tijdzone van de browser (BM-20)", () => {
+  it("leest de invoer als Amsterdamse kloktijd, ongeacht de tijdzone van de browser", () => {
     const tz = process.env.TZ;
     try {
       for (const zone of ["Europe/London", "America/New_York", "Europe/Amsterdam"]) {

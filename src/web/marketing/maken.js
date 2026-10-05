@@ -385,7 +385,7 @@ async function toonEditor(container, ctx, begin) {
         wijzig: (id, waarde) => {
           // Altijd de inhoud van nú: na Bewaren of een statuswissel vervangt het antwoord van de
           // server staat.post, en een hier vastgehouden object zou dan niemand meer lezen
-          // (reviewbevinding 1: alles na de eerste keer bewaren ging stil verloren).
+          // (anders ging alles na de eerste keer bewaren stil verloren).
           huidigeInhoud()[id] = waarde;
           // Een illustratiewissel of mediakeuze verandert welke velden ertoe doen; opnieuw opbouwen.
           if (!staat.titelHandmatig && id === "kop" && (s.soort !== "carrousel" || staat.dia === 0)) {
@@ -597,7 +597,7 @@ async function toonEditor(container, ctx, begin) {
     }
   }
 
-  // Golf 2, "Feedvoorbeeld": een benadering van de post zoals hij in een tijdlijn staat, met de
+  // "Feedvoorbeeld": een benadering van de post zoals hij in een tijdlijn staat, met de
   // posttekst van het gekozen kanaal tot aan de vouw. Geen logo's of huisstijl van een platform.
   function tekenFeed() {
     const kanaal = staat.kanaal;
@@ -920,7 +920,7 @@ async function toonEditor(container, ctx, begin) {
     );
   }
 
-  /** Golf 2, "Omzetten": een nieuwe conceptpost in een ander sjabloon; het origineel blijft staan. */
+  /** "Omzetten": een nieuwe conceptpost in een ander sjabloon; het origineel blijft staan. */
   function omzettenVeld() {
     const keuze = el(
       "select",
@@ -951,7 +951,7 @@ async function toonEditor(container, ctx, begin) {
     ]);
   }
 
-  /** Golf 2, "Resultaten": alleen bij een gepubliceerde post, elk veld leeg of een geheel getal ≥ 0. */
+  /** "Resultaten": alleen bij een gepubliceerde post, elk veld leeg of een geheel getal ≥ 0. */
   function resultaatVeld(p) {
     const vert = el("input", { type: "number", id: "veld-resultaat-vertoningen", min: "0", step: "1" });
     const reac = el("input", { type: "number", id: "veld-resultaat-reacties", min: "0", step: "1" });

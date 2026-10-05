@@ -1,4 +1,4 @@
-// Marketingstudio golf 2 — resultaten per sjabloon, voor het Overzicht.
+// Marketingstudio — resultaten per sjabloon, voor het Overzicht.
 import { describe, it, expect } from "vitest";
 import { resultatenPerSjabloon } from "../src/model/marketing-resultaten.js";
 import type { Post } from "../src/model/marketing-schema.js";

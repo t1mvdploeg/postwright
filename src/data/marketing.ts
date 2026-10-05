@@ -1,12 +1,10 @@
-// Opslag van de Marketingstudio. Alles is platformdata in de rootmap (`data/marketing/`), net als
-// de huisstijlassets: nooit onder `tenants/<slug>`, want marketing hoort bij het platform en er
-// komt nooit klantdata in (ontwerpregel 7).
+// Opslag van de Marketingstudio: gewone bestanden onder `data/marketing/`.
 //
 //   data/marketing/posts/<id>.json   één recept per post
 //   data/marketing/campagnes.json    lijst
 //   data/marketing/teksten.json      lijst
 //   data/marketing/feiten.json       lijst (de feitenbank)
-//   data/marketing/ideeen.json       lijst (de ideeënplanner, golf 2)
+//   data/marketing/ideeen.json       lijst (de ideeënplanner)
 //   data/marketing/instellingen.json
 //   data/marketing/media/<hash>.<ext>
 import { open, readFile, stat } from "node:fs/promises";
@@ -42,7 +40,7 @@ export async function leesPost(o: Opslag, id: string): Promise<Post | null> {
 
 /**
  * Alle posts, nieuwste wijziging eerst. Een onleesbaar bestand wordt overgeslagen in plaats van de
- * hele lijst te laten vallen (zelfde aanpak als de lijst van loonstrooktoetsen).
+ * hele lijst te laten vallen.
  */
 export async function lijstPosts(o: Opslag): Promise<Post[]> {
   const namen = (await lijstMap(pad(o, MAP, "posts"))).filter((n) => n.endsWith(".json"));
@@ -238,7 +236,7 @@ export interface MediaRegel { id: string; bytes: number; breedte: number | null;
 /**
  * De eerste `n` bytes van een bestand. Genoeg voor de afmetingen: die staan in de kop, en een
  * lijst van tientallen schermafbeeldingen van enkele megabytes hoort niet elke keer volledig van
- * schijf te komen (reviewbevinding 7; het overzicht van Platformbeheer vraagt deze lijst op).
+ * schijf te komen (het overzicht vraagt deze lijst op).
  */
 async function leesBegin(p: string, n: number): Promise<Buffer> {
   const bestand = await open(p, "r");

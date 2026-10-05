@@ -61,7 +61,7 @@ export async function meetOverloop(beeld, formaat, { dia = null, namen = {} } = 
     const rel = (r) => ({ x: r.left - b.left, y: r.top - b.top, breedte: r.width, hoogte: r.height });
     for (const x of elementen) {
       const r = rel(x.r);
-      // Alleen de positie van het blok telt, niet scrollHeight: de kit zet koppen op line-height
+      // Alleen de positie van het blok telt, niet scrollHeight: koppen staan op line-height
       // 1,03, dus de letters steken altijd een fractie buiten hun regelvak zonder dat er iets
       // wegvalt (de eerste browsercontrole gaf daardoor op elke kop een vals alarm).
       if (r.x < -1 || r.y < -1 || r.x + r.breedte > b.width + 1 || r.y + r.hoogte > b.height + 1) {

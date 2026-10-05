@@ -7,7 +7,7 @@ import { MarketingVoorstelSchema, marketingInstructie, marketingOpdracht } from 
 import { IdeeenVoorstelSchema, ideeenInstructie, ideeenOpdracht } from "../../model/marketing-ideeen.js";
 import { AiFout, type AiProvider, type AiResultaat, type Usage } from "./provider.js";
 
-/** Het huidige Sonnet, uit de modellentabel van de skill `claude-api` (cache van 2026-09-25). */
+/** Het huidige Sonnet, uit de modellentabel van Anthropic (per 2026-09-25). */
 export const STANDAARD_MODEL = "claude-sonnet-5-5";
 
 // Ruim: bij adaptief denken tellen de denktokens mee in max_tokens, en een afgebroken antwoord is onbruikbaar.

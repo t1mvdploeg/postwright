@@ -28,7 +28,7 @@ const TAKEN = [
   ["alt-tekst", "Alt-tekst"],
 ];
 
-/** De al ingevulde inhoud van de post, voor de opdracht (BM-13): alleen de velden die de hulp kent. */
+/** De al ingevulde inhoud van de post, voor de opdracht: alleen de velden die de hulp kent. */
 function huidigeInhoud(post, velden, kanaal) {
   const veld = Object.fromEntries(velden.map((v) => [v.id, String(post.inhoud?.[v.id] ?? "")]).filter(([, t]) => t.trim()));
   return { velden: veld, posttekst: post.posttekst?.[kanaal] ?? "", altTekst: post.altTekst ?? "" };

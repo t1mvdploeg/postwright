@@ -1,6 +1,5 @@
-// Zet zod's standaardmeldingen op Nederlands. De meldingen van valideerParameters en
-// TariefInvoerSchema komen letterlijk op de beheerpagina/foutmelding bij de gebruiker terecht,
-// dus die moeten Nederlands zijn (global constraints), niet zod's Engelse standaardteksten.
+// Zet zod's standaardmeldingen op Nederlands. Validatiemeldingen komen letterlijk bij de gebruiker
+// terecht, dus die moeten Nederlands zijn en niet zod's Engelse standaardteksten.
 import { z } from "zod";
 
 z.config(z.locales.nl());

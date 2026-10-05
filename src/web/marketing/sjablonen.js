@@ -86,7 +86,7 @@ export function zonderNadruk(tekst) {
   return String(tekst ?? "").replace(NADRUK, "$1");
 }
 
-/** Elke rem wordt pixels: één rem is een honderdachtste van de breedte, zoals in de kit. */
+/** Elke rem wordt pixels: één rem is een honderdachtste van de breedte. */
 export function remNaarPx(css, breedte) {
   return css.replace(/(-?\d*\.?\d+)rem\b/g, (_, n) => `${Number(((Number(n) * breedte) / 108).toFixed(3))}px`);
 }

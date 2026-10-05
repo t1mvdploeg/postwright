@@ -1,9 +1,9 @@
 // Marketingstudio — een PDF uit beelden, voor een LinkedIn-documentpost (carrousel).
 //
 // Waarom uit beelden en niet uit HTML: een grote `box-shadow` die over een ander element valt,
-// wordt in Chrome's PDF-uitvoer een grijs vlak (docs/golven/2026-09-24-brand-kit.md, versie Claude). De kit
-// maakt de PDF daarom uit de PNG's; de studio doet hetzelfde, met JPEG's (DCTDecode), want die
-// kan een PDF zonder omzetting bevatten. Eén pagina per dia, 1 px = 1 pt; LinkedIn schaalt zelf.
+// wordt in Chrome's PDF-uitvoer een grijs vlak. De PDF wordt
+// daarom uit beelden gemaakt, met JPEG's (DCTDecode), want die kan een PDF zonder omzetting
+// bevatten. Eén pagina per dia, 1 px = 1 pt; LinkedIn schaalt zelf.
 
 const enc = new TextEncoder();
 

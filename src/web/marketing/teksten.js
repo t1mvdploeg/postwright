@@ -18,7 +18,7 @@ export async function toon(container, ctx) {
     const opslaan = el("button", { type: "button", text: bestaand ? "Wijziging bewaren" : "Tekst toevoegen" });
     opslaan.addEventListener("click", async () => {
       const body = { soort: soort.value, naam: naam.value, tekst: tekst.value };
-      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
+      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik
       try {
         const t = bestaand
           ? await ctx.api(`/api/teksten/${bestaand.id}`, { method: "PUT", body })

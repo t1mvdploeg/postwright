@@ -1,5 +1,5 @@
 // LinkedIn-profielachtergrond (1584×396). De profielfoto valt linksonder over de banner, dus links
-// staat alleen het motief. Rechts daarvan groot het merk zoals in de kop van de site: het teken en
+// staat alleen het motief. Rechts daarvan groot het merk: het teken en
 // de naam in wit met de punt in het accent (in het kopveld als *.* gezet).
 import { kop, regel } from "./velden.js";
 

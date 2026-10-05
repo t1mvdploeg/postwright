@@ -2,8 +2,8 @@
 // kwartier met een herinnering vooraf. Het UID is vast per post, dus opnieuw importeren werkt de
 // afspraak bij in plaats van hem te verdubbelen. Een post die niet meer gepland staat (terug naar
 // concept of gearchiveerd) gaat mee als STATUS:CANCELLED met een hogere SEQUENCE, zodat opnieuw
-// importeren de afspraak uit de agenda haalt (BM-19). Een gewiste post laat niets achter om in te trekken. Tijden gaan als UTC ("…Z") de agenda in; de
-// agenda-app zet ze zelf om naar de tijdzone van de lezer.
+// importeren de afspraak uit de agenda haalt. Een gewiste post laat niets achter om in te trekken.
+// Tijden gaan als UTC ("…Z") de agenda in; de agenda-app zet ze zelf om naar de tijdzone van de lezer.
 
 const enc = new TextEncoder();
 

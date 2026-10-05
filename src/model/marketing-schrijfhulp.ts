@@ -23,7 +23,7 @@ export const SchrijfhulpVerzoekSchema = z.object({
   kanaal: z.enum(KANALEN),
   toelichting: z.string().max(1000).default(""),
   feiten: z.array(z.string().regex(FEIT_ID)).max(50),
-  /** Wat er al in de post staat (BM-13): de hulp beschrijft of vervolgt die post, niet een verzonnen post. */
+  /** Wat er al in de post staat: de hulp beschrijft of vervolgt die post, niet een verzonnen post. */
   huidig: z.object({
     velden: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/), z.string().max(600)).default({}),
     posttekst: z.string().max(3000).default(""),

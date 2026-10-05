@@ -41,7 +41,7 @@ describe("formaten", () => {
 
 describe("bestandsnamen", () => {
   it("maakt slugs zonder accenten en leestekens", () => {
-    expect(slugVan("Café Übertarief!")).toBe("cafe-ubertarief");
+    expect(slugVan("Café Überpost!")).toBe("cafe-uberpost");
     expect(slugVan("  --Najaar 2026--  ")).toBe("najaar-2026");
     expect(slugVan("x".repeat(60))).toHaveLength(40);
     expect(slugVan(null)).toBe("");

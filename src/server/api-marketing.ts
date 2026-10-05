@@ -388,14 +388,14 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
 
     /**
      * Statusovergangen. Naar "gepland" of "gepubliceerd" kan alleen met een controle zonder fouten
-     * (ontwerpregel 6: de controle is de poort, er is geen aparte goedkeuring). Terug naar concept
+     * (de controle is de poort, er is geen aparte goedkeuring). Terug naar concept
      * en archiveren kan altijd; een gearchiveerde post komt alleen via concept terug.
      */
     route("POST", "/api/posts/:id/status", async (c) => {
       const id = postId(c);
       const overgang = valideer(StatusOvergangSchema, await c.leesJson());
       // De controle in de post rekende de browser uit bij het bewaren; een feit kan daarna nog
-      // zijn ingetrokken, verlopen of gewist. Dat rekent de server hier zelf na (reviewbevinding 2).
+      // zijn ingetrokken, verlopen of gewist. Dat rekent de server hier zelf na.
       const vandaag = vandaagAmsterdam(new Date());
       const feitenNu = new Map((await leesLijst<Feit>(gedeeld, "feiten")).map((f) => [f.id, f]));
       try {
@@ -429,7 +429,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
               geschiedenis: metGeschiedenis(p, wat("gepubliceerd")) };
           }
           if (naar === "concept") {
-            // Uit het archief terughalen laat publicatie en resultaat staan (BM-18); alleen een echte terugtrekking wist ze.
+            // Uit het archief terughalen laat publicatie en resultaat staan; alleen een echte terugtrekking wist ze.
             const behoud = p.status === "gearchiveerd";
             return { ...p, status: "concept", gepubliceerd: behoud ? p.gepubliceerd : null, resultaat: behoud ? p.resultaat : null, gewijzigd: nu.toISOString(), geschiedenis: metGeschiedenis(p, wat("terug naar concept")) };
           }
@@ -439,7 +439,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     }),
 
     /**
-     * Handmatige resultaten (golf 2): alleen bij een gepubliceerde post. Alle velden `null`
+     * Handmatige resultaten: alleen bij een gepubliceerde post. Alle velden `null`
      * wist het resultaat weer (bijvoorbeeld na een verkeerde invoer).
      */
     route("PUT", "/api/posts/:id/resultaat", async (c) => {
@@ -480,7 +480,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     }),
 
     // -----------------------------------------------------------------------------------------
-    // Ideeën (golf 2): lichter dan een post, geen versiecontrole, een PUT vervangt het hele idee.
+    // Ideeën: lichter dan een post, geen versiecontrole, een PUT vervangt het hele idee.
     // -----------------------------------------------------------------------------------------
     ...lijstRoutes<Idee>("ideeen", "/api/ideeen", IdeeInvoerSchema, {
       naam: "idee",
@@ -519,7 +519,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
       return i;
     }),
 
-    /** Tellingen voor het overzicht van de studio én de regel op het overzicht van Platformbeheer. */
+    /** Tellingen voor het overzicht van de studio voor de overzichtspagina. */
     route("GET", "/api/overzicht", async () => {
       const nu = new Date();
       const vandaag = vandaagAmsterdam(nu);
@@ -545,12 +545,12 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
         metOnbruikbaarFeit: lopend.filter((p) => p.feiten.some((id) => onbruikbaar.has(id) || !bekend.has(id))).length,
         volgende: gepland.filter((p) => tijd(p) >= nu.getTime()).sort((a, b) => tijd(a) - tijd(b)).slice(0, 3).map(samenvatting),
         media: { aantal: media.length, bytes: media.reduce((s, m) => s + m.bytes, 0) },
-        // Golf 2: ritme, momenten en resultaten.
-        // Een gearchiveerde post houdt zijn publicatie: hij is wél verschenen (afsluitende review, A4).
+        // Ritme, momenten en resultaten.
+        // Een gearchiveerde post houdt zijn publicatie: hij is wél verschenen.
         laatstGepubliceerd: posts.filter((p) => (p.status === "gepubliceerd" || p.status === "gearchiveerd") && p.gepubliceerd).map((p) => p.gepubliceerd!.op).sort().at(-1) ?? null,
         legeWeken: komendeWeken(vandaag, 4).filter((w) => !geplandeDagen.some((d) => d >= w.maandag && d <= w.zondag)),
         // Ook een open idee met een datum in het verleden telt: het is nog niet opgepakt, en de
-        // planner toont het bovenaan als "Open ideeën van eerder" (afsluitende review, A7).
+        // planner toont het bovenaan als "Open ideeën van eerder".
         openIdeeen: ideeen.filter((i) => !(i.post && postIds.has(i.post))).length,
         momenten: alleMomenten(vandaag, plusDagen(vandaag, 60), eigen).slice(0, 5),
         resultaten: resultatenPerSjabloon(posts, plusDagen(vandaag, -182)),
@@ -667,7 +667,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     route("DELETE", "/api/media/:id", async (c) => {
       const id = c.params.id;
       if (!MEDIA_ID.test(id)) throw new ApiFout(400, "Ongeldig media-id");
-      // ponytail: controle en wissen zijn twee stappen; met één beheerder is een post die precies
+      // Bewuste beperking: controle en wissen zijn twee stappen; met één beheerder is een post die precies
       // daartussen het beeld kiest geen reëel scenario. Een slot over posts heen als er meer gebruikers komen.
       const n = mediaGebruik(await lijstPosts(gedeeld)).get(id) ?? 0;
       if (n) throw new ApiFout(409, `Dit beeld staat in ${n} post${n === 1 ? "" : "s"} (gearchiveerde tellen mee); haal het daar eerst weg`);

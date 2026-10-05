@@ -1,5 +1,5 @@
 // Marketingstudio — geüploade beelden laden in de browser (merk.js), met fetch en
-// createImageBitmap als stubs. Reviewbevinding 8: een mislukte lading mag niet voor de rest van de
+// createImageBitmap als stubs. Een mislukte lading mag niet voor de rest van de
 // sessie als "geen beeld" in de cache blijven staan.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { alsDataUri, laadMedia } from "../src/web/marketing/merk.js";

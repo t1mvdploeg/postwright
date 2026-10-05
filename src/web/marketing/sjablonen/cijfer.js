@@ -1,6 +1,6 @@
 // Cijfer: één groot getal met uitleg en bron.
 // De bron staat altijd in beeld: een getal zonder herkomst hoort hier niet
-// (ontwerpregel 4). Het getal moet ook in een gekoppeld feit staan; dat controleert de merkcontrole.
+// Het getal moet ook in een gekoppeld feit staan; dat controleert de merkcontrole.
 import { grondKlasse, kop, logoStand, ondergrond, regel } from "./velden.js";
 
 export default {

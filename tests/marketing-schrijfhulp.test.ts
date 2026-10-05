@@ -107,7 +107,7 @@ describe("schrijfhulp", () => {
     expect(v.gebruikteFeiten).toEqual([id]);
   });
 
-  it("geeft de huidige postinhoud aan het model mee (BM-13)", async () => {
+  it("geeft de huidige postinhoud aan het model mee", async () => {
     const huidig = { velden: { kop: "Genoeg *gezien*" }, posttekst: "Een tekst.", altTekst: "" };
     expect((await vraag(`${API}/schrijfhulp`, verzoek([], { taak: "alt-tekst", huidig }))).status).toBe(200);
     expect(nep.gezien!.huidig).toEqual(huidig);

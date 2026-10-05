@@ -1,9 +1,7 @@
 // Marketingstudio — de schil: navigatie en een hashrouter die per scherm een module laadt
-// (`src/web/marketing/<scherm>.js`). Ontwerp: docs/ontwerpen/2026-09-24-marketingstudio.md.
+// (`src/web/marketing/<scherm>.js`).
 //
-// Een eigen pagina naast Platformbeheer, geen tab erin: de editor heeft de volle breedte nodig, de
-// code laadt alleen hier, en een latere marketingrol hoeft de klantgegevens van Platformbeheer
-// niet te zien.
+// De editor heeft de volle breedte nodig en de code laadt alleen op deze pagina.
 import { api, bevestigDialoog, el, icoon, melding } from "/ui.js";
 import { laadMerk } from "/marketing/merk.js";
 

@@ -39,7 +39,7 @@ export function regel(id, label, standaard, max = 60, extra = {}) {
   return { id, label, soort: "regel", max, standaard, ...extra };
 }
 
-/** De grootte van de kop: automatisch naar lengte, zoals de kit korte koppen groot zet en lange kleiner. */
+/** De grootte van de kop: automatisch naar lengte, korte koppen groot, lange kleiner. */
 export const KOPGROOTTE = {
   id: "kopgrootte",
   label: "Grootte van de kop",

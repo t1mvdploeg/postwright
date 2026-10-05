@@ -41,7 +41,7 @@ export async function toon(container, ctx) {
       standaardHashtags: hashtags.value.trim(),
       schrijfhulp: { aan: hulpAan.checked, plafondUsdPerMaand: Number(plafond.value) || 0 },
     };
-    opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
+    opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik
     try {
       await ctx.api("/api/instellingen", { method: "PUT", body });
       await ctx.herlaadInstellingen();

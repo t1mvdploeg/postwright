@@ -1,4 +1,4 @@
-// Marketingstudio — renderen in de browser (spike M0, .scratch/marketingstudio/spike/):
+// Marketingstudio — renderen in de browser:
 // voorbeeld in een sandbox-iframe, export via SVG-foreignObject → canvas → PNG/JPEG. Beide krijgen
 // exact dezelfde HTML en CSS uit `bouwBeeld`.
 

@@ -107,7 +107,7 @@ describe("ics", () => {
     expect(ics.split("\r\n").every((r) => !r.includes("\n"))).toBe(true);
   });
 
-  it("trekt een afspraak in van een post die niet meer gepland staat (BM-19)", () => {
+  it("trekt een afspraak in van een post die niet meer gepland staat", () => {
     const ics = maakIcs([
       { id: "p-1", titel: "Gepland", gepland: "2026-10-06T08:30:00+02:00", status: "gepland" },
       { id: "p-2", titel: "Terug naar concept", gepland: "2026-10-07T08:30:00+02:00", status: "concept" },

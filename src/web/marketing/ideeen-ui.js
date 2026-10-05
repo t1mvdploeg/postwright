@@ -354,7 +354,7 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     stand.textContent = "De AI denkt na…";
     leeg();
     try {
-      // Via ctx.api, zodat een verlopen sessie naar de loginpagina gaat; Annuleren breekt de fetch af
+      // Annuleren breekt de fetch af
       // met een AbortError, en die is geen foutmelding.
       const data = await ctx.api("/api/ideeen/voorstellen", { method: "POST", body, signal: afbreken.signal });
       campagneVanVerzoek = body.campagne;

@@ -1,12 +1,12 @@
 // Marketingstudio — de basisopmaak van alle sjablonen. Een beeld staat hier in een foreignObject
 // of een geschaald iframe in plaats van in een eigen browservenster, daarom:
 //  - geen `html { font-size: calc(100vw / 108) }`: `bouwBeeld` rekent elke rem om naar pixels
-//    (breedte ÷ 108), want in een foreignObject is de root het <svg>-element (spike M0);
+//    (breedte ÷ 108), want in een foreignObject is de root het <svg>-element;
 //  - `.beeld` krijgt de maat van het formaat (`--breedte`/`--hoogte`) in plaats van 100vw/100vh;
-//  - de media query voor stories is de vormklasse `.vorm-story` geworden.
+//  - een story herkent het beeld aan de vormklasse `.vorm-story`, niet aan een media query.
 // De kleuren en de letter komen uit het actieve merk (zie `merkCss` in sjablonen.js).
 export const BASIS_CSS = `/* Sjablonen voor sociale media. Eén rem is 10px op een canvas van 1080 breed en schaalt mee met de breedte,
-   zodat één bron zowel 1200×1200 als 1080×1350 oplevert. Maten van de site ×1,5 (site 12px = 1,8rem). */
+   zodat één bron zowel 1200×1200 als 1080×1350 oplevert. */
 body { margin: 0; }
 .beeld {
   --nadruk: var(--accent);
@@ -77,7 +77,7 @@ svg { display: block; }
 .werkroute h2 { padding-top: .8rem; font-size: 3.2rem; font-weight: 550; letter-spacing: -.02em; line-height: 1.3; }
 .werkroute p { margin-top: .8rem; max-width: 40ch; font-size: 2.4rem; line-height: 1.5; color: var(--zacht); }
 
-/* Verticaal verhaal (9:16): 250px vrij boven en onder voor de bediening van het platform (uit de Codex-kit). */
+/* Verticaal verhaal (9:16): 250px vrij boven en onder voor de bediening van het platform. */
 .vorm-story .beeld { padding-block: 25rem; }
 
 /* Welke stap in een carrousel: vier (of drie) knooppunten, de huidige gevuld. LinkedIn telt zelf de pagina's. */

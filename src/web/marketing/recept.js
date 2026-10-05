@@ -115,7 +115,7 @@ function neemOver(bron, velden, doel) {
 }
 
 /**
- * Een post als nieuw recept in een ander sjabloon (golf 2, "Omzetten"). Van en naar een carrousel
+ * Een post als nieuw recept in een ander sjabloon ("Omzetten"). Van en naar een carrousel
  * gaat via de omslagdia. Het origineel blijft ongemoeid: alles wat meegaat, is een kopie.
  */
 export function zetOm(post, doelId, { formatenAan = [], merkVersie = "" } = {}) {
@@ -136,7 +136,7 @@ export function zetOm(post, doelId, { formatenAan = [], merkVersie = "" } = {}) 
   });
 }
 
-/** Een nieuw recept uit een idee (golf 2): de kop in het kopveld (bij een carrousel op de omslag), plus feiten, campagne en titel. */
+/** Een nieuw recept uit een idee: de kop in het kopveld (bij een carrousel op de omslag), plus feiten, campagne en titel. */
 export function ideeNaarRecept(idee, { formatenAan = [], merkVersie = "" } = {}) {
   const r = nieuwRecept(idee.sjabloon, { formatenAan, merkVersie });
   const s = sjabloonVan(idee.sjabloon);

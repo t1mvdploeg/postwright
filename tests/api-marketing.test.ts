@@ -163,7 +163,7 @@ describe("statusovergangen", () => {
     expect(verzet.body.geschiedenis.at(-1).wat).toMatch(/verzet/);
   });
 
-  it("weigert plannen en publiceren als een gekoppeld feit intussen is ingetrokken, verlopen of gewist (reviewbevinding 2)", async () => {
+  it("weigert plannen en publiceren als een gekoppeld feit intussen is ingetrokken, verlopen of gewist", async () => {
     const f = await vraag(`${API}/feiten`, { body: { tekst: "Postwright exports PNG, PDF and ZIP", soort: "product", bron: { soort: "site", verwijzing: "README.md" }, status: "actief" } });
     const p = await nieuwePost({ feiten: [f.body.id] });
     const { id: _i, aangemaakt: _a, gewijzigd: _g, ...rest } = f.body;
@@ -318,7 +318,7 @@ describe("media", () => {
     expect(lijst.body.media.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("vindt de afmetingen in de lijst ook als de kop van een JPEG groot is, zonder elk bestand helemaal te lezen (reviewbevinding 7)", async () => {
+  it("vindt de afmetingen in de lijst ook als de kop van een JPEG groot is, zonder elk bestand helemaal te lezen", async () => {
     // Twee APP1-segmenten van bijna 64 kB (zoals EXIF met een miniatuur) vóór de SOF-marker.
     const app = (n: number) => Buffer.concat([Buffer.from([0xff, 0xe1, 0xff, 0xf0]), Buffer.alloc(0xffee, n)]);
     const sof = Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08, 0x02, 0x58, 0x03, 0x20, 0x03, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -416,7 +416,7 @@ describe("resultaten", () => {
     expect(terug.body.resultaat).toBeNull();
   });
 
-  it("behoudt publicatie en resultaat bij archiveren en terughalen (BM-18)", async () => {
+  it("behoudt publicatie en resultaat bij archiveren en terughalen", async () => {
     const p = await nieuwePost();
     await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "gepubliceerd" } });
     await vraag(`${API}/posts/${p.id}/resultaat`, { methode: "PUT", body: { vertoningen: 1200, reacties: 14, klikken: 37 } });
@@ -427,7 +427,7 @@ describe("resultaten", () => {
   });
 });
 
-describe("overzicht, golf 2", () => {
+describe("overzicht: ritme, momenten en resultaten", () => {
   it("geeft laatste publicatie, lege weken, open ideeën, momenten en resultaten", async () => {
     const o = (await vraag(`${API}/overzicht`)).body;
     expect(o).toHaveProperty("laatstGepubliceerd");

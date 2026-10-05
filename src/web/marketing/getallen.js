@@ -1,4 +1,4 @@
-// Marketingstudio — getallen in een tekst herkennen, voor de feitenbank (ontwerpregel 4: geen
+// Marketingstudio — getallen in een tekst herkennen, voor de feitenbank (geen
 // getal in een post zonder een feit met bron). Puur.
 //
 // Bekende grens, ook in de interface uitgelegd: getallen in woorden ("acht procent") worden niet
@@ -28,7 +28,7 @@ const GETAL = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)(?!
  */
 export function haalGetallen(tekst) {
   // Links eerst weg: een UTM-link met post-id (p-3fa2c1d0-7731-4821-…) of een datum in een pad
-  // is geen bewering (reviewbevinding 3). Vervangen door spaties houdt de posities gelijk.
+  // is geen bewering. Vervangen door spaties houdt de posities gelijk.
   const t = String(tekst ?? "").replace(/\b(?:https?:\/\/|www\.)[^\s<>"]+/gi, (l) => " ".repeat(l.length));
   const uit = [];
   const bezet = [];

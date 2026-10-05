@@ -19,7 +19,7 @@ export type FormaatSleutel = (typeof FORMAAT_SLEUTELS)[number];
 export const KANALEN = ["linkedin", "instagram", "x", "facebook"] as const;
 export type Kanaal = (typeof KANALEN)[number];
 
-/** Bewust maar drie statussen plus een archief (ontwerpregel 6); "goedgekeurd" is geen status. */
+/** Bewust maar drie statussen plus een archief ; "goedgekeurd" is geen status. */
 export const POST_STATUSSEN = ["concept", "gepland", "gepubliceerd", "gearchiveerd"] as const;
 export type PostStatus = (typeof POST_STATUSSEN)[number];
 
@@ -38,8 +38,8 @@ export const IDEE_ID = /^i-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 export const MOMENT_SLEUTEL = /^[a-z0-9-]{3,60}$/;
 
 /**
- * Een idee in de ideeënplanner (golf 2): lichter dan een post. Geen status: "gebruikt" volgt uit
- * `post`, wegdoen is wissen (ontwerpregel 6). Een PUT vervangt het hele idee.
+ * Een idee in de ideeënplanner: lichter dan een post. Geen status: "gebruikt" volgt uit
+ * `post`, wegdoen is wissen. Een PUT vervangt het hele idee.
  */
 export const IdeeInvoerSchema = z.object({
   datum: z.string().regex(DATUM, "datum: JJJJ-MM-DD"),
@@ -77,7 +77,7 @@ const DiaSchema = z.object({
 
 /**
  * De uitkomst van de merkcontrole over precies de inhoud die in hetzelfde verzoek meekomt. De
- * server rekent haar niet na (één beheerder, geen tenantgrens; de overloopmeting kan alleen in een
+ * server rekent haar niet na (één beheerder; de overloopmeting kan alleen in een
  * browser), maar bewaart haar samen met de inhoud en wist haar zodra de inhoud zonder nieuwe
  * controle verandert. Zo wordt een gewijzigde post nooit met een oude, groene controle ingepland.
  */
@@ -117,7 +117,7 @@ export interface Post extends Omit<PostInvoer, "controle"> {
   gepland: string | null;
   gepubliceerd: { op: string; url: string } | null;
   controle: Controle | null;
-  /** Golf 2: handmatige resultaten, alleen bij gepubliceerd. Oude posts hebben het veld niet. */
+  /** Handmatige resultaten, alleen bij gepubliceerd. Oude posts hebben het veld niet. */
   resultaat?: Resultaat | null;
   geschiedenis: Geschiedenisregel[];
   aangemaakt: string;
@@ -159,7 +159,7 @@ export const FEIT_STATUSSEN = ["concept", "actief", "ingetrokken"] as const;
 export const BRON_SOORTEN = ["site", "extern"] as const;
 
 /**
- * Eén feit uit de feitenbank (ontwerpregel 4: geen claim zonder feit). "Verlopen" is geen status
+ * Eén feit uit de feitenbank (geen claim zonder feit). "Verlopen" is geen status
  * maar volgt uit `geldigTot`. Een externe bron is een https-adres.
  */
 export const FeitInvoerSchema = z.object({

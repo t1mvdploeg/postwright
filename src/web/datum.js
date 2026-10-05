@@ -1,11 +1,7 @@
-// Eindreview B3, ronde 2, fix 8: gedeelde, DOM-loze kalenderdatumhelpers (JJJJ-MM-DD) — losgetrokken
-// uit `web/marketing/kalender.js` (waar ze al DOM-loos stonden, maar met de rest van de
-// Marketingstudio-module erbij: `recept.js`, `sjablonen.js`, `merkcontrole.js`) zodat de
-// Facturatie-schermen (`facturatie/gedeeld.js`) en `bedrijf.js` (dat `gedeeld.js` alleen voor
-// `euro`/`procent`/`statusInfo` nodig heeft) die hele marketingmodulegraaf niet meer in hun bundel
-// meeslepen. `kalender.js` re-exporteert deze twee functies gewoon (zie daar), voor zijn eigen
-// bestaande consumenten (api-marketing.ts, marketing-ideeen.ts, de planningschermen) — dit is de
-// ene bron, geen tweede implementatie.
+// Gedeelde, DOM-loze kalenderdatumhelpers (JJJJ-MM-DD), los van `web/marketing/kalender.js` zodat
+// wie alleen een datum nodig heeft niet de hele marketingmodulegraaf (`recept.js`, `sjablonen.js`,
+// `merkcontrole.js`) meeslept. `kalender.js` geeft deze twee functies door aan de server en de
+// planningschermen; dit is de ene bron, geen tweede implementatie.
 const DATUM = /^\d{4}-\d{2}-\d{2}$/;
 
 /**

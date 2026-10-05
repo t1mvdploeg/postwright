@@ -50,7 +50,7 @@ export async function toon(container, ctx) {
         tekst: tekst.value, soort: soort.value, bron: { soort: bronSoort.value, verwijzing: verwijzing.value },
         geldigVan: van.value || null, geldigTot: tot.value || null, status: status.value,
       };
-      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
+      opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik
       try {
         const uit = bestaand
           ? await ctx.api(`/api/feiten/${bestaand.id}`, { method: "PUT", body })

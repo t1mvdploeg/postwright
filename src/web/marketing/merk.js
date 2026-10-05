@@ -73,7 +73,7 @@ export async function laadMedia(ids, maxZijde = 3200) {
     }
     const bron = await mediaCache.get(id);
     // Een mislukte lading niet onthouden: anders blijft het beeld tot een herlaad leeg in voorbeeld
-    // én export, zonder melding (reviewbevinding 8). De volgende keer gewoon opnieuw proberen.
+    // én export, zonder melding. De volgende keer gewoon opnieuw proberen.
     if (bron) uit[id] = bron; else mediaCache.delete(id);
   }));
   return uit;

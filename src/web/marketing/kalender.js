@@ -1,9 +1,9 @@
 // Marketingstudio — de rekenkant van de planning: maandraster (maandag eerst), ISO-weeknummers en
 // een post naar een andere dag verzetten met dezelfde kloktijd. Puur.
 import { metOffset, naarLokaal, vandaagAmsterdam } from "./recept.js";
-// Eindreview B3, ronde 2, fix 8: `echteDatum`/`plusDagen` verhuisd naar het gedeelde, DOM-loze
-// `web/datum.js` (geen tweede implementatie) — hier alleen doorgegeven, voor de bestaande
-// consumenten van dít bestand (api-marketing.ts, marketing-ideeen.ts, de planningschermen).
+// `echteDatum`/`plusDagen` staan in het gedeelde, DOM-loze `web/datum.js` (geen tweede
+// implementatie) en worden hier alleen doorgegeven, voor api-marketing.ts, marketing-ideeen.ts en
+// de planningschermen.
 export { echteDatum, plusDagen } from "../datum.js";
 
 const p2 = (n) => String(n).padStart(2, "0");
