@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postwright</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/studio.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#studio-main">Skip to content</a>
+    <div id="studio-app" class="app-shell studio">
+      <aside id="studio-sidebar" class="app-sidebar">
+        <div class="app-brand">
+          <div class="app-brand-text">
+            <a class="logo" href="/#overview">
+              <img src="/favicon.svg" alt="" />
+              <span>Postwright</span>
+            </a>
+            <small>Marketing studio</small>
+          </div>
+        </div>
+        <nav id="studio-nav" class="app-navigation" aria-label="Postwright"></nav>
+      </aside>
+      <div id="studio-overlay" class="app-overlay" hidden></div>
+      <div class="app-workspace">
+        <header class="app-toolbar">
+          <button
+            id="studio-menu"
+            class="secondary app-menu"
+            type="button"
+            aria-label="Open menu"
+            aria-expanded="false"
+          >
+            Menu
+          </button>
+          <div class="app-page-headline">
+            <span>Marketing studio</span>
+            <h1 id="studio-title">Overview</h1>
+          </div>
+          <a id="studio-new" class="button" href="#editor">New post</a>
+        </header>
+        <main id="studio-main" class="app-content" tabindex="-1">
+          <div id="studio-content"></div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/studio.js"></script>
+  </body>
+</html>
