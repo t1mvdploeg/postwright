@@ -53,7 +53,11 @@ export function registerOwnTemplates(files) {
       console.warn(`Own template skipped: ${checked.problems[0]}`);
       continue;
     }
-    OWN.push(compileTemplate(file));
+    try {
+      OWN.push(compileTemplate(file));
+    } catch (e) {
+      console.warn(`Own template skipped: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 }
 

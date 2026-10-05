@@ -64,6 +64,9 @@ export async function saveOwnTemplate(projectDir: string, proposal: unknown): Pr
     do id = `own-${randomBytes(4).toString("hex")}`;
     while (files.includes(`${id}.json`));
     const file = { ...checked.template, id, created: new Date().toISOString() } as TemplateFile;
+    // The id and the time make the file a little larger: judge the file that will be read back.
+    const final = checkTemplate(file, { mode: "saved" });
+    if (!final.ok) throw new ApiError(409, `The template is not valid: ${final.problems[0]}`);
     await writeJsonAtomic(path(s, FOLDER, `${id}.json`), file);
     return file;
   });

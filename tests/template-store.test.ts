@@ -11,7 +11,8 @@ import {
   renameOwnTemplate,
   saveOwnTemplate,
 } from "../src/server/template-store.js";
-import { exampleTemplate, saved, writeOwn } from "./helpers/template.js";
+import { LIMITS, checkTemplate } from "../src/web/studio/own-template.js";
+import { carouselExample, exampleTemplate, saved, writeOwn } from "./helpers/template.js";
 import { startTemplates } from "./helpers/templates-api.js";
 
 const dirs: string[] = [];
@@ -44,6 +45,43 @@ describe("saving and reading", () => {
     await expect(saveOwnTemplate(dir, { ...exampleTemplate(), css: ".a { background: url(x); }" })).rejects.toThrow(
       /url\(\)/,
     );
+    expect(await loadOwnTemplates(dir)).toEqual([]);
+  });
+
+  it("refuses a proposal that only goes over the size limit once the id and the time are added", async () => {
+    const dir = project();
+    const c = carouselExample();
+    const text = (n: number) => "x".repeat(n);
+    const LITERALS = 20;
+    for (const s of c.slides) {
+      s.fields = Array.from({ length: 12 }, (_, i) => ({
+        id: `f${i}`,
+        label: "F",
+        kind: "text",
+        max: 400,
+        defaultValue: "",
+        help: text(160),
+      }));
+      s.tree = [{ tag: "div", children: Array.from({ length: LITERALS }, () => ({ literal: text(80) })) }];
+    }
+    c.defaultSlides = Array.from({ length: 8 }, (_, n) => ({
+      kind: n === 0 ? "cover" : "content",
+      content: Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`f${i}`, text(400)])),
+    }));
+    c.css = `${c.css}\n${" ".repeat(LIMITS.css - c.css.length - 1)}`;
+    // Trim the default texts until the proposal is 20 characters under the limit.
+    let over = JSON.stringify(c).length - (LIMITS.file - 20);
+    for (const d of c.defaultSlides) {
+      for (const id of Object.keys(d.content)) {
+        const cut = Math.min(over, 390);
+        if (cut > 0) d.content[id] = d.content[id].slice(cut);
+        over -= Math.max(cut, 0);
+      }
+    }
+    expect(JSON.stringify(c).length).toBe(LIMITS.file - 20);
+    const r = checkTemplate(c, { mode: "proposal" });
+    expect(r.ok ? [] : r.problems).toEqual([]);
+    await expect(saveOwnTemplate(dir, c)).rejects.toMatchObject({ status: 409 });
     expect(await loadOwnTemplates(dir)).toEqual([]);
   });
 

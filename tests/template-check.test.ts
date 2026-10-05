@@ -9,6 +9,7 @@ import {
   IMAGE_FORMATS,
   TAGS,
   checkTemplate,
+  compileTemplate,
 } from "../src/web/studio/own-template.js";
 import { CSS_VARIABLES } from "../src/server/brand-proposal.js";
 import { FORMAT_KEYS } from "../src/server/schema.js";
@@ -334,9 +335,79 @@ describe("the file", () => {
     odd.tree = [null, 5, "x", [], { tag: null }, { slot: 3 }, { field: {}, as: [] }];
     odd.fields = [null, 5, "x", { preset: {} }, { kind: {} }];
     expect(() => checkTemplate(odd)).not.toThrow();
+    for (const kind of [
+      "constructor",
+      "toString",
+      "valueOf",
+      "hasOwnProperty",
+      "__proto__",
+      ["media"],
+      ["text"],
+      5,
+      null,
+    ]) {
+      const t: any = exampleTemplate();
+      t.fields = [...t.fields, { id: "extra", label: "Extra", kind, max: 40, defaultValue: "x" }];
+      const found = problems(t);
+      expect(found.join("\n"), String(kind)).toMatch(/kind must be headline, text, line, choice or media/);
+    }
     const circular: any = {};
     circular.self = circular;
     expect(problems(circular)).toEqual(["template: cannot be read as JSON"]);
+  });
+});
+
+describe("colours that only some browsers know", () => {
+  it.each([
+    "-webkit-link",
+    "-webkit-activelink",
+    "-webkit-focus-ring-color",
+    "-moz-default-color",
+    "-moz-hyperlinktext",
+  ])("refuses %s, also as a var() fallback", (word) => {
+    expect(problems(withCss(`.a { color: ${word}; }`)).join()).toMatch(/is not allowed/);
+    expect(problems(withCss(`.a { color: var(--ink, ${word}); }`)).join()).toMatch(/is not allowed/);
+  });
+});
+
+describe("a template that passes is a template that compiles", () => {
+  it("refuses a slide kind or a field kind written as an array", () => {
+    const c = carouselExample();
+    c.slides[0].kind = ["cover"];
+    expect(problems(c).join()).toMatch(/exactly three slide kinds/);
+    const d = carouselExample();
+    d.slides = [
+      { ...d.slides[0], kind: ["cover", "content"] },
+      { ...d.slides[2], kind: ["closing"] },
+    ];
+    expect(problems(d).join()).toMatch(/exactly three slide kinds/);
+    const e = exampleTemplate();
+    e.fields[3].kind = ["text"];
+    expect(problems(e).join()).toMatch(/kind must be/);
+  });
+
+  it("never passes a template that the compiler then throws on", () => {
+    const bases = [exampleTemplate(), carouselExample()];
+    const values: unknown[] = [["cover"], ["text"], "constructor", "__proto__", null, 5, {}, [], [[]], "", true];
+    const paths = (o: any, trail: Array<string | number> = []): Array<Array<string | number>> =>
+      o && typeof o === "object"
+        ? Object.keys(o).flatMap((k) => [[...trail, k], ...paths(o[k], [...trail, Array.isArray(o) ? Number(k) : k])])
+        : [];
+    let checked = 0;
+    for (const base of bases) {
+      for (const trail of paths(base)) {
+        for (const value of values) {
+          const t = JSON.parse(JSON.stringify(base));
+          let at = t;
+          for (const k of trail.slice(0, -1)) at = at[k];
+          at[trail[trail.length - 1]] = value;
+          const r = checkTemplate(t);
+          checked++;
+          if (r.ok) expect(() => compileTemplate(t), JSON.stringify(trail) + JSON.stringify(value)).not.toThrow();
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(1000);
   });
 });
 

@@ -2,13 +2,13 @@
 // `template-input/proposal/`, made by the server (route A) or by an agent from the downloaded
 // prompt (route B). `checkProposal` judges both the same way, with `checkTemplate`, and names
 // every problem with its place.
-import { readFile, rm } from "node:fs/promises";
+import { readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { ApiError, response, route, type Project, type Route } from "./http.js";
 import { path as inside, reason, serialize, writeJsonAtomic } from "./files.js";
 import { saveOwnTemplate } from "./template-store.js";
-import { checkTemplate, type TemplateFile, type TemplateProposal } from "../web/studio/own-template.js";
+import { LIMITS, checkTemplate, type TemplateFile, type TemplateProposal } from "../web/studio/own-template.js";
 
 export const proposalDir = (projectDir: string) => join(projectDir, "template-input", "proposal");
 
@@ -32,6 +32,9 @@ export async function checkProposal(projectDir: string): Promise<ProposalState> 
   const dir = proposalDir(projectDir);
   let text: string;
   try {
+    // Never read a file of any size into memory: the limit of a template, plus room for extras.
+    const size = (await stat(inside({ dir }, "template.json"))).size;
+    if (size > LIMITS.file * 3) return invalid(["template.json: the file is larger than 60 kB"]);
     text = await readFile(inside({ dir }, "template.json"), "utf8");
   } catch (e) {
     if ((e as NodeJS.ErrnoException)?.code === "ENOENT") return { state: "none" };

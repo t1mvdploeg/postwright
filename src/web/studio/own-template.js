@@ -120,6 +120,9 @@ const NAMED_COLOURS = new Set(
   ).split(" "),
 );
 
+/** Colour keywords with a vendor prefix (`-webkit-link`, `-moz-default-color`); layout keywords like `-webkit-box` stay. */
+const LEGACY_COLOUR =
+  /^-moz-|^-webkit-(?!box$|inline-box$|fill-available$|max-content$|min-content$|fit-content$|sticky$)/;
 const ID = /^[a-z][A-Za-z0-9]{0,23}$/;
 const CLASS = /^[a-z][a-z0-9-]{0,30}$/;
 const TEMPLATE_ID = /^own-[0-9a-f]{8}$/;
@@ -227,7 +230,7 @@ function valueProblem(prop, value) {
         previous = `${name}(`;
         continue;
       }
-      if (NAMED_COLOURS.has(name))
+      if (NAMED_COLOURS.has(name) || LEGACY_COLOUR.test(name))
         return `the colour "${m[2]}" is not allowed (use var(--accent) and the other brand variables, or color-mix)`;
     } else if (m[0] === "(") {
       depth++;
@@ -326,6 +329,14 @@ export function expandField(f) {
   return { ...f };
 }
 
+const FIELD_KEYS = {
+  headline: ["id", "label", "kind", "max", "defaultValue"],
+  text: ["id", "label", "kind", "max", "defaultValue", "help"],
+  line: ["id", "label", "kind", "max", "defaultValue", "help"],
+  choice: ["id", "label", "kind", "options", "defaultValue"],
+  media: ["id", "label", "kind", "required", "help"],
+};
+
 /** Checks a list of fields; returns a map from id to the expanded field. */
 function checkFields(fields, where, problems) {
   const byId = new Map();
@@ -347,13 +358,8 @@ function checkFields(fields, where, problems) {
       }
       return byId.set(f.preset, expandField(f));
     }
-    const keys = {
-      headline: ["id", "label", "kind", "max", "defaultValue"],
-      text: ["id", "label", "kind", "max", "defaultValue", "help"],
-      line: ["id", "label", "kind", "max", "defaultValue", "help"],
-      choice: ["id", "label", "kind", "options", "defaultValue"],
-      media: ["id", "label", "kind", "required", "help"],
-    }[f.kind];
+    // A kind is a plain string and one of these keys: not "constructor", not an array that reads like one.
+    const keys = typeof f.kind === "string" && Object.hasOwn(FIELD_KEYS, f.kind) ? FIELD_KEYS[f.kind] : null;
     if (!keys) return problems.push(`${at}: kind must be headline, text, line, choice or media`);
     unknownKeys(f, keys, at, problems);
     if (typeof f.id !== "string" || !ID.test(f.id))
@@ -564,7 +570,11 @@ export function checkTemplate(raw, { mode = "either" } = {}) {
     for (const k of ["fields", "tree"])
       if (k in raw) problems.push(`${k}: a carousel has them per slide kind, in slides`);
     const kinds = new Map();
-    if (!Array.isArray(raw.slides) || raw.slides.map((s) => s?.kind).join() !== SLIDE_KINDS.join()) {
+    if (
+      !Array.isArray(raw.slides) ||
+      raw.slides.length !== SLIDE_KINDS.length ||
+      !raw.slides.every((s, n) => s?.kind === SLIDE_KINDS[n])
+    ) {
       problems.push("slides: must be exactly three slide kinds, in this order: cover, content, closing");
     } else {
       raw.slides.forEach((s, n) => {

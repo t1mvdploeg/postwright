@@ -149,6 +149,28 @@ describe("the proposal routes", () => {
     expect((await call("/api/template-proposal")).body.problems[0]).toMatch(/^extras\.json: /);
   });
 
+  it("is invalid, with a plain message, for a template.json that is far too large, and never reads it", async () => {
+    const { call, projectDir } = await start();
+    const dir = proposal(projectDir);
+    writeFileSync(join(dir, "template.json"), " ".repeat(200_000));
+    const r = await call("/api/template-proposal");
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ state: "invalid", problems: ["template.json: the file is larger than 60 kB"] });
+  });
+
+  it("is invalid, not an error, for a field kind such as constructor or an array", async () => {
+    const { call, projectDir } = await start();
+    for (const kind of ["constructor", "__proto__", ["media"]]) {
+      const t: any = exampleTemplate();
+      t.fields[3] = { ...t.fields[3], kind };
+      proposal(projectDir, t);
+      const r = await call("/api/template-proposal");
+      expect(r.status).toBe(200);
+      expect(r.body.state).toBe("invalid");
+      expect(r.body.problems.join("\n")).toMatch(/kind must be/);
+    }
+  });
+
   it("applies a proposal: the server makes the id, the proposal goes, and the template is in the list", async () => {
     const { call, projectDir } = await start();
     proposal(projectDir);
