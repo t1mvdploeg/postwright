@@ -1462,11 +1462,27 @@ textarea[readonly] {
   font-size: var(--t-xs);
 }
 
-.studio-editor-bar {
+.studio-editor-head {
   display: flex;
   align-items: center;
   gap: var(--r4);
   margin-bottom: var(--r4);
+}
+
+.studio-editor-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--r4);
+}
+
+/* Only on phones and tablets: see the compact rules below the editor grid. */
+.studio-bar-info {
+  display: contents;
+}
+
+.studio-bar-line,
+.studio-editor-tabs {
+  display: none;
 }
 
 .studio-back {
@@ -1534,13 +1550,142 @@ textarea[readonly] {
   }
 }
 
+/* Phones and tablets (up to 1179px): the bar with Save, the brand check and the status sticks to
+   the bottom of the screen, and the page gets room so it never covers the last field. */
+@media (max-width: 1179px) {
+  .studio-editor-bar {
+    position: fixed;
+    left: 212px;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    justify-content: space-between;
+    padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+    background: var(--background);
+    border-top: 1px solid var(--edge);
+  }
+  .studio-bar-info {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .studio-bar-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--r1) var(--r2);
+  }
+  .studio-bar-check {
+    font-size: var(--t-s);
+    font-weight: 600;
+    text-align: left;
+  }
+  .studio-bar-check.level-ok {
+    color: var(--confirmed);
+  }
+  .studio-bar-check.level-attention {
+    color: var(--warning);
+  }
+  .studio-bar-check.level-error {
+    color: var(--error);
+  }
+  .studio-editor {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+  .app-content :is(input, select, textarea, button, a, summary) {
+    scroll-margin-bottom: 96px;
+  }
+  /* Touch: the facts flow with the page instead of scrolling inside a box. */
+  .studio-fact-picker .studio-fact-list {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* Tablet: fields on the left, the preview stays beside them while you scroll, and the brand
+   check, caption and status continue under the fields. */
+@media (min-width: 701px) and (max-width: 1179px) {
+  .studio-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .studio-editor > :nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .studio-editor > :nth-child(2) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    max-height: calc(100vh - var(--headline-height) - 112px);
+    overflow: auto;
+  }
+  .studio-editor > :nth-child(3) {
+    grid-column: 1;
+    grid-row: 2;
+    display: block;
+  }
+  .studio-editor > :nth-child(3) > .card:first-child {
+    border-top: 1px solid var(--edge);
+    padding-top: 22px;
+  }
+  .studio-editor > :nth-child(3) > .card + .card {
+    margin-top: var(--r4);
+  }
+}
+
 @media (max-width: 900px) {
+  .studio-editor-bar {
+    left: 0;
+  }
+}
+
+/* Phone: one panel at a time, chosen with the tabs above it. */
+@media (max-width: 700px) {
+  .studio-editor-tabs {
+    position: sticky;
+    top: var(--headline-height);
+    z-index: 14;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 var(--r4);
+    padding: var(--r2) 0;
+    background: var(--background);
+    border-bottom: 1px solid var(--edge);
+  }
+  .studio-editor-tab {
+    min-height: 44px;
+    padding: 6px 8px;
+    background: transparent;
+    color: var(--tab-text);
+    border: 1px solid var(--edge-strong);
+  }
+  .studio-editor-tab:hover {
+    background: var(--hover);
+  }
+  .studio-editor-tab[aria-selected="true"] {
+    background: var(--olive-soft);
+    color: var(--olive-strong);
+    border-color: var(--edge-olive);
+  }
   .studio-editor {
     grid-template-columns: minmax(0, 1fr);
   }
+  .studio-editor > :nth-child(3) {
+    display: block;
+  }
+  .studio-editor > :nth-child(3) > .card + .card {
+    margin-top: var(--r4);
+  }
   .studio-center {
     position: static;
-    order: -1;
+  }
+  .studio-editor[data-tab="fields"] > :not(:nth-child(1)),
+  .studio-editor[data-tab="preview"] > :not(:nth-child(2)),
+  .studio-editor[data-tab="caption"] > :not(:nth-child(3)) {
+    display: none;
+  }
+  .app-content :is(input, select, textarea, button, a, summary) {
+    scroll-margin-top: calc(var(--headline-height) + 72px);
   }
 }
 

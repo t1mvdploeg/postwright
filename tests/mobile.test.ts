@@ -148,3 +148,118 @@ describe.skipIf(!browser)("studio on a tablet (820 x 1180)", () => {
     });
   }
 });
+
+describe.skipIf(!browser)("the editor on a phone and a tablet", () => {
+  const inView = (page: Page, selector: string) =>
+    page.evaluate((sel) => {
+      const r = document.querySelector(sel)!.getBoundingClientRect();
+      return r.width > 0 && r.top >= 0 && r.bottom <= window.innerHeight;
+    }, selector);
+
+  it("keeps Save and the brand check in view at the bottom of the fields (375)", async () => {
+    const page = await open(375, 812, `editor/${postId}`);
+    try {
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      expect(await inView(page, "#studio-main .studio-editor-bar button")).toBe(true);
+      expect(await inView(page, ".studio-bar-check")).toBe(true);
+      expect(await page.textContent(".studio-bar-check")).toMatch(/^Brand check: /);
+      // The bar must not cover the last field: the end of the page is clear of it.
+      const clear = await page.evaluate(() => {
+        const bar = document.querySelector(".studio-editor-bar")!.getBoundingClientRect();
+        const last = [
+          ...document.querySelectorAll(".studio-editor > :not([style*='none']) :is(input,button,summary,label)"),
+        ]
+          .filter((e) => (e as HTMLElement).offsetParent)
+          .pop()!;
+        return last.getBoundingClientRect().bottom <= bar.top;
+      });
+      expect(clear).toBe(true);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("shows the preview in a tab, with arrow keys moving between the tabs (375)", async () => {
+    const page = await open(375, 812, `editor/${postId}`);
+    try {
+      expect(await page.locator("#editor-tab-fields").getAttribute("aria-selected")).toBe("true");
+      expect(await page.locator(".studio-preview").first().isVisible()).toBe(false);
+      await page.focus("#editor-tab-fields");
+      await page.keyboard.press("ArrowRight");
+      expect(await page.evaluate(() => document.activeElement?.id)).toBe("editor-tab-preview");
+      expect(await page.locator("#editor-tab-preview").getAttribute("aria-selected")).toBe("true");
+      expect(await page.locator(".studio-preview").first().isVisible()).toBe(true);
+      const box = await page.locator(".studio-preview").first().boundingBox();
+      expect(box!.width).toBeGreaterThan(200);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(375);
+      await page.keyboard.press("End");
+      expect(await page.locator("#editor-tab-caption").getAttribute("aria-selected")).toBe("true");
+      expect(await page.locator("#field-altText").isVisible()).toBe(true);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("keeps the preview live while you type in Fields (375)", async () => {
+    const page = await open(375, 812, `editor/${postId}`);
+    try {
+      await page.fill("#field-headline", "Typed on a phone");
+      await page.click("#editor-tab-preview");
+      await page.waitForFunction(() =>
+        document.querySelector(".studio-preview")?.getAttribute("aria-label")?.includes("Typed on a phone"),
+      );
+    } finally {
+      await page.close();
+    }
+  });
+
+  for (const [width, height] of [
+    [375, 812],
+    [820, 1180],
+  ]) {
+    it(`has no sideways scrolling in any tab (${width})`, async () => {
+      const page = await open(width, height, `editor/${postId}`);
+      try {
+        for (const tab of width < 701 ? ["fields", "preview", "caption"] : [null]) {
+          if (tab) await page.click(`#editor-tab-${tab}`);
+          const { scrollWidth, width: w } = await sideways(page);
+          expect(scrollWidth).toBeLessThanOrEqual(w);
+        }
+      } finally {
+        await page.close();
+      }
+    });
+  }
+
+  it("lays out the tablet in two columns without a nested scroll box for the facts (820)", async () => {
+    const page = await open(820, 1180, `editor/${postId}`);
+    try {
+      const [fields, preview] = await Promise.all(
+        ["#editor-panel-fields", "#editor-panel-preview"].map((s) => page.locator(s).boundingBox()),
+      );
+      expect(preview!.x).toBeGreaterThan(fields!.x + fields!.width - 1);
+      expect(await page.locator(".studio-editor-tabs").isVisible()).toBe(false);
+      expect(await inView(page, ".studio-editor-bar button")).toBe(true);
+      const overflow = await page.locator(".studio-fact-list").evaluate((e) => getComputedStyle(e).overflowY);
+      expect(overflow).toBe("visible");
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("still saves with Ctrl+S on a phone", async () => {
+    const page = await open(375, 812, `editor/${postId}`);
+    try {
+      await page.fill("#field-title", "Saved with the keyboard");
+      expect(await page.textContent(".studio-save-status")).toBe("Not saved");
+      await page.keyboard.press("Control+s");
+      await page.waitForFunction(() =>
+        document.querySelector(".studio-save-status")?.textContent?.startsWith("Saved at"),
+      );
+      const saved = await (await fetch(`${studio.base}/api/posts/${postId}`)).json();
+      expect(saved.title).toBe("Saved with the keyboard");
+    } finally {
+      await page.close();
+    }
+  });
+});

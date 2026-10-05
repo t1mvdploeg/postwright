@@ -191,6 +191,10 @@ async function showEditor(container, ctx, begin) {
     "aria-keyshortcuts": "Control+S Meta+S",
   });
   const saveStatus = el("span", { class: "studio-save-status", role: "status" });
+  // On phones and tablets the bar sits at the bottom of the screen and also shows the brand
+  // check and the post status, so they stay in view. On a desktop only Save and its status show.
+  const checkChip = el("button", { type: "button", class: "button-plain studio-bar-check" });
+  const statusChip = el("span", { class: "badge" });
   const exportStatus = el("p", { class: "help-text studio-export-status", role: "status", "aria-live": "polite" });
   const fieldsHolder = el("div", { class: "studio-fields" });
   const slideHolder = el("div", { class: "studio-slides" });
@@ -336,52 +340,143 @@ async function showEditor(container, ctx, begin) {
       : null,
   ]);
 
-  const leftColumn = el("section", { class: "studio-column card", "aria-label": "Content" }, [
-    el("div", { class: "field" }, [el("label", { for: "field-title", text: "Title (studio only)" }), titleField]),
-    s.kind === "carousel" ? slideHolder : null,
-    fieldsHolder,
-    helpPanel?.element ?? null,
-    formatChoice,
-    el("div", { class: "field" }, [el("label", { for: "field-campaign", text: "Campaign" }), campaignChoice]),
-    factsHolder,
-  ]);
-  const centerColumn = el("section", { class: "studio-column studio-center", "aria-label": "Preview" }, [
-    viewGroup,
-    formatTabs,
-    previewFrame,
-    feedHolder,
-    slideNav,
-    zoneToggle,
-    exportButtons,
-    exportStatus,
-  ]);
-  const rightColumn = el("section", { class: "studio-column", "aria-label": "Check, text and status" }, [
-    el("div", { class: "card" }, [checkHeadline, checkList]),
-    el("div", { class: "card" }, [
-      el("h2", { text: "Caption" }),
-      captionHolder,
-      el("div", { class: "field" }, [
-        el("label", { for: "field-link", text: "Link for the post" }),
-        linkField,
-        el("p", { class: "help-text", text: "With Insert link, it ends up in the caption with UTM." }),
+  const leftColumn = el(
+    "section",
+    { class: "studio-column card", id: "editor-panel-fields", "aria-label": "Content" },
+    [
+      el("div", { class: "field" }, [el("label", { for: "field-title", text: "Title (studio only)" }), titleField]),
+      s.kind === "carousel" ? slideHolder : null,
+      fieldsHolder,
+      helpPanel?.element ?? null,
+      formatChoice,
+      el("div", { class: "field" }, [el("label", { for: "field-campaign", text: "Campaign" }), campaignChoice]),
+      factsHolder,
+    ],
+  );
+  const centerColumn = el(
+    "section",
+    { class: "studio-column studio-center", id: "editor-panel-preview", "aria-label": "Preview" },
+    [viewGroup, formatTabs, previewFrame, feedHolder, slideNav, zoneToggle, exportButtons, exportStatus],
+  );
+  const checkCard = el("div", { class: "card" }, [checkHeadline, checkList]);
+  const rightColumn = el(
+    "section",
+    { class: "studio-column", id: "editor-panel-caption", "aria-label": "Check, text and status" },
+    [
+      checkCard,
+      el("div", { class: "card" }, [
+        el("h2", { text: "Caption" }),
+        captionHolder,
+        el("div", { class: "field" }, [
+          el("label", { for: "field-link", text: "Link for the post" }),
+          linkField,
+          el("p", { class: "help-text", text: "With Insert link, it ends up in the caption with UTM." }),
+        ]),
+        el("div", { class: "field" }, [
+          el("label", { for: "field-altText", text: "Alt text of the image" }),
+          altField,
+          altFromImage,
+        ]),
       ]),
-      el("div", { class: "field" }, [
-        el("label", { for: "field-altText", text: "Alt text of the image" }),
-        altField,
-        altFromImage,
-      ]),
-    ]),
-    el("div", { class: "card" }, [el("h2", { text: "Status" }), statusHolder]),
+      el("div", { class: "card" }, [el("h2", { text: "Status" }), statusHolder]),
+    ],
+  );
+
+  // On a phone the three columns become three tabs, so the preview is one tap away at any
+  // point and a field never has the preview 3000px above it. The tab bar is hidden by CSS on
+  // wider screens, where all three columns show.
+  const phone = window.matchMedia("(max-width: 700px)");
+  const TABS = [
+    ["fields", "Fields", leftColumn],
+    ["preview", "Preview", centerColumn],
+    ["caption", "Caption", rightColumn],
+  ];
+  const tabButtons = TABS.map(([id, label], i) => {
+    const button = el("button", {
+      type: "button",
+      role: "tab",
+      id: `editor-tab-${id}`,
+      class: "studio-editor-tab",
+      "aria-controls": `editor-panel-${id}`,
+      text: label,
+    });
+    button.addEventListener("click", () => chooseTab(id));
+    button.addEventListener("keydown", (e) => {
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      const next = (to + TABS.length) % TABS.length;
+      chooseTab(TABS[next][0]);
+      tabButtons[next].focus();
+    });
+    return button;
+  });
+  const editorTabs = el(
+    "div",
+    { class: "studio-editor-tabs", role: "tablist", "aria-label": "Editor section" },
+    tabButtons,
+  );
+  const editorGrid = el("div", { class: "studio-editor", "data-tab": "fields" }, [
+    leftColumn,
+    centerColumn,
+    rightColumn,
   ]);
 
+  function showTab(id) {
+    editorGrid.dataset.tab = id;
+    TABS.forEach(([name], i) => {
+      tabButtons[i].setAttribute("aria-selected", String(name === id));
+      tabButtons[i].tabIndex = name === id ? 0 : -1;
+    });
+    // The preview was measured while hidden; fit it to its real width now.
+    if (id === "preview") renderPreview();
+  }
+  // Panels only act as tab panels while the tabs show.
+  function syncPanels() {
+    for (const [id, , panel] of TABS) {
+      if (phone.matches) {
+        panel.setAttribute("role", "tabpanel");
+        panel.setAttribute("aria-labelledby", `editor-tab-${id}`);
+      } else {
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-labelledby");
+      }
+    }
+  }
+  // A tab chosen by the user also brings the new panel to the top, not to wherever the last one was scrolled.
+  function chooseTab(id) {
+    showTab(id);
+    const stuck = parseFloat(getComputedStyle(editorTabs).top) || 0;
+    const target = editorGrid.getBoundingClientRect().top + window.scrollY - stuck - editorTabs.offsetHeight - 16;
+    if (window.scrollY > target) window.scrollTo({ top: Math.max(0, target) });
+  }
+  /** A control in another tab has to be on screen before it can take focus. */
+  function reveal(id) {
+    if (phone.matches) showTab(id);
+  }
+  phone.addEventListener("change", syncPanels);
+  showTab("fields");
+  syncPanels();
+
   container.replaceChildren(
-    el("div", { class: "studio-editor-bar" }, [
+    el("div", { class: "studio-editor-head" }, [
       el("a", { href: "#library", class: "studio-back text-link" }, [icon("back"), "Back to your posts"]),
-      saveStatus,
-      saveButton,
+      el("div", { class: "studio-editor-bar" }, [
+        el("div", { class: "studio-bar-info" }, [
+          el("div", { class: "studio-bar-line" }, [checkChip, statusChip]),
+          saveStatus,
+        ]),
+        saveButton,
+      ]),
     ]),
-    el("div", { class: "studio-editor" }, [leftColumn, centerColumn, rightColumn]),
+    editorTabs,
+    editorGrid,
   );
+  checkChip.addEventListener("click", () => {
+    reveal("caption");
+    checkHeadline.setAttribute("tabindex", "-1");
+    checkHeadline.focus();
+  });
   showZones.addEventListener("change", () => {
     zoneLayer.hidden = !showZones.checked;
     renderZones();
@@ -726,6 +821,8 @@ async function showEditor(container, ctx, begin) {
       : u.attention
         ? `Brand check: ${u.attention} to watch`
         : "Brand check: OK";
+    checkChip.textContent = checkHeadline.textContent;
+    checkChip.className = `button-plain studio-bar-check level-${u.errors ? "error" : u.attention ? "attention" : "ok"}`;
     const line = (b) => {
       const label = b.level === "error" ? "Error" : b.level === "attention" ? "Attention" : "OK";
       const text = el("span", { text: b.text });
@@ -761,6 +858,7 @@ async function showEditor(container, ctx, begin) {
   }
 
   function goTo(b) {
+    reveal(b.channel ? "caption" : "fields");
     if (b.channel) {
       state.channel = b.channel;
       renderCaption();
@@ -1193,6 +1291,9 @@ async function showEditor(container, ctx, begin) {
         ? "Not saved yet"
         : `Saved at ${new Date(state.post.updated).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
     saveStatus.classList.toggle("unsaved", state.unsaved);
+    const status = state.post.status ?? "draft";
+    statusChip.className = `badge studio-badge-${status}`;
+    statusChip.textContent = STATUS_LABELS[status];
   }
 
   function renderAll() {
@@ -1292,6 +1393,7 @@ async function showEditor(container, ctx, begin) {
     if (state.busy) return false;
     if (state.post.link && !addUtm(state.post.link, {})) {
       fieldError(linkField, "A link must start with https://.");
+      reveal("caption");
       linkField.focus();
       return false;
     }
@@ -1430,6 +1532,7 @@ async function showEditor(container, ctx, begin) {
     hasUnsaved: () => state.unsaved,
     leave: () => {
       document.removeEventListener("keydown", onKeydown);
+      phone.removeEventListener("change", syncPanels);
       rescale.disconnect();
       removeMeasureFrames();
     },
