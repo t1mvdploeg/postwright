@@ -406,6 +406,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       channel: request.channel,
       note: request.note,
       current: request.current,
+      profile: settings.profile,
       facts: usable.map((f) => ({ id: f.id, text: f.text, source: f.source.reference })),
       brand: { brandName: brand.name, bannedWords: settings.bannedWords },
     };
@@ -833,6 +834,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     route("POST", "/api/ideas/suggest", async (c) => {
       const s = await store(c);
       const v = validate(IdeasRequestSchema, await c.readJson());
+      const settings = await loadSettings(s);
       const today = localToday(new Date());
       if (v.to < today) throw new ApiError(400, "This period lies entirely in the past");
       const from = v.from < today ? today : v.from;
@@ -882,10 +884,8 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         ],
         campaign: campaign ? { name: campaign.name, goal: campaign.goal } : null,
         results: resultsPerTemplate(posts, plusDays(today, -182)),
-        brand: {
-          brandName: (await loadBrand(s.dir)).name,
-          bannedWords: (await loadSettings(s)).bannedWords,
-        },
+        profile: settings.profile,
+        brand: { brandName: (await loadBrand(s.dir)).name, bannedWords: settings.bannedWords },
       };
       const r = await aiHelp(s, "The idea help", `ideas:${from}..${v.to}`, () => provider.suggestIdeas(prompt));
       return {

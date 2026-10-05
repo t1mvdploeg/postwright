@@ -258,6 +258,30 @@ export interface Fact extends FactInput {
   updated: string;
 }
 
+/**
+ * What kind of business the project is, in the user's own words, so that the idea planner and
+ * the writing help can think in the right sector. Plain text; every part may stay empty. It is
+ * context for the model and never a source of numbers: those come from the facts only.
+ */
+export const CompanyProfileSchema = z
+  .object({
+    description: z.string().trim().max(600).default(""),
+    sector: z.string().trim().max(100).default(""),
+    offer: z.string().trim().max(600).default(""),
+    audience: z.string().trim().max(400).default(""),
+    region: z.string().trim().max(200).default(""),
+    website: z.string().trim().max(200).default(""),
+  })
+  .strict();
+export type CompanyProfile = z.infer<typeof CompanyProfileSchema>;
+export const EMPTY_PROFILE: CompanyProfile = CompanyProfileSchema.parse({});
+
+/** The profile as the model gets it: only the parts that are filled in, or null if none is. */
+export function profileForPrompt(p: CompanyProfile | null | undefined): Partial<CompanyProfile> | null {
+  const filled = Object.entries(p ?? {}).filter(([, v]) => typeof v === "string" && v.trim() !== "");
+  return filled.length ? (Object.fromEntries(filled) as Partial<CompanyProfile>) : null;
+}
+
 export const SettingsSchema = z
   .object({
     channels: z.array(z.enum(CHANNELS)).max(CHANNELS.length),
@@ -271,6 +295,7 @@ export const SettingsSchema = z
     bannedWords: z.array(z.string().trim().min(1).max(60)).max(100),
     defaultHashtags: z.string().max(300),
     tone: z.string().max(1500).default(""),
+    profile: CompanyProfileSchema.default(EMPTY_PROFILE),
     writingHelp: z
       .object({
         enabled: z.boolean(),
@@ -302,5 +327,6 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   defaultHashtags: "#postwright",
   tone: "",
+  profile: EMPTY_PROFILE,
   writingHelp: { enabled: true, capUsdPerMonth: 10 },
 };

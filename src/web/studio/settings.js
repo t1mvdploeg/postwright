@@ -43,6 +43,28 @@ export async function show(container, ctx) {
   );
   const tone = el("textarea", { id: "tone", rows: "3", maxlength: "1500" });
   tone.value = i.tone ?? "";
+  const profile = i.profile ?? {};
+  const profileInput = (id, label, max, rows, help) => {
+    const input = el(rows ? "textarea" : "input", {
+      id: `profile-${id}`,
+      maxlength: String(max),
+      ...(rows ? { rows } : { type: "text" }),
+    });
+    input.value = profile[id] ?? "";
+    return el("div", { class: "field" }, [
+      el("label", { for: `profile-${id}`, text: label }),
+      input,
+      help ? el("p", { class: "help-text", text: help }) : null,
+    ]);
+  };
+  const profileFields = [
+    profileInput("description", "What the company does", 600, "3"),
+    profileInput("sector", "Sector", 100, null, "For example: staffing, fashion retail, accounting."),
+    profileInput("offer", "Products and services", 600, "3"),
+    profileInput("audience", "Who the customers are", 400, "2"),
+    profileInput("region", "Where it works", 200),
+    profileInput("website", "Website", 200),
+  ];
   const banned = el("textarea", { id: "banned-words", rows: "6" });
   banned.value = i.bannedWords.join("\n");
   const hashtags = el("input", {
@@ -79,6 +101,12 @@ export async function show(container, ctx) {
         ),
       },
       tone: tone.value.trim(),
+      profile: Object.fromEntries(
+        ["description", "sector", "offer", "audience", "region", "website"].map((k) => [
+          k,
+          container.querySelector(`#profile-${k}`).value.trim(),
+        ]),
+      ),
       bannedWords: banned.value
         .split("\n")
         .map((w) => w.trim())
@@ -195,6 +223,11 @@ export async function show(container, ctx) {
           el("div", { class: "field" }, [el("label", { for: "utm-medium", text: "utm_medium" }), medium]),
           el("div", { class: "field-row" }, sources),
         ],
+      ),
+      row(
+        "Company profile",
+        "The planner and writing help use this to suggest posts that fit your business. It is background only: numbers still come from your facts.",
+        profileFields,
       ),
       row("Tone and words", "A little guidance for every caption, and the words the brand check watches for.", [
         el("div", { class: "field" }, [
