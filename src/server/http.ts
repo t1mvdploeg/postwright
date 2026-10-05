@@ -12,6 +12,13 @@ export class ApiError extends Error {
   }
 }
 
+/** A project as the routes see it: `dir` is `data/projects/<slug>`. */
+export interface Project {
+  slug: string;
+  name: string;
+  dir: string;
+}
+
 /**
  * What a route may know about the request. Deliberately NOT `IncomingMessage`/
  * `ServerResponse`: a route reads the body via `read`/`readJson` and returns a response
