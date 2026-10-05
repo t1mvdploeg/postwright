@@ -4,7 +4,8 @@
 //
 // "error" stops a post at Scheduled (the server then refuses); "attention" stops nothing;
 // "ok" is a confirmation the panel shows so that you can see what was checked.
-import { countEmphasis, fieldsOf, withoutEmphasis } from "./templates.js";
+import { countEmphasis, fieldsOf, template as templateOf, withoutEmphasis } from "./templates.js";
+import { pagesOf } from "./slides.js";
 import { checkCaption, CHANNEL_RULES } from "./caption.js";
 import { uncoveredNumbers } from "./numbers.js";
 import { contrastOn } from "./color.js";
@@ -27,7 +28,27 @@ export function containsWord(text, word) {
 }
 
 /**
- * All texts of a post with their location: the fields (per slide for a carousel), the
+ * The fields of a post per slide: `{ fields, content, slide, missing }`. `slide` is the index,
+ * or null for a post that is one image (its findings then read as before). A slide whose own
+ * template no longer exists has no fields and `missing: true`.
+ */
+function fieldSetsOf(post, s) {
+  if (s.kind === "carousel")
+    return (post.slides ?? []).map((d, i) => ({
+      fields: fieldsOf(s, d.kind),
+      content: d.content ?? {},
+      slide: i,
+      missing: false,
+    }));
+  const pages = pagesOf(post);
+  return pages.map((p, i) => {
+    const t = i === 0 ? s : templateOf(p.template);
+    return { fields: t?.fields ?? [], content: p.content ?? {}, slide: pages.length > 1 ? i : null, missing: !t };
+  });
+}
+
+/**
+ * All texts of a post with their location: the fields (per slide when a post has more than one), the
  * captions and the alt text. The choice fields and media ids do not count: that is not text
  * anyone reads.
  */
@@ -46,9 +67,7 @@ export function textsOf(post, s) {
         });
     }
   };
-  if (s.kind === "carousel") {
-    (post.slides ?? []).forEach((d, i) => fields(fieldsOf(s, d.kind), d.content, i));
-  } else fields(s.fields, post.content, null);
+  for (const set of fieldSetsOf(post, s)) fields(set.fields, set.content, set.slide);
   for (const [channel, text] of Object.entries(post.caption ?? {})) {
     if (String(text ?? "").trim())
       out.push({
@@ -75,7 +94,7 @@ export function factUsable(f, today) {
 
 /**
  * @param {{
- *   post: { template: string, formats: string[], content: Record<string,string>, slides?: Array<{kind:string, content:Record<string,string>}>, caption?: Record<string,string>, altText?: string, link?: string, facts?: string[], brandVersion?: string },
+ *   post: { template: string, formats: string[], content: Record<string,string>, slides?: Array<{kind:string, content:Record<string,string>}>, moreSlides?: Array<{template:string, content:Record<string,string>}>, caption?: Record<string,string>, altText?: string, link?: string, facts?: string[], brandVersion?: string },
  *   template: object,
  *   settings: { channels: string[], bannedWords: string[] },
  *   facts?: Array<{ id: string, text: string, kind?: string, status: string, validFrom: string|null, validUntil: string|null }> | null,
@@ -102,12 +121,15 @@ export function runCheck({
   if (!post.formats?.length) add("error", "no-format", "Choose at least one format");
 
   // Fields: required, length, emphasis.
-  const fieldSets =
-    s.kind === "carousel"
-      ? (post.slides ?? []).map((d, i) => ({ fields: fieldsOf(s, d.kind), content: d.content ?? {}, slide: i }))
-      : [{ fields: s.fields, content: post.content ?? {}, slide: null }];
+  const fieldSets = fieldSetsOf(post, s);
   let emphasisOk = true;
-  for (const { fields, content, slide } of fieldSets) {
+  for (const { fields, content, slide, missing } of fieldSets) {
+    if (missing) {
+      add("error", "missing-template", `Slide ${slide + 1}: its template no longer exists; delete this slide`, {
+        slide,
+      });
+      continue;
+    }
     const position = (v) => (slide === null ? v.label : `Slide ${slide + 1}: ${v.label.toLowerCase()}`);
     for (const v of fields) {
       const value = String(content[v.id] ?? v.defaultValue ?? "");

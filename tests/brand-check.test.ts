@@ -432,3 +432,45 @@ describe("brand-check", () => {
     expect(titleFrom(base, statement)).toBe("Seen enough. Your turn has come.");
   });
 });
+
+describe("multi-slide posts", () => {
+  const settings = { channels: ["linkedin"], bannedWords: [] as string[] };
+  const base = {
+    template: "statement",
+    formats: ["li-square"],
+    content: { ground: "accent", headline: "One *two*", text: "" },
+    slides: [],
+    caption: {},
+  };
+
+  it("checks the fields of every slide with its own template, and names the slide", () => {
+    const post = {
+      ...base,
+      moreSlides: [
+        { template: "statistic", content: { headline: "Fine *here*" } },
+        { template: "question", content: { headline: "No emphasis at all" } },
+      ],
+    };
+    const r = runCheck({ post, template: template("statement")!, settings, today: "2026-10-05" });
+    const emphasis = r.findings.find((b) => b.code === "emphasis" && b.level === "error");
+    expect(emphasis).toMatchObject({ slide: 2 });
+    expect(emphasis!.text).toMatch(/^Slide 3: /);
+    expect(textsOf(post, template("statement")!).some((t) => t.where.startsWith("Slide 2,"))).toBe(true);
+  });
+
+  it("reads a one-slide post as before", () => {
+    const r = runCheck({
+      post: { ...base, content: { headline: "None" } },
+      template: template("statement")!,
+      settings,
+      today: "2026-10-05",
+    });
+    expect(r.findings.find((b) => b.code === "emphasis" && b.level === "error")).toMatchObject({ slide: null });
+  });
+
+  it("gives an error for a slide whose template no longer exists", () => {
+    const post = { ...base, moreSlides: [{ template: "own-deadbeef", content: {} }] };
+    const r = runCheck({ post, template: template("statement")!, settings, today: "2026-10-05" });
+    expect(r.findings).toContainEqual(expect.objectContaining({ level: "error", code: "missing-template", slide: 1 }));
+  });
+});

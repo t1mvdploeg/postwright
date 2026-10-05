@@ -1,12 +1,14 @@
 // Type declaration next to brand-check.js (plain browser ESM, no build step).
 import type { Template, Slide, Brand } from "./templates.js";
 import type { Finding } from "./caption.js";
+import type { Page } from "./slides.js";
 
 export interface CheckPost {
   template: string;
   formats: string[];
   content: Record<string, string>;
   slides?: Slide[];
+  moreSlides?: Page[];
   caption?: Record<string, string>;
   altText?: string;
   link?: string;
