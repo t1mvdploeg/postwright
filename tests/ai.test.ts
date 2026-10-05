@@ -1,7 +1,7 @@
 // De AI van de studio: de keuze tussen Claude en de voorbeeldgever, de kosten en het maandplafond, en
 // wat de routes ervan laten zien. Er gaat geen enkele aanroep naar het netwerk.
-import { describe, it, expect, afterEach } from "vitest";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AnthropicProvider, STANDAARD_MODEL, type MaakClient } from "../src/server/ai/anthropic.js";
@@ -312,6 +312,31 @@ describe("routes", () => {
     expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(502);
     expect(regels(dataDir)[0]).toMatchObject({ ok: false, usd: 2 });
   });
+
+  it.each([
+    ["een fout type", '{"schrijfhulp":{"aan":"nee"}}'],
+    ["geen JSON", "{dit is geen json"],
+  ])(
+    "weigert een AI-aanroep bij onleesbare instellingen (%s) zonder de provider aan te roepen",
+    async (_naam, inhoud) => {
+      const spy = vi.fn(async () => {
+        throw new Error("mag niet worden aangeroepen");
+      });
+      const { vraag, dataDir } = await start(live(spy));
+      mkdirSync(join(dataDir, "marketing"), { recursive: true });
+      writeFileSync(join(dataDir, "marketing", "instellingen.json"), inhoud);
+      for (const [pad, body] of [
+        ["/api/schrijfhulp", verzoek],
+        ["/api/ideeen/voorstellen", { van: "2099-01-01", tot: "2099-01-05", aantal: 1, kanaal: "linkedin" }],
+      ] as const) {
+        const r = await vraag(pad, body);
+        expect(r.status).toBe(500);
+        expect(r.body.fout).toContain("marketing/instellingen.json");
+      }
+      expect(spy).not.toHaveBeenCalled();
+      expect(existsSync(join(dataDir, "ai-usage.jsonl"))).toBe(false);
+    },
+  );
 
   it("stopt een live-provider bij het maandplafond; de voorbeeldgever blijft werken", async () => {
     const aanroepen: number[] = [];

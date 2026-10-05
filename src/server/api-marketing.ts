@@ -121,6 +121,8 @@ const MERK_VOOR_PROMPT: PromptMerk = { merknaam: "Postwright", toon: [] };
 export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider }): Route[] {
   const gedeeld: Opslag = { dir: o.dataDir };
   const provider = o.provider ?? kiesProvider();
+  /** De instellingen; een onleesbaar bestand wordt een 500 met zijn naam (nooit stilletjes de standaard). */
+  const laadInstellingen = () => laadMarketingInstellingen(gedeeld).catch(naarApiFout);
 
   function postId(c: Ctx): string {
     const id = c.params.id;
@@ -210,7 +212,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
    */
   async function vulPosts(): Promise<number> {
     const [bestaand, feiten, instellingen, merk] = await Promise.all([
-      lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten"), laadMarketingInstellingen(gedeeld),
+      lijstPosts(gedeeld), leesLijst<Feit>(gedeeld, "feiten"), laadInstellingen(),
       readFile(new URL("../web/marketing/merk/merk.json", import.meta.url), "utf8").then((t) => JSON.parse(t) as { versie: string }),
     ]);
     let nieuw = 0;
@@ -250,7 +252,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
    */
   async function aiHulp<T>(naam: string, taak: string, roep: () => Promise<AiResultaat<T>>): Promise<AiResultaat<T>> {
     return serialiseer("marketing-ai", async () => {
-      const marketing = await laadMarketingInstellingen(gedeeld);
+      const marketing = await laadInstellingen();
       if (!marketing.schrijfhulp.aan) throw new ApiFout(409, `${naam} staat uit; zet de AI-hulp aan onder Instellingen`);
       const plafond = marketing.schrijfhulp.plafondUsdPerMaand;
       if (provider.naam === "anthropic" && (await maandtotaalUsd(o.dataDir, new Date())) >= plafond) {
@@ -515,7 +517,7 @@ export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider 
     // -----------------------------------------------------------------------------------------
     // Instellingen en overzicht
     // -----------------------------------------------------------------------------------------
-    route("GET", "/api/instellingen", async () => laadMarketingInstellingen(gedeeld)),
+    route("GET", "/api/instellingen", async () => laadInstellingen()),
     route("PUT", "/api/instellingen", async (c) => {
       const i = valideer(MarketingInstellingenSchema, await c.leesJson());
       await bewaarMarketingInstellingen(gedeeld, i);

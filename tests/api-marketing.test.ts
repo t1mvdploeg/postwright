@@ -1,9 +1,10 @@
 // De studio-routes onder /api: recepten met versiecontrole, statusovergangen die de merkcontrole als
 // poort gebruiken, en uploads die alleen echte PNG/JPEG/WebP toelaten.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { maakPost } from "../src/data/marketing.js";
+import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
 import { startStudio } from "./helpers/studio.js";
 import type { Post } from "../src/model/marketing-schema.js";
 
@@ -459,5 +460,51 @@ describe("overzicht, golf 2", () => {
     const gepubliceerd = (await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "gepubliceerd" } })).body;
     expect((await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "gearchiveerd" } })).status).toBe(200);
     expect((await vraag(`${API}/overzicht`)).body.laatstGepubliceerd).toBe(gepubliceerd.gepubliceerd.op);
+  });
+});
+
+describe("opgeslagen instellingen die er niet goed uitzien", () => {
+  /** Een verse studio, met `inhoud` als instellingenbestand (null: geen bestand). */
+  async function metBestand(inhoud: string | null) {
+    const studio = await startStudio();
+    if (inhoud !== null) {
+      mkdirSync(join(studio.dataDir, "marketing"), { recursive: true });
+      writeFileSync(join(studio.dataDir, "marketing", "instellingen.json"), inhoud);
+    }
+    const r = await fetch(`${studio.basis}${API}/instellingen`);
+    const tekst = await r.text();
+    await studio.sluit();
+    return { status: r.status, body: JSON.parse(tekst) };
+  }
+
+  it("geeft zonder bestand de standaard", async () => {
+    const r = await metBestand(null);
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual(STANDAARD_MARKETING_INSTELLINGEN);
+  });
+
+  it("vult een deels ingevuld bestand per onderdeel aan: AI uit blijft uit, met het standaardplafond", async () => {
+    const r = await metBestand('{"schrijfhulp":{"aan":false}}');
+    expect(r.status).toBe(200);
+    expect(r.body.schrijfhulp).toEqual({ aan: false, plafondUsdPerMaand: 10 });
+    expect(r.body.kanalen).toEqual(STANDAARD_MARKETING_INSTELLINGEN.kanalen);
+    const eigen = await metBestand('{"verbodenWoorden":["gratis"]}');
+    expect(eigen.body.verbodenWoorden).toEqual(["gratis"]);
+    expect(eigen.body.schrijfhulp).toEqual({ aan: true, plafondUsdPerMaand: 10 });
+  });
+
+  it.each([
+    ["een fout type", '{"schrijfhulp":{"aan":"nee"}}', /schrijfhulp\.aan/],
+    ["een onbekend veld", '{"schrijfhulp":{"aan":false,"extra":1}}', /schrijfhulp/],
+    ["een onderdeel dat geen object is", '{"schrijfhulp":"uit"}', /schrijfhulp/],
+    ["geen JSON", "{dit is geen json", /instellingen\.json/],
+    ["een lijst in plaats van een object", "[]", /instellingen\.json/],
+    ["null", "null", /instellingen\.json/],
+  ])("geeft bij %s een 500 die het bestand noemt, nooit de standaard", async (_naam, inhoud, veld) => {
+    const r = await metBestand(inhoud);
+    expect(r.status).toBe(500);
+    expect(r.body.fout).toContain("marketing/instellingen.json");
+    expect(r.body.fout).toMatch(veld);
+    expect(r.body).not.toHaveProperty("schrijfhulp");
   });
 });

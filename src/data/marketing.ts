@@ -21,7 +21,7 @@ const MAP = "marketing";
 
 /** Fout die de route één-op-één als HTTP-status teruggeeft (409 bij een oude versie, 404 weg). */
 export class MarketingOpslagFout extends Error {
-  constructor(public status: 404 | 409, melding: string) { super(melding); }
+  constructor(public status: 404 | 409 | 500, melding: string) { super(melding); }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -128,14 +128,41 @@ export async function werkLijstBij<T extends { id: string }, U>(o: Opslag, lijst
 // ---------------------------------------------------------------------------------------------
 
 /**
- * De instellingen, aangevuld met de standaard voor elk veld dat (nog) ontbreekt. Een bestand dat
- * niet (meer) door het schema komt, valt terug op de standaard in plaats van de studio te blokkeren.
+ * De instellingen, aangevuld met de standaard voor elk veld dat (nog) ontbreekt: per sleutel, en voor
+ * `schrijfhulp` per onderdeel, zodat `{"schrijfhulp":{"aan":false}}` de AI uit laat staan met het
+ * standaardplafond. Geen bestand geeft de standaard. Een bestand dat er wel is maar niet te lezen of
+ * niet geldig is, valt NIET terug op de standaard (die zet de AI aan): dat geeft een 500 die het
+ * bestand en het eerste foute veld noemt.
  */
 export async function laadMarketingInstellingen(o: Opslag): Promise<MarketingInstellingen> {
-  const bewaard = await leesJson<Partial<MarketingInstellingen>>(pad(o, MAP, "instellingen.json"));
-  const samen = { ...structuredClone(STANDAARD_MARKETING_INSTELLINGEN), ...(bewaard ?? {}) };
+  const standaard = structuredClone(STANDAARD_MARKETING_INSTELLINGEN);
+  const naam = `${MAP}/instellingen.json`;
+  const onleesbaar = (reden: string) => new MarketingOpslagFout(500, `${naam} is niet te lezen: ${reden}`);
+  let tekst: string;
+  try {
+    tekst = await readFile(pad(o, MAP, "instellingen.json"), "utf8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return standaard;
+    throw onleesbaar(e instanceof Error ? e.message : String(e));
+  }
+  let bewaard: unknown;
+  try {
+    bewaard = JSON.parse(tekst);
+  } catch (e) {
+    throw onleesbaar(e instanceof Error ? e.message : String(e));
+  }
+  if (typeof bewaard !== "object" || bewaard === null || Array.isArray(bewaard)) throw onleesbaar("verwacht een object");
+  const eigen = bewaard as Record<string, unknown>;
+  const samen: Record<string, unknown> = { ...standaard, ...eigen };
+  if (typeof eigen.schrijfhulp === "object" && eigen.schrijfhulp !== null && !Array.isArray(eigen.schrijfhulp)) {
+    samen.schrijfhulp = { ...standaard.schrijfhulp, ...eigen.schrijfhulp };
+  }
   const r = MarketingInstellingenSchema.safeParse(samen);
-  return r.success ? r.data : structuredClone(STANDAARD_MARKETING_INSTELLINGEN);
+  if (!r.success) {
+    const eerste = r.error.issues[0];
+    throw onleesbaar(`${eerste.path.join(".") || "invoer"}: ${eerste.message}`);
+  }
+  return r.data;
 }
 
 export async function bewaarMarketingInstellingen(o: Opslag, i: MarketingInstellingen): Promise<void> {
