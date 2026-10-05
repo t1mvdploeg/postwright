@@ -3,21 +3,19 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createRoutes } from "../../src/server/routes.js";
+import { createApp } from "../../src/server/app.js";
 import { startServer } from "../../src/server/http.js";
-import { brandFolder, brandRoutes } from "../../src/server/brand.js";
+import { prepareData } from "../../src/server/projects.js";
 import type { AiProvider } from "../../src/server/ai/provider.js";
 
 export async function startStudio(options: { provider?: AiProvider } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "pw-studio-"));
-  const s = await startServer({
-    dataDir,
-    port: 0,
-    routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir, provider: options.provider })],
-    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
-  });
+  await prepareData(dataDir);
+  const s = await startServer({ dataDir, port: 0, ...createApp({ dataDir, provider: options.provider }) });
   return {
     dataDir,
+    /** The folder of the project `postwright`, where the studio data and the brand live. */
+    projectDir: join(dataDir, "projects", "postwright"),
     base: s.url,
     close: async () => {
       await s.close();

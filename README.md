@@ -54,7 +54,7 @@ The key is read from the environment only, and never written to a file, sent to 
 
 ## Use your own brand
 
-The built-in brand is Postwright's own, in `src/web/brand/`. To use yours, put a `brand.json` with your colours, font and logos in `data/brand/`, with the files next to it, using the built-in one as the example. An invalid file is reported with the field that is wrong. Posts made with an earlier brand version still open, and the brand check flags them.
+The built-in brand is Postwright's own, in `src/web/brand/`. To use yours, put a `brand.json` with your colours, font and logos in `data/projects/<slug>/brand/` (one brand per project), with the files next to it, using the built-in one as the example. An invalid file is reported with the field that is wrong. Posts made with an earlier brand version still open, and the brand check flags them.
 
 ## How it works
 

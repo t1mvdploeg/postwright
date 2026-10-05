@@ -435,19 +435,19 @@ describe("routes", () => {
     expect(lines(dataDir)[0]).toMatchObject({ ok: false, usd: 2 });
   });
 
-  it("the user's brand (data/brand/brand.json) gives the brand name to the writing help and is served that way", async () => {
+  it("the user's brand (data/projects/<slug>/brand/brand.json) gives the brand name to the writing help and is served that way", async () => {
     const seen: string[] = [];
     const spy = live(async (o: WritingTask) => {
       seen.push(o.brand.brandName);
       return { suggestion: { variants: [] }, model: "claude-sonnet-5-5", usage: EMPTY_USAGE, durationMs: 1 };
     });
-    const { ask, dataDir, base } = await start(spy);
+    const { ask, projectDir, base } = await start(spy);
     expect((await ask("/api/writing-help", request)).status).toBe(200);
     expect(seen).toEqual(["Postwright"]); // the built-in brand
     const builtIn = JSON.parse(readFileSync(new URL("../src/web/brand/brand.json", import.meta.url), "utf8"));
     const custom = JSON.stringify({ ...builtIn, name: "Own brand", version: "custom-9" });
-    mkdirSync(join(dataDir, "brand"), { recursive: true });
-    writeFileSync(join(dataDir, "brand", "brand.json"), custom);
+    mkdirSync(join(projectDir, "brand"), { recursive: true });
+    writeFileSync(join(projectDir, "brand", "brand.json"), custom);
     expect((await ask("/api/writing-help", request)).status).toBe(200);
     expect(seen).toEqual(["Postwright", "Own brand"]);
     const served = await fetch(`${base}/brand/brand.json`);
@@ -462,9 +462,9 @@ describe("routes", () => {
     const spy = vi.fn(async () => {
       throw new Error("must not be called");
     });
-    const { ask, dataDir } = await start(live(spy));
-    mkdirSync(join(dataDir, "marketing"), { recursive: true });
-    writeFileSync(join(dataDir, "marketing", "settings.json"), content);
+    const { ask, dataDir, projectDir } = await start(live(spy));
+    mkdirSync(join(projectDir, "marketing"), { recursive: true });
+    writeFileSync(join(projectDir, "marketing", "settings.json"), content);
     for (const [path, body] of [
       ["/api/writing-help", request],
       ["/api/ideas/suggest", { from: "2099-01-01", to: "2099-01-05", count: 1, channel: "linkedin" }],

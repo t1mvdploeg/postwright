@@ -1,12 +1,12 @@
-// Storage for the marketing studio: plain files under `data/marketing/`.
+// Storage for the marketing studio: plain files under `data/projects/<slug>/marketing/`.
 //
-//   data/marketing/posts/<id>.json   one recipe per post
-//   data/marketing/campaigns.json    list
-//   data/marketing/snippets.json     list
-//   data/marketing/facts.json        list (the fact bank)
-//   data/marketing/ideas.json        list (the idea planner)
-//   data/marketing/settings.json
-//   data/marketing/media/<hash>.<ext>
+//   data/projects/<slug>/marketing/posts/<id>.json   one recipe per post
+//   data/projects/<slug>/marketing/campaigns.json    list
+//   data/projects/<slug>/marketing/snippets.json     list
+//   data/projects/<slug>/marketing/facts.json        list (the fact bank)
+//   data/projects/<slug>/marketing/ideas.json        list (the idea planner)
+//   data/projects/<slug>/marketing/settings.json
+//   data/projects/<slug>/marketing/media/<hash>.<ext>
 import { open, readFile, stat } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import {

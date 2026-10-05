@@ -105,7 +105,7 @@ export async function show(container, ctx) {
       el("div", {}, [
         el("p", { class: "intro-label", text: `Brand version ${m.version}` }),
         el("p", {
-          text: `The brand the studio works from: ${m.name}. Put your own brand in data/brand (brand.json with the files next to it); the studio then uses that instead of this one.`,
+          text: `The brand the studio works from: ${m.name}. Put your own brand in data/projects/<slug>/brand/ (brand.json with the files next to it); the studio then uses that instead of this one.`,
         }),
       ]),
     ]),

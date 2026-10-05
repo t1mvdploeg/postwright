@@ -2,7 +2,7 @@
 // `GET /api/brand`, the logos and the font as data URIs. An image in a foreignObject must
 // not fetch anything from outside (the image stays empty or the canvas gets "tainted");
 // with everything embedded, preview equals export. The files come from `/brand/`: the
-// folder `data/brand` if a custom brand is there.
+// folder `data/projects/<slug>/brand/` if a custom brand is there.
 
 let brandPromise = null;
 const mediaCache = new Map();

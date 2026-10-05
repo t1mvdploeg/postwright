@@ -83,27 +83,27 @@ describe("readCustomMoments", () => {
     await studio.close();
   });
   const write = (content: string) => {
-    mkdirSync(join(studio.dataDir, "marketing"), { recursive: true });
-    writeFileSync(join(studio.dataDir, "marketing", "moments.json"), content);
+    mkdirSync(join(studio.projectDir, "marketing"), { recursive: true });
+    writeFileSync(join(studio.projectDir, "marketing", "moments.json"), content);
   };
   const get = (path: string) => fetch(studio.base + path);
 
   it("gives an empty list while the file is not there", async () => {
-    expect(await readCustomMoments({ dir: studio.dataDir })).toEqual([]);
+    expect(await readCustomMoments({ dir: studio.projectDir })).toEqual([]);
   });
 
   it("reads own moments and marks them as own; they are included in the route", async () => {
     write(
       JSON.stringify([{ key: "custom-launch", date: "2026-11-03", title: "Launch day", sentence: "Show the launch." }]),
     );
-    expect(await readCustomMoments({ dir: studio.dataDir })).toEqual([custom()]);
+    expect(await readCustomMoments({ dir: studio.projectDir })).toEqual([custom()]);
     const list = (await (await get("/api/moments?from=2026-11-01&to=2026-11-30")).json()).moments;
     expect(list).toEqual([custom()]);
   });
 
   it("gives an ApiError 500 with the file name on broken JSON or a wrong shape", async () => {
     write("{broken");
-    await expect(readCustomMoments({ dir: studio.dataDir })).rejects.toMatchObject({
+    await expect(readCustomMoments({ dir: studio.projectDir })).rejects.toMatchObject({
       status: 500,
       message: expect.stringContaining("moments.json"),
     });
@@ -111,7 +111,7 @@ describe("readCustomMoments", () => {
     expect(r.status).toBe(500);
     expect((await r.json()).error).toContain("moments.json");
     write(JSON.stringify([{ key: "x", date: "2026-13-45", title: "Error" }]));
-    await expect(readCustomMoments({ dir: studio.dataDir })).rejects.toMatchObject({
+    await expect(readCustomMoments({ dir: studio.projectDir })).rejects.toMatchObject({
       status: 500,
       message: expect.stringContaining("moments.json"),
     });
