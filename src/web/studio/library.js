@@ -1,15 +1,24 @@
-// Library: all posts (recipes), with filters. A thumbnail is only
-// rendered when its row comes into view; a recipe is small, an image is not.
-import { confirmDialog, el, emptyState, notice } from "/ui.js";
-import { TEMPLATES, buildImage, template as templateOf } from "/studio/templates.js";
-import { showPreview } from "/studio/render.js";
-import { loadMedia } from "/studio/brand.js";
+// Library: all posts (recipes) as cards, with the status as tabs and further filters next to
+// the search.
+import { confirmDialog, el, emptyState, icon, notice } from "/ui.js";
+import { TEMPLATES, template as templateOf } from "/studio/templates.js";
 import { factUsable } from "/studio/brand-check.js";
 import { readableMoment, localToday } from "/studio/recipe.js";
-import { CHANNELS, channelsOf } from "/studio/formats.js";
+import { CHANNELS, FORMATS, channelsOf } from "/studio/formats.js";
 
-const STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published", archived: "Archived" };
+const FORMAT_NAME = new Map(FORMATS.map((f) => [f.key, f.name]));
+import { drawArtwork, postCard } from "/studio/post-cards.js";
+
 const PER_PAGE = 24;
+const STATUS_TABS = [
+  ["active", "All posts"],
+  ["draft", "Draft"],
+  ["scheduled", "Scheduled"],
+  ["published", "Published"],
+  ["archived", "Archived"],
+  ["fact", "Unusable fact"],
+  ["all", "Everything"],
+];
 
 export async function show(container, ctx) {
   const [{ posts }, { campaigns }, factsResponse] = await Promise.all([
@@ -22,33 +31,45 @@ export async function show(container, ctx) {
   const usable = new Set(factsResponse.facts.filter((f) => factUsable(f, today)).map((f) => f.id));
   const withProblem = (p) => p.facts.some((id) => !usable.has(id));
 
-  const beginFilter = ctx.parts[0] ?? "active";
-  const status = el(
-    "select",
-    { id: "filter-status" },
-    [
-      ["active", "Everything except the archive"],
-      ["draft", "Draft"],
-      ["scheduled", "Scheduled"],
-      ["published", "Published"],
-      ["archived", "Archived"],
-      ["fact", "With an unusable fact"],
-      ["all", "All"],
-    ].map(([w, t]) => el("option", { value: w, text: t, ...(w === beginFilter ? { selected: "" } : {}) })),
+  // The status filter is a row of tabs; `status.value` is the chosen one.
+  const status = { value: STATUS_TABS.some(([w]) => w === ctx.parts[0]) ? ctx.parts[0] : "active" };
+  const tabs = el(
+    "div",
+    { class: "studio-tabs-row", role: "group", "aria-label": "Status" },
+    STATUS_TABS.map(([w, t]) =>
+      el("button", {
+        type: "button",
+        class: "studio-filter-tab",
+        "data-value": w,
+        "aria-pressed": String(w === status.value),
+        text: t,
+        onclick: () => {
+          status.value = w;
+          for (const b of tabs.children) b.setAttribute("aria-pressed", String(b.dataset.value === w));
+          visible = PER_PAGE;
+          render();
+        },
+      }),
+    ),
   );
-  const campaign = el("select", { id: "filter-campaign" }, [
+  const campaign = el("select", { id: "filter-campaign", class: "small", "aria-label": "Campaign" }, [
     el("option", { value: "", text: "All campaigns" }),
     ...campaigns.map((c) => el("option", { value: c.id, text: c.name })),
   ]);
-  const channel = el("select", { id: "filter-channel" }, [
+  const channel = el("select", { id: "filter-channel", class: "small", "aria-label": "Channel" }, [
     el("option", { value: "", text: "All channels" }),
     ...Object.entries(CHANNELS).map(([k, name]) => el("option", { value: k, text: name })),
   ]);
-  const templateFilter = el("select", { id: "filter-template" }, [
+  const templateFilter = el("select", { id: "filter-template", class: "small", "aria-label": "Template" }, [
     el("option", { value: "", text: "All templates" }),
     ...TEMPLATES.map((s) => el("option", { value: s.id, text: s.name })),
   ]);
-  const search = el("input", { type: "search", id: "filter-search", placeholder: "Search by title" });
+  const search = el("input", {
+    type: "search",
+    id: "filter-search",
+    placeholder: "Search your posts…",
+    "aria-label": "Search by title",
+  });
   const tableHolder = el("div");
   const more = el("button", { type: "button", class: "secondary", text: "Show more", hidden: "" });
   let visible = PER_PAGE;
@@ -124,109 +145,59 @@ export async function show(container, ctx) {
       return;
     }
     const campaignName = new Map(campaigns.map((c) => [c.id, c.name]));
-    const rows = list.slice(0, visible).map((p) => {
+    const cards = list.slice(0, visible).map((p) => {
       const s = templateOf(p.template);
-      const mini = el("div", { class: "studio-thumbnail small", "aria-hidden": "true" });
-      mini.dataset.id = p.id;
       const moment =
         p.status === "scheduled"
           ? readableMoment(p.scheduled)
           : p.status === "published"
             ? readableMoment(p.published?.on)
-            : "–";
-      return el("tr", {}, [
-        el("td", { class: "studio-cell-mini" }, [mini]),
-        el("td", {}, [
-          el("a", { href: `#editor/${p.id}`, text: p.title }),
+            : null;
+      const meta = [
+        s?.name ?? p.template,
+        FORMAT_NAME.get(p.formats[0]),
+        p.campaign ? (campaignName.get(p.campaign) ?? "campaign") : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return postCard(p, {
+        meta,
+        side: el("span", { class: "studio-post-when", text: moment ?? "" }),
+        warning:
           withProblem(p) && p.status !== "archived"
             ? el("span", { class: "badge badge-warning", text: "Fact not usable" })
             : null,
-          el("span", {
-            class: "table-subtext",
-            text: `${s?.name ?? p.template}${p.campaign ? ` · ${campaignName.get(p.campaign) ?? "campaign"}` : ""}`,
+        extra: el("div", { class: "studio-post-actions" }, [
+          el("button", { type: "button", class: "secondary small", text: "Duplicate", onclick: () => duplicate(p) }),
+          p.status === "archived"
+            ? el("button", {
+                type: "button",
+                class: "secondary small",
+                text: "Restore",
+                onclick: () => setStatus(p, "draft"),
+              })
+            : el("button", {
+                type: "button",
+                class: "secondary small",
+                text: "Archive",
+                onclick: () => setStatus(p, "archived"),
+              }),
+          el("button", {
+            type: "button",
+            class: "secondary small danger",
+            text: "Delete",
+            "aria-label": `Delete ${p.title}`,
+            onclick: () => erase(p),
           }),
         ]),
-        el("td", {}, [el("span", { class: `badge studio-badge-${p.status}`, text: STATUS[p.status] })]),
-        el("td", { text: moment }),
-        el("td", { text: new Date(p.updated).toLocaleDateString("en-GB") }),
-        el("td", {}, [
-          el("div", { class: "row-actions" }, [
-            el("button", { type: "button", class: "secondary small", text: "Duplicate", onclick: () => duplicate(p) }),
-            p.status === "archived"
-              ? el("button", {
-                  type: "button",
-                  class: "secondary small",
-                  text: "Restore",
-                  onclick: () => setStatus(p, "draft"),
-                })
-              : el("button", {
-                  type: "button",
-                  class: "secondary small",
-                  text: "Archive",
-                  onclick: () => setStatus(p, "archived"),
-                }),
-            el("button", {
-              type: "button",
-              class: "secondary small danger",
-              text: "Delete",
-              "aria-label": `Delete ${p.title}`,
-              onclick: () => erase(p),
-            }),
-          ]),
-        ]),
-      ]);
+      });
     });
-    tableHolder.replaceChildren(
-      el("div", { class: "table-scroll" }, [
-        el("table", { class: "list studio-library" }, [
-          el("caption", { class: "visual-hidden", text: "Posts in the studio" }),
-          el("thead", {}, [
-            el(
-              "tr",
-              {},
-              ["Image", "Title", "Status", "Scheduled or published", "Updated", "Actions"].map((t) =>
-                el("th", { scope: "col", text: t }),
-              ),
-            ),
-          ]),
-          el("tbody", {}, rows),
-        ]),
-      ]),
-    );
+    tableHolder.replaceChildren(el("div", { class: "studio-post-grid", "aria-label": "Posts in the studio" }, cards));
     more.hidden = list.length <= visible;
-    const byId = new Map(posts.map((p) => [p.id, p]));
-    observer = new IntersectionObserver(
-      (lines) => {
-        for (const r of lines) {
-          if (!r.isIntersecting) continue;
-          observer.unobserve(r.target);
-          const p = byId.get(r.target.dataset.id);
-          void (async () => {
-            try {
-              const ids = [p.content, ...p.slides.map((d) => d.content)].flatMap((i) => Object.values(i ?? {}));
-              const media = await loadMedia(ids);
-              const image = buildImage({
-                template: p.template,
-                content: p.content,
-                slides: p.slides,
-                slide: 0,
-                format: p.formats[0],
-                brand: ctx.brand,
-                media,
-              });
-              showPreview(r.target, image, { maxHeight: 64 });
-            } catch {
-              r.target.textContent = "–";
-            }
-          })();
-        }
-      },
-      { rootMargin: "100px" },
-    );
-    for (const m of tableHolder.querySelectorAll(".studio-thumbnail")) observer.observe(m);
+    observer = drawArtwork(tableHolder, posts, ctx.brand);
   }
 
-  for (const f of [status, campaign, channel, templateFilter])
+  for (const f of [campaign, channel, templateFilter])
     f.addEventListener("change", () => {
       visible = PER_PAGE;
       render();
@@ -241,17 +212,17 @@ export async function show(container, ctx) {
   });
 
   container.replaceChildren(
-    el("div", { class: "card" }, [
-      el("div", { class: "studio-filters" }, [
-        el("div", { class: "field" }, [el("label", { for: "filter-status", text: "Status" }), status]),
-        el("div", { class: "field" }, [el("label", { for: "filter-campaign", text: "Campaign" }), campaign]),
-        el("div", { class: "field" }, [el("label", { for: "filter-channel", text: "Channel" }), channel]),
-        el("div", { class: "field" }, [el("label", { for: "filter-template", text: "Template" }), templateFilter]),
-        el("div", { class: "field" }, [el("label", { for: "filter-search", text: "Search" }), search]),
+    el("div", { class: "studio-filter-bar" }, [
+      tabs,
+      el("div", { class: "studio-filter-tools" }, [
+        campaign,
+        channel,
+        templateFilter,
+        el("label", { class: "studio-search" }, [icon("search"), search]),
       ]),
-      tableHolder,
-      more,
     ]),
+    tableHolder,
+    el("div", { class: "button-row studio-more" }, [more]),
   );
   render();
   return { leave: () => observer?.disconnect() };

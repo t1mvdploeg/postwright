@@ -19,34 +19,47 @@ import { pickProject } from "/projects.js";
 
 const NAV_GROUPS = [
   [
-    "Work",
+    "Workspace",
     [
       ["overview", "Overview"],
+      ["library", "All posts"],
+      ["planning", "Planner"],
       ["editor", "Editor"],
-      ["library", "Library"],
-      ["planning", "Planning"],
     ],
   ],
   [
-    "Sources",
+    "Your foundation",
     [
+      ["brand-kit", "Brand kit"],
       ["facts", "Fact bank"],
       ["snippets", "Snippets"],
-      ["brand-kit", "Brand kit"],
     ],
   ],
-  ["System", [["settings", "Settings"]]],
 ];
-const SCREENS = new Map(NAV_GROUPS.flatMap(([, s]) => s));
+/** Settings sits apart, at the foot of the sidebar. */
+const BOTTOM_SCREEN = ["settings", "Settings"];
+const SCREENS = new Map([...NAV_GROUPS.flatMap(([, s]) => s), BOTTOM_SCREEN]);
+/** The heading of a screen when it is not its name, and the line under it. */
+const SCREEN_HEADING = { overview: "A little structure. A lot of possibility." };
+const SCREEN_LEDE = {
+  overview: "Your posts on the desk, and the week ahead.",
+  library: "Everything you are making, in one place.",
+  editor: "Pick a template, fill in the fields and check the post.",
+  planning: "A clear view of what goes out, and when.",
+  facts: "A source behind every claim.",
+  snippets: "Openers, closers and hashtags to reuse.",
+  "brand-kit": "The essentials that make every post look like the brand.",
+  settings: "Channels, writing help and the spending cap.",
+};
 // The icon per screen, the same sprite as the rest of the tool (/icons.svg).
 const SCREEN_ICON = {
-  overview: "start",
+  overview: "grid",
   editor: "edit",
-  library: "archive",
+  library: "posts",
   planning: "calendar",
-  facts: "source",
-  snippets: "document",
-  "brand-kit": "layers",
+  facts: "shield",
+  snippets: "text",
+  "brand-kit": "palette",
   settings: "settings",
 };
 const MODULES = {
@@ -64,6 +77,8 @@ const navEl = document.getElementById("studio-nav");
 const contentEl = document.getElementById("studio-content");
 const mainEl = document.getElementById("studio-main");
 const titleEl = document.getElementById("studio-title");
+const ledeEl = document.getElementById("studio-lede");
+const crumbEl = document.getElementById("studio-crumb");
 const sidebarEl = document.getElementById("studio-sidebar");
 const overlayEl = document.getElementById("studio-overlay");
 const menuButton = document.getElementById("studio-menu");
@@ -95,25 +110,28 @@ function closeMenu() {
   menuButton.setAttribute("aria-expanded", "false");
 }
 
+function navLink([id, name], screen) {
+  return el(
+    "a",
+    {
+      href: `#${id}`,
+      class: id === screen ? "active" : "",
+      ...(id === screen ? { "aria-current": "page" } : {}),
+      onclick: closeMenu,
+    },
+    [icon(SCREEN_ICON[id]), name],
+  );
+}
+
 function renderNav(screen) {
   navEl.replaceChildren(
     ...NAV_GROUPS.map(([group, screens]) =>
       el("div", { class: "nav-group" }, [
         el("span", { class: "nav-group-label", text: group }),
-        ...screens.map(([id, name]) =>
-          el(
-            "a",
-            {
-              href: `#${id}`,
-              class: id === screen ? "active" : "",
-              ...(id === screen ? { "aria-current": "page" } : {}),
-              onclick: closeMenu,
-            },
-            [icon(SCREEN_ICON[id]), name],
-          ),
-        ),
+        ...screens.map((s) => navLink(s, screen)),
       ]),
     ),
+    el("div", { class: "nav-group nav-bottom" }, [navLink(BOTTOM_SCREEN, screen)]),
   );
 }
 
@@ -157,7 +175,9 @@ async function render() {
   active?.leave?.();
   active = null;
   renderNav(screen);
-  titleEl.textContent = SCREENS.get(screen);
+  titleEl.textContent = SCREEN_HEADING[screen] ?? SCREENS.get(screen);
+  ledeEl.textContent = SCREEN_LEDE[screen];
+  crumbEl.textContent = SCREENS.get(screen);
   document.title = `${SCREENS.get(screen)} — Postwright · ${projectName}`;
   contentEl.replaceChildren();
   mainEl.setAttribute("aria-busy", "true");
@@ -176,6 +196,10 @@ async function render() {
       valid: () => my === renderCounter,
       setTitle: (t) => {
         titleEl.textContent = t;
+      },
+      /** The line under the heading. */
+      setLede: (t) => {
+        ledeEl.textContent = t;
       },
       navigate: (hash) => {
         location.hash = hash;
@@ -223,7 +247,7 @@ async function setupProjects() {
     pinProject(slug);
     setActiveProject(slug);
     projectName = projects.find((p) => p.slug === slug).name;
-    document.querySelector(".app-page-headline span").textContent = `Marketing studio · ${projectName}`;
+    document.getElementById("studio-crumb-project").textContent = projectName;
   }
   // With no project at all the picker still offers "New project…".
   const none = slug ? [] : [el("option", { value: "", text: "No project yet", selected: "" })];

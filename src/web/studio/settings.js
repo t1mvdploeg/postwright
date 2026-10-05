@@ -169,79 +169,84 @@ export async function show(container, ctx) {
   }
   renderMedia();
 
+  /** One row of the settings sheet: the title and a line on the left, the fields on the right. */
+  const row = (title, line, children) =>
+    el("section", {}, [
+      el("div", { class: "sheet-label" }, [el("h2", { text: title }), line ? el("p", { text: line }) : null]),
+      ...children.filter(Boolean),
+    ]);
+
   container.replaceChildren(
-    el("section", { class: "card" }, [
-      el("h2", { text: "Channels and formats" }),
-      el("fieldset", { class: "studio-choice" }, [
-        el("legend", { text: "Channels with a caption" }),
-        el("div", { class: "studio-choice-options" }, channels),
+    el("div", { class: "sheet" }, [
+      row("Channels and formats", "Which channels get a caption, and the formats a new post starts with.", [
+        el("fieldset", { class: "studio-choice" }, [
+          el("legend", { text: "Channels with a caption" }),
+          el("div", { class: "studio-choice-options" }, channels),
+        ]),
+        el("fieldset", { class: "studio-choice" }, [
+          el("legend", { text: "Formats a new post gets by default" }),
+          el("div", { class: "studio-choice-options columns" }, formats),
+        ]),
       ]),
-      el("fieldset", { class: "studio-choice" }, [
-        el("legend", { text: "Formats a new post gets by default" }),
-        el("div", { class: "studio-choice-options columns" }, formats),
+      row(
+        "Links (UTM)",
+        "Every link the studio inserts gets utm_source, utm_medium, utm_campaign (from the campaign) and utm_content (the post id).",
+        [
+          el("div", { class: "field" }, [el("label", { for: "utm-medium", text: "utm_medium" }), medium]),
+          el("div", { class: "field-row" }, sources),
+        ],
+      ),
+      row("Tone and words", "A little guidance for every caption, and the words the brand check watches for.", [
+        el("div", { class: "field" }, [
+          el("label", { for: "tone", text: "Tone of voice" }),
+          tone,
+          el("p", {
+            class: "help-text",
+            text: "A few sentences. A brand kit you create fills this in; nothing reads it automatically yet.",
+          }),
+        ]),
+        el("div", { class: "field" }, [
+          el("label", { for: "banned-words", text: "Banned words, one per line" }),
+          banned,
+          el("p", {
+            class: "help-text",
+            text: "Promises the tool cannot keep. The brand check reports them as attention points.",
+          }),
+        ]),
+        el("div", { class: "field" }, [el("label", { for: "default-hashtags", text: "Default hashtags" }), hashtags]),
       ]),
+      row(
+        "Writing assistance",
+        "Suggests text from linked facts, and ideas for a period in the planner. Real answers cost API money; usage is in ai-usage.jsonl in the data folder. One monthly cap for both.",
+        [
+          el("p", {
+            role: "status",
+            class: "studio-mode",
+            text:
+              ai?.mode === "live"
+                ? `Real answers from ${ai.model}`
+                : ai?.mode === "sample"
+                  ? "Sample mode"
+                  : "Mode cannot be determined",
+          }),
+          ai?.mode === "sample"
+            ? el("p", { class: "help-text", text: "Set ANTHROPIC_API_KEY and restart to get real suggestions." })
+            : null,
+          el("label", { class: "studio-radio" }, [helpEnabled, el("span", { text: "AI help on" })]),
+          el("div", { class: "field studio-narrow-field" }, [
+            el("label", { for: "writing-help-cap", text: "Monthly cap in dollars (real answers only)" }),
+            cap,
+          ]),
+        ],
+      ),
     ]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Links (UTM)" }),
-      el("p", {
-        class: "help-text",
-        text: "Every link the studio inserts gets utm_source, utm_medium, utm_campaign (from the campaign) and utm_content (the post id).",
-      }),
-      el("div", { class: "field" }, [el("label", { for: "utm-medium", text: "utm_medium" }), medium]),
-      el("div", { class: "field-row" }, sources),
-    ]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Tone and words" }),
-      el("div", { class: "field" }, [
-        el("label", { for: "tone", text: "Tone of voice" }),
-        tone,
-        el("p", {
-          class: "help-text",
-          text: "A few sentences. A brand kit you create fills this in; nothing reads it automatically yet.",
-        }),
-      ]),
-      el("div", { class: "field" }, [
-        el("label", { for: "banned-words", text: "Banned words, one per line" }),
-        banned,
-        el("p", {
-          class: "help-text",
-          text: "Promises the tool cannot keep. The brand check reports them as attention points.",
-        }),
-      ]),
-      el("div", { class: "field" }, [el("label", { for: "default-hashtags", text: "Default hashtags" }), hashtags]),
-    ]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "AI help: writing help and ideas" }),
-      el("p", {
-        class: "help-text",
-        text: "Suggests text from linked facts, and ideas for a period in the planner. Real answers cost API money; usage is in ai-usage.jsonl in the data folder. One monthly cap for both.",
-      }),
-      el("p", {
-        role: "status",
-        text:
-          ai?.mode === "live"
-            ? `Mode: real answers from ${ai.model}.`
-            : ai?.mode === "sample"
-              ? "Mode: sample answers."
-              : "Mode: cannot be determined.",
-      }),
-      ai?.mode === "sample"
-        ? el("p", { class: "help-text", text: "Set ANTHROPIC_API_KEY and restart to get real suggestions." })
-        : null,
-      el("label", { class: "studio-radio" }, [helpEnabled, el("span", { text: "AI help on" })]),
-      el("div", { class: "field" }, [
-        el("label", { for: "writing-help-cap", text: "Monthly cap in dollars (real answers only)" }),
-        cap,
-      ]),
-    ]),
-    el("div", { class: "button-row" }, [save]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Uploaded images" }),
-      el("p", {
-        class: "help-text",
-        text: "An image that is still in a post (archived too) cannot be deleted here; remove it from there first.",
-      }),
-      mediaHolder,
+    el("div", { class: "button-row studio-sheet-actions" }, [save]),
+    el("div", { class: "sheet" }, [
+      row(
+        "Uploaded images",
+        "An image that is still in a post (archived too) cannot be deleted here; remove it from there first.",
+        [mediaHolder],
+      ),
     ]),
   );
 }

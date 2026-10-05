@@ -2,7 +2,7 @@
 // the fields, in the middle the preview per format, on the right the brand check, the
 // caption and the status. On Save the recipe goes to the server, together with the outcome
 // of the check over exactly that content.
-import { confirmDialog, debounce, el, emptyState, notice, fieldError, projectHeaders } from "/ui.js";
+import { confirmDialog, debounce, el, emptyState, icon, notice, fieldError, projectHeaders } from "/ui.js";
 import {
   TEMPLATES,
   buildImage,
@@ -361,7 +361,7 @@ async function showEditor(container, ctx, begin) {
 
   container.replaceChildren(
     el("div", { class: "studio-editor-bar" }, [
-      el("a", { href: "#library", class: "studio-back", text: "← Library" }),
+      el("a", { href: "#library", class: "studio-back text-link" }, [icon("back"), "Back to your posts"]),
       saveStatus,
       saveButton,
     ]),

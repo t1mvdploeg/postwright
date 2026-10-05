@@ -1,6 +1,6 @@
 # Postwright studio concept
 
-This direction applies to src/web/mockup only. The existing application retains its visual system.
+This direction started in src/web/mockup and now also applies to the studio itself (src/web/index.html, studio.css and the screens). The working studio keeps all its functions; the mockup remains as the illustrative concept.
 
 ## Direction
 An independent design studio specimen catalog: warm paper, matte clay, olive ink, confident typesetting, and social artwork as the main content. The operating surface keeps navigation, post states, and planning calm and predictable.
