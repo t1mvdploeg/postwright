@@ -67,7 +67,7 @@ You can also write a brand by hand: a `brand.json` with the files next to it in 
 
 ## Make your own templates
 
-On the **Templates** screen, give the studio screenshots of old posts (up to six), the text of some posts and a short brief, and choose single image or carousel and the formats. **Generate with Claude** proposes a template in your brand (about 10 to 50 cents, counted towards the cap); without an API key it gives a fixed sample so you can try the screen. Or **Download the prompt**, run it in Claude Code or Codex, and check for the proposal; `npm run template:check -- <project>` checks it from the command line. You see the proposal in every format with the brand check before you keep it. A kept template sits next to the built-in ones in the editor, Convert, the library filter and the planner, and can be renamed or deleted.
+On the **Templates** screen, give the studio screenshots of old posts (up to six), the text of some posts and a short brief, and choose single image or carousel and the formats. **Generate with Claude** proposes a template in your brand (estimated at 10 to 50 cents, not yet measured; counted towards the cap); without an API key it gives a fixed sample so you can try the screen. Or **Download the prompt**, run it in Claude Code or Codex, and check for the proposal; `npm run template:check -- <project>` checks it from the command line. You see the proposal in every format with the brand check before you keep it. A kept template sits next to the built-in ones in the editor, Convert, the library filter and the planner, and can be renamed or deleted.
 
 ## AI writing help
 
@@ -84,7 +84,7 @@ The key is read from the environment only: never written to a file, sent to the 
 The browser does the drawing. A template is a small module that turns fields into HTML and CSS; the preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas, so preview equals export. The server is a small Node http server on `127.0.0.1` only, which stores everything as JSON files and talks to the Claude API. There is no build step: plain ES modules in the browser, TypeScript on the server through `tsx`. A built-in template is code; one of your own is data (fields, a tree of elements and some CSS) that a single validator checks before it is ever drawn: no scripts, no remote loads, no colours outside the brand.
 
 ```bash
-npm test            # 981 tests, among them a leak check on every tracked file and a phone-width check in Chrome
+npm test            # 993 tests, among them a leak check on every tracked file and a phone-width check in Chrome
 npm run typecheck
 npm run format:check
 ```
