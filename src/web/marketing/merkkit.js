@@ -70,8 +70,8 @@ export async function toon(container, ctx) {
   const logos = el(
     "div",
     { class: "studio-bestandsraster" },
-    Object.entries(m.logos).map(([stand, pad]) => {
-      const bron = `${MAP}/${pad}`;
+    // Het geladen merk heeft elk logo al als data-URL (zie merk.js), dus er hoort geen map voor.
+    Object.entries(m.logos).map(([stand, bron]) => {
       const png = el("button", { type: "button", class: "secundair klein", text: "PNG" });
       png.addEventListener("click", async () => {
         try {
