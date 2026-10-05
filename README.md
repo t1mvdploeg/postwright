@@ -32,6 +32,16 @@ npm start
 
 Open `http://127.0.0.1:4173` and choose **Add sample content** on the Overview to see three example posts. Your work is saved as JSON files in `./data`; set `POSTWRIGHT_DATA_DIR` to keep it elsewhere and `PORT` to use another port.
 
+## Frontend concept
+
+With the app running, open [the interactive studio mockup](http://127.0.0.1:4173/mockup/index.html). It includes an overview, post library, planner, templates, brand kit, fact bank, snippets, settings, and a live editor. Sample changes stay in memory for the current tab; reloading restores the examples. The SVG download is a simplified concept export.
+
+Browse [every page in the selected style](http://127.0.0.1:4173/mockup/pages.html), then open a screen to try its interactions. The template gallery includes all nine template types.
+
+Compare [four dashboard directions](http://127.0.0.1:4173/mockup/directions.html): the current warm studio, a compact focus desk, a calendar-first planner, and a dark creative studio. The comparison links to each full-size design.
+
+![The proposed Postwright studio interface](assets/mockup-simple.png)
+
 ## What it does
 
 - **Templates.** Nine templates: statement, question and answer, steps, statistic, product image, carousel, link preview, LinkedIn profile banner and company cover. Each one comes in the formats it suits, ten in all, from a LinkedIn square to an Instagram story.
