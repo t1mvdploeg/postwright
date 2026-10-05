@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="An interactive frontend concept for the Postwright content studio." />
+    <title>Studio concept — Postwright</title>
+    <link rel="icon" href="../favicon.svg" />
+    <link rel="stylesheet" href="./studio.css" />
+  </head>
+  <body>
+    <div class="studio-shell">
+      <a id="skip-content" class="skip-link" href="#main">Skip to content</a>
+      <aside class="sidebar" id="sidebar">
+        <a id="brand-home" class="wordmark" href="#overview"
+          ><img src="../brand/logo/default.svg" alt="Postwright"
+        /></a>
+        <div class="workspace-selector">
+          <img src="../brand/logo/mark.svg" alt="" />
+          <div><strong>Postwright Studio</strong><span>Personal workspace</span></div>
+        </div>
+        <nav aria-label="Studio navigation">
+          <div class="nav-label">WORKSPACE</div>
+          <a id="nav-overview" href="#overview" data-page="overview"
+            ><svg class="icon" aria-hidden="true"><use href="#grid" /></svg>Overview</a
+          >
+          <a id="nav-library" href="#library" data-page="library"
+            ><svg class="icon" aria-hidden="true"><use href="#layers" /></svg>All posts<span
+              class="nav-count"
+              id="post-count"
+              >4</span
+            ></a
+          >
+          <a id="nav-planning" href="#planning" data-page="planning"
+            ><svg class="icon" aria-hidden="true"><use href="#calendar" /></svg>Planner</a
+          >
+          <a id="nav-templates" href="#templates" data-page="templates"
+            ><svg class="icon" aria-hidden="true"><use href="#layout" /></svg>Templates</a
+          >
+          <div class="nav-label second-label">YOUR FOUNDATION</div>
+          <a id="nav-brand" href="#brand" data-page="brand"
+            ><svg class="icon" aria-hidden="true"><use href="#palette" /></svg>Brand kit</a
+          >
+          <a id="nav-facts" href="#facts" data-page="facts"
+            ><svg class="icon" aria-hidden="true"><use href="#shield" /></svg>Fact bank</a
+          >
+          <a id="nav-snippets" href="#snippets" data-page="snippets"
+            ><svg class="icon" aria-hidden="true"><use href="#text" /></svg>Snippets</a
+          >
+        </nav>
+        <div class="sidebar-bottom">
+          <a id="nav-settings" href="#settings" data-page="settings"
+            ><svg class="icon" aria-hidden="true"><use href="#settings-icon" /></svg>Settings</a
+          >
+          <a id="open-original" href="/"
+            >Open current app<svg class="icon" aria-hidden="true"><use href="#external" /></svg
+          ></a>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <button
+            class="icon-button mobile-menu"
+            id="menu"
+            aria-label="Toggle navigation"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#menu-icon" /></svg>
+          </button>
+          <div class="breadcrumb">Workspace<span>/</span><strong id="page-name">Overview</strong></div>
+          <div class="topbar-actions">
+            <button class="search-button" id="search-open">
+              <svg class="icon" aria-hidden="true"><use href="#search" /></svg><span>Find a post</span
+              ><kbd>/</kbd></button
+            ><span class="demo-label">Mockup</span
+            ><a id="new-post" class="button primary" href="#editor/new"
+              ><svg class="icon" aria-hidden="true"><use href="#plus" /></svg>New post</a
+            >
+          </div>
+        </header>
+        <main id="main" tabindex="-1"></main>
+        <footer class="workspace-footer">
+          <span>Made for a little more creative headspace.</span><span>Postwright · Studio concept</span>
+        </footer>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+      <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="grid" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </symbol>
+        <symbol id="layers" viewBox="0 0 24 24">
+          <rect x="7" y="3" width="14" height="14" rx="2" />
+          <path d="M17 21H5a2 2 0 0 1-2-2V7" />
+        </symbol>
+        <symbol id="calendar" viewBox="0 0 24 24">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2" />
+        </symbol>
+        <symbol id="layout" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18m-11 0v12" />
+        </symbol>
+        <symbol id="palette" viewBox="0 0 24 24">
+          <path d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1.6-3.2 1.8 1.8 0 0 1 1.4-2.9h1a4 4 0 0 0 4-4c0-4.6-4-7.9-9-7.9Z" />
+          <path d="M7 10h.01M10 6.5h.01m5 1h.01M6.5 15h.01" />
+        </symbol>
+        <symbol id="shield" viewBox="0 0 24 24">
+          <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z" />
+          <path d="m8 12 3 3 5-6" />
+        </symbol>
+        <symbol id="text" viewBox="0 0 24 24"><path d="M4 5h16M4 10h16M4 15h10M4 20h7" /></symbol>
+        <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6" /></symbol>
+        <symbol id="back" viewBox="0 0 24 24"><path d="M20 12H5m6-6-6 6 6 6" /></symbol>
+        <symbol id="chevrons" viewBox="0 0 24 24"><path d="m8 9 4-4 4 4m-8 6 4 4 4-4" /></symbol>
+        <symbol id="search" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 5 5" />
+        </symbol>
+        <symbol id="external" viewBox="0 0 24 24">
+          <path d="M14 3h7v7m0-7L10 14m1-11H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6" />
+        </symbol>
+        <symbol id="tick" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+        <symbol id="spark" viewBox="0 0 24 24">
+          <path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z" />
+        </symbol>
+        <symbol id="download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" /></symbol>
+        <symbol id="menu-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
+        <symbol id="settings-icon" viewBox="0 0 24 24">
+          <path d="M4 6h2m4 0h10M4 12h10m4 0h2M4 18h4m4 0h8" />
+          <circle cx="8" cy="6" r="2" />
+          <circle cx="16" cy="12" r="2" />
+          <circle cx="10" cy="18" r="2" />
+        </symbol>
+      </svg>
+    </div>
+    <script type="module" src="./studio.js"></script>
+  </body>
+</html>
