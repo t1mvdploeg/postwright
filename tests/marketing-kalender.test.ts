@@ -1,8 +1,7 @@
-// Marketingstudio — maandraster, weeknummers, verzetten, en de e-mailhandtekening.
+// Marketingstudio — maandraster, weeknummers, verzetten.
 import { describe, it, expect } from "vitest";
 import { aantalWerkdagen, dagenGeleden, dagVan, echteDatum, isoWeek, kiesPeriode, komendeWeken, maandRaster, plusDagen, standaardAantal, verzetNaarDag, volgendeMaand } from "../src/web/marketing/kalender.js";
 import { plusDagen as plusDagenModel } from "../src/model/marketing-momenten.js";
-import { handtekeningHtml, telefoonLink } from "../src/web/marketing/handtekening.js";
 
 describe("kalender", () => {
   it("bouwt een maand van maandag tot zondag met aangevulde dagen", () => {
@@ -125,25 +124,5 @@ describe("dagenGeleden", () => {
   it("telt over de wisseling naar wintertijd in hele dagen", () => {
     expect(dagenGeleden("2026-10-24T10:00:00Z", new Date("2026-10-26T10:00:00Z"))).toBe(2);
     expect(dagenGeleden("2026-09-01T10:00:00Z", new Date("2026-09-24T10:00:00Z"))).toBe(23);
-  });
-});
-
-describe("e-mailhandtekening", () => {
-  it("vult naam, functie en contact in, met de gehoste logo-URL", () => {
-    const html = handtekeningHtml({ naam: "Tim", functie: "Oprichter", telefoon: "+31 6 12 34 56 78", email: "tim@voorbeeld.nl", logoUrl: "https://mijntarieftool.nl/marketing/merk/logo/mijntarieftool-logo-e-mail.png" });
-    expect(html).toContain(">Tim<");
-    expect(html).toContain(">Oprichter<");
-    expect(html).toContain('href="tel:+31612345678"');
-    expect(html).toContain('href="mailto:tim@voorbeeld.nl"');
-    expect(html).toContain('src="https://mijntarieftool.nl/marketing/merk/logo/mijntarieftool-logo-e-mail.png"');
-  });
-
-  it("escapet invoer en laat een ongeldig e-mailadres weg", () => {
-    const html = handtekeningHtml({ naam: "<script>alert(1)</script>", email: 'x" onmouseover="kwaad@x.nl', logoUrl: "/logo.png" });
-    expect(html).not.toContain("<script>");
-    expect(html).toContain("&lt;script&gt;");
-    expect(html).not.toContain("onmouseover");
-    expect(telefoonLink("06-1234 5678")).toBe("0612345678");
-    expect(telefoonLink("+31 (0)6 1+2")).toBe("+310612");
   });
 });

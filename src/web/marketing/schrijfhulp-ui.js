@@ -1,7 +1,7 @@
 // Marketingstudio — het paneel van de schrijfhulp in de editor. De server laadt de feiten zelf op
 // id en rekent elk voorstel na op getallen die in geen feit staan; zo'n voorstel is hier niet met
 // één klik over te nemen. Er wordt nooit iets automatisch bewaard.
-import { el, melding } from "/app.js";
+import { el, melding } from "/ui.js";
 import { zonderNadruk } from "/marketing/sjablonen.js";
 
 const TAKEN = [

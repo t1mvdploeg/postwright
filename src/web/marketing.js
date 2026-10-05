@@ -1,10 +1,10 @@
-// Marketingstudio — de schil: toegang, navigatie en een hashrouter die per scherm een module laadt
+// Marketingstudio — de schil: navigatie en een hashrouter die per scherm een module laadt
 // (`src/web/marketing/<scherm>.js`). Ontwerp: docs/ontwerpen/2026-09-24-marketingstudio.md.
 //
 // Een eigen pagina naast Platformbeheer, geen tab erin: de editor heeft de volle breedte nodig, de
 // code laadt alleen hier, en een latere marketingrol hoeft de klantgegevens van Platformbeheer
 // niet te zien.
-import { api, bevestigDialoog, el, icoon, melding, uitloggen } from "/app.js";
+import { api, bevestigDialoog, el, icoon, melding } from "/ui.js";
 import { laadMerk } from "/marketing/merk.js";
 
 const NAV_GROEPEN = [
@@ -29,7 +29,6 @@ const MODULES = {
   instellingen: () => import("/marketing/instellingen.js"),
 };
 
-const appEl = document.getElementById("studio-app");
 const navEl = document.getElementById("studio-nav");
 const inhoudEl = document.getElementById("studio-inhoud");
 const hoofdEl = document.getElementById("studio-hoofd");
@@ -79,7 +78,7 @@ function laadInstellingen(opnieuw = false) {
 }
 
 async function teken() {
-  // De spronglink van app.js springt naar #studio-hoofd; dat is geen scherm, dus de hash terugzetten.
+  // De spronglink bovenaan de pagina springt naar #studio-hoofd; dat is geen scherm, dus de hash terugzetten.
   if (location.hash === "#studio-hoofd") {
     history.replaceState(null, "", vorigeHash || "#overzicht");
     hoofdEl.focus();
@@ -98,7 +97,7 @@ async function teken() {
   actief = null;
   tekenNav(scherm);
   titelEl.textContent = SCHERMEN.get(scherm);
-  document.title = `${SCHERMEN.get(scherm)} — Marketingstudio — Mijntarieftool`;
+  document.title = `${SCHERMEN.get(scherm)} — Postwright`;
   inhoudEl.replaceChildren();
   hoofdEl.setAttribute("aria-busy", "true");
   try {
@@ -123,16 +122,6 @@ async function teken() {
 }
 
 async function start() {
-  let ik;
-  try { ik = await api("/api/ik"); } catch { ik = { naam: null }; }
-  if (ik.rol !== "admin") {
-    // Zelfde regel als Platformbeheer: een tenantsessie gaat naar de eigen tool, zonder sessie naar de login.
-    location.replace(ik.bedrijf ? "/" : "/login?door=%2Fbeheer%2Fmarketing");
-    return;
-  }
-  appEl.hidden = false;
-  document.getElementById("studio-naam").textContent = ik.naam ?? ik.email ?? "Beheerder";
-  document.getElementById("studio-uitloggen").addEventListener("click", () => uitloggen("/login?door=%2Fbeheer%2Fmarketing"));
   menuKnop.addEventListener("click", () => {
     const open = zijbalkEl.classList.toggle("open");
     overlayEl.hidden = !open;

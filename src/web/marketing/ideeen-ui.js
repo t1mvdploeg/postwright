@@ -4,7 +4,7 @@
 //
 // Alle tekst van de AI gaat via `el(..., { text })` of als kindtekst de pagina in, nooit als HTML.
 // Voorstellen worden pas ideeën na een vinkje en "Zet in de planner"; niets wordt vanzelf bewaard.
-import { bevestigDialoog, el, melding, veldFout } from "/app.js";
+import { bevestigDialoog, el, melding, veldFout } from "/ui.js";
 import { SJABLONEN, sjabloon as sjabloonVan, zonderNadruk } from "/marketing/sjablonen.js";
 import { ideeNaarRecept, naarInvoer } from "/marketing/recept.js";
 

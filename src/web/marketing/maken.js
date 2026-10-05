@@ -1,7 +1,7 @@
 // Marketingstudio — Maken: de sjabloongalerij en de editor. Links de velden, in het midden het
 // voorbeeld per formaat, rechts de merkcontrole, de posttekst en de status. Het recept gaat bij
 // Bewaren naar de server, samen met de uitkomst van de controle over precies die inhoud.
-import { bevestigDialoog, debounce, el, legeStaat, melding, veldFout } from "/app.js";
+import { bevestigDialoog, debounce, el, legeStaat, melding, veldFout } from "/ui.js";
 import { SJABLONEN, bouwBeeld, sjabloon as sjabloonVan, standaardInhoud, veldenVan, zonderNadruk } from "/marketing/sjablonen.js";
 import { KANALEN, formaat as formaatVan } from "/marketing/formaten.js";
 import { toonVoorbeeld } from "/marketing/render.js";

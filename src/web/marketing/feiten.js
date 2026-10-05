@@ -1,7 +1,7 @@
 // Marketingstudio — Feitenbank: de claims en getallen die in marketing mogen, elk met bron en
 // geldigheid. Een nieuw feit begint als concept; pas als de gebruiker het heeft nagelopen
 // en op "actief" zet, telt het mee in de getallencheck.
-import { bevestigDialoog, el, legeStaat, melding } from "/app.js";
+import { bevestigDialoog, el, legeStaat, melding } from "/ui.js";
 import { haalGetallen } from "/marketing/getallen.js";
 import { feitBruikbaar } from "/marketing/merkcontrole.js";
 import { vandaagAmsterdam } from "/marketing/recept.js";

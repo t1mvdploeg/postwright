@@ -1,7 +1,7 @@
 // Marketingstudio — Instellingen: welke kanalen en formaten aan staan, de UTM-standaard, de lijst
 // verboden woorden, standaardhashtags, de AI-hulp (schrijfhulp en ideeën) met haar maandplafond, en
 // het beheer van geüploade beelden.
-import { bevestigDialoog, el, melding } from "/app.js";
+import { bevestigDialoog, el, melding } from "/ui.js";
 import { FORMATEN, KANALEN } from "/marketing/formaten.js";
 
 export async function toon(container, ctx) {

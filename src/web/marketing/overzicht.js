@@ -1,7 +1,7 @@
 // Marketingstudio — Overzicht: wat staat er deze week, wat is blijven liggen, en waar leunt een
 // post op een feit dat niet meer klopt. Golf 2: ook het ritme (laatste publicatie, lege weken),
 // de actualiteitenkalender en de handmatige resultaten.
-import { el, legeStaat, melding } from "/app.js";
+import { el, legeStaat, melding } from "/ui.js";
 import { leesbaarMoment } from "/marketing/recept.js";
 import { dagenGeleden } from "/marketing/kalender.js";
 import { sjabloon } from "/marketing/sjablonen.js";
@@ -89,7 +89,7 @@ export async function toon(container, ctx) {
           el("nav", { class: "snel-naar", "aria-label": "Snel naar" }, [
             el("a", { href: "#bibliotheek", text: "Alle posts" }),
             el("a", { href: "#feiten", text: "Feitenbank" }),
-            el("a", { href: "#merkkit", text: "Merkkit en e-mailhandtekening" }),
+            el("a", { href: "#merkkit", text: "Merkkit" }),
             el("a", { href: "#planning", text: "Agenda-export" }),
           ]),
         ]),
