@@ -104,10 +104,43 @@ export function readRoute(hash) {
   return SCREENS.has(screen) ? { screen, parts } : { screen: "overview", parts: [] };
 }
 
-function closeMenu() {
+/** Below 900px the sidebar is a menu that slides in; above it the sidebar is always there. */
+const narrowScreen = window.matchMedia("(max-width: 900px)");
+const workspaceEl = document.querySelector(".app-workspace");
+
+/**
+ * Keeps the closed menu out of the tab order and the screen reader's reach, and the page behind
+ * an open menu out of reach too. `inert` does both; on a wide screen nothing is inert.
+ */
+function syncMenu() {
+  const open = sidebarEl.classList.contains("open");
+  if (!narrowScreen.matches && open) {
+    sidebarEl.classList.remove("open");
+    overlayEl.hidden = true;
+    menuButton.setAttribute("aria-expanded", "false");
+  }
+  const menuOpen = narrowScreen.matches && open;
+  sidebarEl.inert = narrowScreen.matches && !open;
+  workspaceEl.inert = menuOpen;
+}
+
+function openMenu() {
+  sidebarEl.classList.add("open");
+  overlayEl.hidden = false;
+  menuButton.setAttribute("aria-expanded", "true");
+  syncMenu();
+  // The menu slides in, so do not let the browser scroll to where the link is now.
+  navEl.querySelector("a")?.focus({ preventScroll: true });
+}
+
+/** Closes the menu. `focus` is where focus goes afterwards: the Menu button, or the page itself. */
+function closeMenu(focus = menuButton) {
+  const wasOpen = sidebarEl.classList.contains("open");
   sidebarEl.classList.remove("open");
   overlayEl.hidden = true;
   menuButton.setAttribute("aria-expanded", "false");
+  syncMenu();
+  if (wasOpen) focus.focus();
 }
 
 function navLink([id, name], screen) {
@@ -117,7 +150,7 @@ function navLink([id, name], screen) {
       href: `#${id}`,
       class: id === screen ? "active" : "",
       ...(id === screen ? { "aria-current": "page" } : {}),
-      onclick: closeMenu,
+      onclick: () => closeMenu(mainEl),
     },
     [icon(SCREEN_ICON[id]), name],
   );
@@ -274,11 +307,15 @@ async function setupProjects() {
 
 async function start() {
   menuButton.addEventListener("click", () => {
-    const open = sidebarEl.classList.toggle("open");
-    overlayEl.hidden = !open;
-    menuButton.setAttribute("aria-expanded", String(open));
+    if (sidebarEl.classList.contains("open")) closeMenu();
+    else openMenu();
   });
-  overlayEl.addEventListener("click", closeMenu);
+  overlayEl.addEventListener("click", () => closeMenu());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !e.defaultPrevented && sidebarEl.classList.contains("open")) closeMenu();
+  });
+  narrowScreen.addEventListener("change", syncMenu);
+  syncMenu();
   window.addEventListener("beforeunload", (e) => {
     if (!leaving && active?.hasUnsaved?.()) {
       e.preventDefault();

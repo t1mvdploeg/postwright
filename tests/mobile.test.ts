@@ -1,0 +1,124 @@
+// The studio on a phone and a tablet, in a real Chrome: no sideways scrolling, no keyboard focus
+// on things that cannot be seen, and a menu that closes with Escape. Chrome is the installed
+// one (playwright-core downloads no browser). Without Chrome the file is skipped on a developer
+// machine and fails in CI.
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { chromium, type Browser, type Page } from "playwright-core";
+import { startStudio } from "./helpers/studio.js";
+
+const browser: Browser | null = await chromium.launch({ channel: "chrome" }).catch((error: Error) => {
+  if (process.env.CI) throw error;
+  console.warn(`mobile.test.ts skipped: Google Chrome could not be started (${error.message.split("\n")[0]}).`);
+  return null;
+});
+
+let studio: Awaited<ReturnType<typeof startStudio>>;
+let postId = "";
+
+beforeAll(async () => {
+  if (!browser) return;
+  studio = await startStudio();
+  const json = { "content-type": "application/json" };
+  await fetch(`${studio.base}/api/sample-content`, { method: "POST", headers: json, body: "{}" });
+  postId = (await (await fetch(`${studio.base}/api/posts`)).json()).posts[0].id;
+});
+afterAll(async () => {
+  await studio?.close();
+  await browser?.close();
+});
+
+const SCREENS = () => [
+  ["overview", "overview"],
+  ["all posts", "library"],
+  ["planner", "planning"],
+  ["editor", `editor/${postId}`],
+  ["brand kit", "brand-kit"],
+  ["fact bank", "facts"],
+  ["snippets", "snippets"],
+  ["settings", "settings"],
+];
+
+async function open(width: number, height: number, route: string): Promise<Page> {
+  const page = await browser!.newPage({ viewport: { width, height } });
+  await page.goto(`${studio.base}/#${route}`);
+  await page.waitForSelector("#studio-nav a", { state: "attached" });
+  await page.waitForSelector("#studio-main:not([aria-busy])", { state: "attached" });
+  await page.waitForLoadState("networkidle");
+  return page;
+}
+
+const sideways = (page: Page) =>
+  page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    width: window.innerWidth,
+  }));
+
+describe.skipIf(!browser)("studio on a phone (375 x 812)", () => {
+  for (const [name, route] of SCREENS()) {
+    it(`${name}: no sideways scrolling`, async () => {
+      const page = await open(375, 812, route);
+      try {
+        const { scrollWidth, width } = await sideways(page);
+        expect(scrollWidth).toBeLessThanOrEqual(width);
+      } finally {
+        await page.close();
+      }
+    });
+
+    it(`${name}: Tab never lands on something out of sight`, async () => {
+      const page = await open(375, 812, route);
+      try {
+        const problems: string[] = [];
+        for (let i = 0; i < 25; i++) {
+          await page.keyboard.press("Tab");
+          const found = await page.evaluate(() => {
+            const e = document.activeElement;
+            if (!e || e === document.body) return null;
+            const r = e.getBoundingClientRect();
+            const hidden = getComputedStyle(e).visibility === "hidden";
+            const label = `${e.tagName.toLowerCase()}#${e.id}.${String(e.getAttribute("class"))} "${(e.textContent ?? "").trim().slice(0, 30)}"`;
+            if (r.width === 0 || r.height === 0 || hidden) return `${label} is invisible`;
+            if (r.right <= 0 || r.left >= window.innerWidth)
+              return `${label} is off-screen (left ${Math.round(r.left)})`;
+            return null;
+          });
+          if (found) problems.push(`Tab ${i + 1}: ${found}`);
+        }
+        expect(problems).toEqual([]);
+      } finally {
+        await page.close();
+      }
+    });
+  }
+
+  it("the menu opens with focus inside it, and Escape closes it and returns focus to the Menu button", async () => {
+    const page = await open(375, 812, "overview");
+    try {
+      await page.click("#studio-menu");
+      await expect(page.locator("#studio-sidebar.open").count()).resolves.toBe(1);
+      expect(
+        await page.evaluate(() => document.getElementById("studio-sidebar")!.contains(document.activeElement)),
+      ).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#studio-sidebar.open").count()).resolves.toBe(0);
+      expect(await page.evaluate(() => document.activeElement?.id)).toBe("studio-menu");
+      expect(await page.getAttribute("#studio-menu", "aria-expanded")).toBe("false");
+    } finally {
+      await page.close();
+    }
+  });
+});
+
+describe.skipIf(!browser)("studio on a tablet (820 x 1180)", () => {
+  for (const [name, route] of SCREENS()) {
+    it(`${name}: no sideways scrolling`, async () => {
+      const page = await open(820, 1180, route);
+      try {
+        const { scrollWidth, width } = await sideways(page);
+        expect(scrollWidth).toBeLessThanOrEqual(width);
+      } finally {
+        await page.close();
+      }
+    });
+  }
+});

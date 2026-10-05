@@ -36,7 +36,7 @@ The sections below are kept for reference.
 ## 2. Working rules
 
 - British English everywhere (code, UI text, comments, docs). The leak test fails on common Dutch words.
-- No new dependencies. Allowed: `@anthropic-ai/sdk`, `tsx`, `zod`, `@types/node`, `fflate`, `prettier`, `typescript`, `vitest`.
+- No new dependencies. Allowed: `@anthropic-ai/sdk`, `tsx`, `zod`, `@types/node`, `fflate`, `playwright-core` (for `tests/mobile.test.ts`, with the installed Chrome), `prettier`, `typescript`, `vitest`.
 - The server listens on `127.0.0.1` only.
 - The API key comes only from `ANTHROPIC_API_KEY`: never to the browser, a file, a log or a test file.
 - Commits carry no `Co-Authored-By` line and no "Generated with Claude Code" line. Never commit `data/` or `.env`.

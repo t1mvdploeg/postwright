@@ -1159,11 +1159,11 @@ textarea,
     left: 0;
     transform: translateX(-100%);
     width: min(260px, 86vw);
-    box-shadow: var(--shadow-drawer);
     transition: transform 0.18s ease;
   }
   .app-sidebar.open {
     transform: translateX(0);
+    box-shadow: var(--shadow-drawer);
   }
   .app-overlay:not([hidden]) {
     display: block;
