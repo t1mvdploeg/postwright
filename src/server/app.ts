@@ -15,6 +15,7 @@ import type { AiProvider } from "./ai/provider.js";
 import { templateRoutes } from "./template-routes.js";
 import { templateInputRoutes } from "./template-input.js";
 import { templateGenerateRoutes } from "./template-generate.js";
+import { templatePromptRoutes } from "./template-prompt.js";
 
 export function createApp(o: {
   dataDir: string;
@@ -35,6 +36,7 @@ export function createApp(o: {
       ...templateRoutes(),
       ...templateInputRoutes({ generate: { available: brand !== null, model: brand?.model ?? null } }),
       ...templateGenerateRoutes({ dataDir: o.dataDir, brand }),
+      ...templatePromptRoutes(),
       ...createRoutes(o),
     ],
     // The brand's files (logos, fonts) come from `brand/` of the project if a brand is there.

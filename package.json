@@ -9,6 +9,7 @@
     "start": "node --import tsx src/server/start.ts",
     "test": "vitest run",
     "brand:check": "node --import tsx src/server/brand-check-cli.ts",
+    "template:check": "node --import tsx src/server/template-check-cli.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write src tests",
     "format:check": "prettier --check src tests"

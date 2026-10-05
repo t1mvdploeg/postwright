@@ -89,3 +89,12 @@ export function writeOwn(projectDir: string, template: any = exampleTemplate(), 
 /** The reply of the model that holds a template: 100,000 tokens in and 10,000 out, which is $0.60 at Opus 5.5 prices. */
 export const templateReply = (file: any = exampleTemplate(), notes: string[] = ["Based on the statements."]) =>
   message({ text: JSON.stringify(answerOf(file, notes)) });
+
+/** Writes a proposal as an agent would: `template.json`, and `extras.json` when there are extras. */
+export function writeTemplateProposal(projectDir: string, template: any = exampleTemplate(), extras?: unknown): string {
+  const dir = join(projectDir, "template-input", "proposal");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "template.json"), JSON.stringify(template, null, 2));
+  if (extras !== undefined) writeFileSync(join(dir, "extras.json"), JSON.stringify(extras, null, 2));
+  return dir;
+}
