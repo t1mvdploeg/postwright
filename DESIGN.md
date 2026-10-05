@@ -11,3 +11,6 @@ A persistent sidebar with the project picker and two groups: Workspace (Overview
 
 ## Responsive behavior
 Desktop shows the navigation permanently. At 1180px and narrower the agenda moves below the desk and the desk shows three previews; at 700px and narrower previews go to two columns. At 900px and narrower the sidebar becomes a menu behind a Menu button. At 1500px and wider, the post library shows five columns. `prefers-reduced-motion` switches the entrance animations off.
+
+## Dark mode
+The studio follows the system setting (prefers-color-scheme). The dark tokens in studio.css are the same warm studio at night: brown-grey paper (#1e1c19), clay lightened to #ec7d63 for text and lines, while buttons keep the clay fill with white text. Posts, thumbnails, exports and the brand colours are drawn in the brand's own colours and never use these tokens.
