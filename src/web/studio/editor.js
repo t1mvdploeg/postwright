@@ -1656,6 +1656,12 @@ async function showEditor(container, ctx, begin) {
 
   async function exportAs(kind) {
     if (state.busy) return;
+    // A slide without its template cannot be drawn, so the export would only fail on it.
+    const gone = state.pages.findIndex((p) => !templateOf(p.template));
+    if (gone >= 0) {
+      notice(`Slide ${gone + 1}: its template no longer exists; delete it first`, "error");
+      return;
+    }
     const u = currentCheck();
     if (
       u.errors &&

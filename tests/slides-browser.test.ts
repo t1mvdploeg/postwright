@@ -96,6 +96,14 @@ describe.skipIf(!browser)("posts with several slides", () => {
       expect(await page.locator(".studio-fields").innerText()).toMatch(/no longer exists/);
       expect(await page.getByRole("list", { name: "Brand check result" }).innerText()).toMatch(/no longer exists/);
       expect(await page.getByRole("button", { name: "↑ Up" }).count()).toBe(0);
+
+      // Export refuses before the "Export anyway?" dialog: it could only fail on that slide.
+      await page.getByRole("button", { name: "Everything as ZIP" }).click();
+      await page
+        .locator("#notices")
+        .getByText("Slide 2: its template no longer exists; delete it first")
+        .waitFor({ timeout: 5000 });
+      expect(await page.getByRole("button", { name: "Export anyway" }).count()).toBe(0);
     } finally {
       await page.close();
     }
