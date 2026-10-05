@@ -69,6 +69,8 @@ export interface ServerOpties {
   poort?: number;
   webDir?: string;
   routes: Route[];
+  /** Een URL-voorvoegsel dat uit een andere map komt dan `webDir`; wordt eerst gecontroleerd. */
+  statisch?: { prefix: string; map: () => string }[];
 }
 
 const MAX_BODY = 1_000_000;
@@ -181,18 +183,17 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: 
   }
 }
 
-async function statisch(req: IncomingMessage, res: ServerResponse, url: URL, webDir: string) {
+async function bestand(req: IncomingMessage, res: ServerResponse, naam: string, map: string, index = false) {
   const nietGevonden = () => stuur(res, 404, "text/plain; charset=utf-8", "Niet gevonden");
   if (req.method !== "GET" && req.method !== "HEAD") return nietGevonden();
-  let naam: string;
   try {
-    naam = decodeURIComponent(url.pathname);
+    naam = decodeURIComponent(naam);
   } catch {
     return nietGevonden();
   }
   if (naam.includes("\0")) return nietGevonden();
-  const p = join(webDir, naam === "/" ? "index.html" : naam);
-  const rel = relative(webDir, p);
+  const p = join(map, index && naam === "/" ? "index.html" : naam);
+  const rel = relative(map, p);
   if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return nietGevonden();
   try {
     stuur(res, 200, TYPES[extname(p).toLowerCase()] ?? "application/octet-stream", await readFile(p));
@@ -217,7 +218,12 @@ export async function startServer(o: ServerOpties): Promise<{ url: string; sluit
       return stuurJson(res, 403, { fout: "Verboden" });
     }
     const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
-    const klaar = url.pathname.startsWith("/api/") ? api(req, res, url, o.routes) : statisch(req, res, url, webDir);
+    const eigen = o.statisch?.find((x) => url.pathname.startsWith(x.prefix));
+    const klaar = url.pathname.startsWith("/api/")
+      ? api(req, res, url, o.routes)
+      : eigen
+        ? bestand(req, res, url.pathname.slice(eigen.prefix.length), eigen.map())
+        : bestand(req, res, url.pathname, webDir, true);
     klaar.catch((fout) => {
       console.error(fout);
       if (!res.headersSent) stuurJson(res, 500, { fout: "Interne fout" });

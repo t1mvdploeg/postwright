@@ -107,14 +107,20 @@ const SYMBOLEN = '<svg class="symbolen" aria-hidden="true">'
   + '<symbol id="streep" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>'
   + "</svg>";
 
-/** De route: de lijnen van het merkteken op grote schaal, als watermerk (het motief van de kit). */
-const ROUTE = '<svg class="route" viewBox="5.5 7.5 21 17" aria-hidden="true"><path d="M7 9h5l4 4m-9 3h10m-10 7h5l4-4m0-3h4l5-6m-4 0h4v4"/></svg>';
+/** De route: de zigzag van de W uit het logo op grote schaal, als watermerk (zelfde pad als merk/motieven/route.svg). */
+const ROUTE = '<svg class="route" viewBox="5.5 7.5 21 17" aria-hidden="true"><path d="M7 9l5 14 4-10 4 10 5-14"/></svg>';
 
-/** De kleuren en de letter van het merk, op de wikkel van het beeld. */
+/** De naam van een lettertypefamilie als CSS-tekenreeks; aanhalingstekens en backslashes vallen weg. */
+const lettertypeNaam = (familie) => String(familie).replace(/["\\]/g, "");
+
+/** De kleuren, de ondergronden en de letter van het merk, op de wikkel van het beeld. */
 function merkCss(merk) {
-  const variabelen = Object.entries(merk.css).map(([k, v]) => `${k}: ${v};`).join(" ");
+  const variabelen = [
+    ...Object.entries(merk.css).map(([k, v]) => `${k}: ${v};`),
+    ...Object.entries(merk.gronden).flatMap(([g, k]) => [`--grond-${g}: ${k.achtergrond};`, `--grond-${g}-tekst: ${k.tekst};`]),
+  ].join(" ");
   return `${merk.lettertypeCss ?? ""}
-.merk { ${variabelen} font-family: Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--inkt); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+.merk { ${variabelen} font-family: "${lettertypeNaam(merk.lettertype.familie)}", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--inkt); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
 .merk figure { margin: 0; }`;
 }
 
@@ -171,7 +177,11 @@ export function bouwBeeld({ sjabloon: id, inhoud = {}, dias = [], dia = 0, forma
       if (!bron) throw new Error(`Onbekende logostand: ${stand}`);
       return bron;
     },
-    logo: (stand, klasse = "logo") => `<img class="${klasse}" src="${c.logoBron(stand)}" alt="Mijntarieftool">`,
+    logo: (stand, klasse = "logo") => `<img class="${klasse}" src="${c.logoBron(stand)}" alt="${escapeHtml(merk.naam)}">`,
+    /** De website van het merk zonder protocol, voor een voetregel. */
+    merkUrl: escapeHtml(merk.url.replace(/^https?:\/\//, "").replace(/\/$/, "")),
+    /** Een voetregelveld; leeg betekent de website van het merk. */
+    voet: (naam) => (c.leeg(naam) ? c.merkUrl : c.e(naam)),
     /** Een geüpload beeld als data-URI; alleen id's die de server uitdeelde, dus geen vrije URL. */
     media: (naam) => {
       const id = v[naam];

@@ -48,11 +48,14 @@ describe("bestandsnamen", () => {
   });
 
   it("volgt het vaste patroon, laat een lege campagne weg en nummert dia's met een voorloopnul", () => {
-    expect(bestandsnaam({ campagne: "Najaar", post: "Nu bent u aan zet", formaat: "li-staand" }))
-      .toBe("mijntarieftool_najaar_nu-bent-u-aan-zet_li-staand_1080x1350.png");
-    expect(bestandsnaam({ post: "Stelling", formaat: "li-vierkant" })).toBe("mijntarieftool_stelling_li-vierkant_1200x1200.png");
-    expect(bestandsnaam({ post: "Carrousel", formaat: "li-carrousel", dia: 3 })).toBe("mijntarieftool_carrousel_li-carrousel_1080x1350_dia-03.png");
-    expect(bestandsnaam({ post: "", formaat: "li-link", extensie: "jpg" })).toBe("mijntarieftool_post_li-link_1200x630.jpg");
+    expect(bestandsnaam({ merk: "Postwright", campagne: "Najaar", post: "Nu bent u aan zet", formaat: "li-staand" }))
+      .toBe("postwright_najaar_nu-bent-u-aan-zet_li-staand_1080x1350.png");
+    expect(bestandsnaam({ merk: "Postwright", post: "Stelling", formaat: "li-vierkant" })).toBe("postwright_stelling_li-vierkant_1200x1200.png");
+    expect(bestandsnaam({ merk: "Postwright", post: "Carrousel", formaat: "li-carrousel", dia: 3 })).toBe("postwright_carrousel_li-carrousel_1080x1350_dia-03.png");
+    expect(bestandsnaam({ merk: "Postwright", post: "", formaat: "li-link", extensie: "jpg" })).toBe("postwright_post_li-link_1200x630.jpg");
+    // De merknaam komt uit het merk: een ander merk geeft een ander voorvoegsel, geen merk geeft er geen.
+    expect(bestandsnaam({ merk: "Ander Merk", post: "Stelling", formaat: "li-vierkant" })).toBe("ander-merk_stelling_li-vierkant_1200x1200.png");
+    expect(bestandsnaam({ post: "Stelling", formaat: "li-vierkant" })).toBe("stelling_li-vierkant_1200x1200.png");
   });
 
   it("herkent overlap van rechthoeken", () => {

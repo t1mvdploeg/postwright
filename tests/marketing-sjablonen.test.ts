@@ -85,7 +85,7 @@ describe("sjabloonbeschrijvingen", () => {
   });
 
   it("geeft de standaardinhoud van een sjabloon en van een diasoort", () => {
-    expect(standaardInhoud(sjabloon("stelling")!).ondergrond).toBe("blauw");
+    expect(standaardInhoud(sjabloon("stelling")!).ondergrond).toBe("accent");
     expect(standaardInhoud(sjabloon("carrousel")!, "omslag").ondergrond).toBe("inkt");
     expect(veldenVan(sjabloon("carrousel")!, "stap").some((v) => v.id === "illustratie")).toBe(true);
   });
@@ -132,7 +132,7 @@ describe("bouwBeeld", () => {
 
   it("laat een keuzeveld alleen een van zijn opties zijn", () => {
     const b = bouwBeeld({ sjabloon: "stelling", inhoud: { ondergrond: 'x" onclick="kwaad' }, formaat: "li-vierkant", merk });
-    expect(b.html).toContain('class="beeld grond-blauw"');
+    expect(b.html).toContain('class="beeld grond-accent"');
     expect(b.html).not.toContain("onclick");
   });
 

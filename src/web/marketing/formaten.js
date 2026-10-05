@@ -69,11 +69,11 @@ export function slugVan(tekst, max = 40) {
 
 /**
  * Eén vaste vorm voor bestandsnamen, zodat een map met downloads vanzelf gesorteerd staat:
- * `mijntarieftool_<campagne>_<post>_<formaat>_<b>x<h>[_dia-NN].<ext>`. Een lege campagne valt weg.
+ * `<merknaam>_<campagne>_<post>_<formaat>_<b>x<h>[_dia-NN].<ext>`. Een lege merknaam of campagne valt weg.
  */
-export function bestandsnaam({ campagne = "", post = "", formaat: sleutel, dia = null, extensie = "png" }) {
+export function bestandsnaam({ merk = "", campagne = "", post = "", formaat: sleutel, dia = null, extensie = "png" }) {
   const f = formaat(sleutel);
-  const delen = ["mijntarieftool", slugVan(campagne), slugVan(post) || "post", sleutel, `${f.breedte}x${f.hoogte}`];
+  const delen = [slugVan(merk), slugVan(campagne), slugVan(post) || "post", sleutel, `${f.breedte}x${f.hoogte}`];
   if (dia !== null) delen.push(`dia-${String(dia).padStart(2, "0")}`);
   return `${delen.filter(Boolean).join("_")}.${extensie}`;
 }

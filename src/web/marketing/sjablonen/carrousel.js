@@ -77,7 +77,7 @@ function stapketen(c) {
 const OMSLAG = {
   soort: "omslag", naam: "Omslag", telt: false,
   velden: [
-    ondergrond("inkt", ["inkt", "blauw"]),
+    ondergrond("inkt", ["inkt", "accent"]),
     kopVeld("Achter elk tarief een *helder verhaal.*"),
     tekstVeld("Een voorbeelddossier, van uitvraag naar tarief in vier stappen.", 140),
     regel("voetLinks", "Voetregel links", "Gelijkwaardige beloning, helder berekend.", 50),
@@ -98,7 +98,7 @@ const OMSLAG = {
 const STAP = {
   soort: "stap", naam: "Stap", telt: true,
   velden: [
-    ondergrond("licht", ["licht", "blauw"]),
+    ondergrond("licht", ["licht", "accent"]),
     {
       id: "illustratie", label: "Illustratie", soort: "keuze", standaard: "rijen",
       opties: Object.entries(ILLUSTRATIES).map(([waarde, i]) => ({ waarde, tekst: i.tekst })),
@@ -124,11 +124,11 @@ const STAP = {
 const SLOT = {
   soort: "slot", naam: "Slot", telt: false,
   velden: [
-    ondergrond("blauw", ["blauw", "inkt"]),
+    ondergrond("accent", ["accent", "inkt"]),
     kopVeld("Genoeg gezien. *Nu bent u aan zet.*"),
     tekstVeld("Ontdek hoe u van document naar tarief gaat, of controleer een loonstrook.", 140),
     regel("voetLinks", "Voetregel links", "Probeer de tool op"),
-    regel("voetRechts", "Voetregel rechts", "mijntarieftool.nl", 40),
+    regel("voetRechts", "Voetregel rechts", "", 40, { hulp: "Leeg: de website van het merk." }),
   ],
   html(v, c) {
     return `<section class="beeld dia ${grondKlasse(v.ondergrond)}">
@@ -138,7 +138,7 @@ const SLOT = {
     <h2 class="kop" data-veld="kop">${c.t("kop")}</h2>
     ${c.leeg("tekst") ? "" : `<p class="tekst" data-veld="tekst">${c.t("tekst")}</p>`}
   </main>
-  <footer class="voet" data-veld="voet"><span>${c.e("voetLinks")}</span><strong>${c.e("voetRechts")}</strong></footer>
+  <footer class="voet" data-veld="voet"><span>${c.e("voetLinks")}</span><strong>${c.voet("voetRechts")}</strong></footer>
 </section>`;
   },
 };
@@ -161,7 +161,7 @@ export default {
     { soort: "stap", inhoud: { ondergrond: "licht", illustratie: "rijen", kop: "Geef uw *oordeel.*", tekst: "Beoordeel cao-afspraken, bronnen en openstaande aannames. U heeft het laatste woord." } },
     { soort: "stap", inhoud: { ondergrond: "licht", illustratie: "dossier", kop: "Leg de *basis vast.*", tekst: "Bewaar de arbeidsvoorwaarden voor berekeningen én loonstrookcontrole." } },
     { soort: "stap", inhoud: { ondergrond: "licht", illustratie: "compositie", kop: "Maak het tarief *bespreekbaar.*", tekst: "Bewaar uw berekening als PDF of exporteer naar Salesforce met een ingestelde koppeling." } },
-    { soort: "slot", inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Ontdek hoe u van document naar tarief gaat, of controleer een loonstrook.", voetLinks: "Probeer de tool op", voetRechts: "mijntarieftool.nl" } },
+    { soort: "slot", inhoud: { ondergrond: "accent", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Ontdek hoe u van document naar tarief gaat, of controleer een loonstrook.", voetLinks: "Probeer de tool op", voetRechts: "" } },
   ],
   css: `
 main { margin-block: auto 7rem; }
@@ -178,34 +178,34 @@ main .tekst { margin-top: 4.4rem; }
 .bronpagina .papier { padding: 3.6rem 4rem 5rem; transform: rotate(-4deg); }
 .bronpagina .bronblad-kop { font-size: 2.1rem; }
 .bronpagina .bronblad-kop span { margin-left: auto; color: var(--gedempt); font-weight: 400; }
-.bronpagina .icoon { width: 2.8rem; height: 2.8rem; color: var(--blauw); }
+.bronpagina .icoon { width: 2.8rem; height: 2.8rem; color: var(--accent); }
 .bronpagina .bladtitel { margin-top: 4.4rem; font-size: 4rem; font-weight: 550; letter-spacing: -.03em; }
 .bronpagina .bladtitel + small { display: block; margin-top: .6rem; font-size: 2.2rem; color: var(--gedempt); }
-.bronpagina .markering { display: flex; gap: .3em; margin-top: 3.2rem; padding: 1.8rem 2rem; border-radius: .6rem; background: var(--zacht-blauw); font-size: 2.6rem; }
-.bronpagina .markering strong { color: var(--blauw); font-weight: 600; }
+.bronpagina .markering { display: flex; gap: .3em; margin-top: 3.2rem; padding: 1.8rem 2rem; border-radius: .6rem; background: var(--accent-zacht); font-size: 2.6rem; }
+.bronpagina .markering strong { color: var(--accent); font-weight: 600; }
 .bronpagina .documentlijn { margin-top: 2.4rem; width: 90%; }
 .bronpagina .documentlijn.kort { margin-top: 1.2rem; width: 62%; }
 .gevonden { position: absolute; right: -4rem; bottom: -17rem; width: 44rem; padding: 2.8rem 3.2rem; transform: rotate(2deg); }
-.gevonden > span { display: flex; align-items: center; gap: 1rem; font-size: 2rem; color: var(--bleek-blauw); }
-.gevonden .icoon { width: 2.4rem; height: 2.4rem; color: var(--lucht); }
+.gevonden > span { display: flex; align-items: center; gap: 1rem; font-size: 2rem; color: var(--accent-bleek); }
+.gevonden .icoon { width: 2.4rem; height: 2.4rem; color: var(--accent-licht); }
 .gevonden div { display: flex; align-items: baseline; justify-content: space-between; margin-top: 2.6rem; font-size: 2.6rem; }
 .gevonden div strong { font-size: 6rem; font-weight: 550; letter-spacing: -.04em; }
 .gevonden div strong small { font-size: 2.6rem; font-weight: 400; letter-spacing: 0; }
-.gevonden p { display: flex; justify-content: space-between; margin-top: 2.2rem; padding-top: 1.8rem; border-top: .15rem solid color-mix(in srgb, var(--wit) 17%, var(--inkt)); font-size: 1.9rem; color: var(--bleek-blauw); }
+.gevonden p { display: flex; justify-content: space-between; margin-top: 2.2rem; padding-top: 1.8rem; border-top: .15rem solid color-mix(in srgb, var(--wit) 17%, var(--inkt)); font-size: 1.9rem; color: var(--accent-bleek); }
 /* Rijen en dossier: kaarten met rijen. */
 .dia .papier.kaart { width: 86rem; transform: rotate(-2.5deg) scale(1.06); }
-.kaartvoet { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 2.4rem; border-top: .15rem solid var(--lijn); background: var(--zacht-blauw); border-radius: 0 0 1.8rem 1.8rem; color: var(--blauw-hover); font-size: 2.2rem; }
+.kaartvoet { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 2.4rem; border-top: .15rem solid var(--lijn); background: var(--accent-zacht); border-radius: 0 0 1.8rem 1.8rem; color: var(--accent-hover); font-size: 2.2rem; }
 .kaartvoet .icoon { width: 2.4rem; height: 2.4rem; }
 /* Compositie: de tariefcompositie op de beschikbare hoogte. */
 .dia .compositie { font-size: min(1.4rem, (var(--hoogte) - 50rem) / 58); translate: 2rem 0; }
 /* Uitvraag, vinklijst en uitvoer: de principes-carrousel van de kit. */
 .ill-uitvraag .papier, .ill-vinklijst .papier { width: 84rem; transform: rotate(-2.5deg); }
 .uitvraagkop { display: flex; align-items: center; gap: 1.6rem; padding: 3rem 3.6rem 2.4rem; border-bottom: .15rem solid var(--lijn); }
-.uitvraagkop .icoon { width: 3rem; height: 3rem; color: var(--blauw); }
+.uitvraagkop .icoon { width: 3rem; height: 3rem; color: var(--accent); }
 .uitvraagkop strong { display: block; font-size: 2.6rem; font-weight: 550; letter-spacing: -.02em; }
 .uitvraagkop small { display: block; margin-top: .3rem; font-size: 2rem; color: var(--gedempt); }
 .uitvraagvoet { padding: 2.2rem 3.6rem 2.8rem; border-top: .15rem solid var(--lijn); font-size: 2rem; color: var(--gedempt); }
-.grond-blauw .papier { box-shadow: 0 5.2rem 8.2rem -3.7rem rgb(16 36 62 / .5); }
+.grond-accent .papier { box-shadow: 0 5.2rem 8.2rem -3.7rem rgb(43 17 11 / .5); }
 .ill-uitvoer .uitvoer { font-size: 2.2rem; }
 `,
 };

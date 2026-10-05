@@ -39,7 +39,7 @@ export function maakPdf(paginas, { titel = "" } = {}) {
   schrijf("%PDF-1.4\n%\xe2\xe3\xcf\xd3\n");
   object(1, () => schrijf("<< /Type /Catalog /Pages 2 0 R >>"));
   object(2, () => schrijf(`<< /Type /Pages /Kids [${paginas.map((_, i) => `${paginaNr(i)} 0 R`).join(" ")}] /Count ${paginas.length} >>`));
-  object(3, () => schrijf(`<< /Title ${pdfTekst(titel)} /Producer (Mijntarieftool Marketingstudio) >>`));
+  object(3, () => schrijf(`<< /Title ${pdfTekst(titel)} /Producer (Postwright) >>`));
   paginas.forEach((p, i) => {
     const nr = paginaNr(i);
     object(nr, () => schrijf(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${p.breedte} ${p.hoogte}] /Resources << /XObject << /Im${i} ${nr + 1} 0 R >> >> /Contents ${nr + 2} 0 R >>`));

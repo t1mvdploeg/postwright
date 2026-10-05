@@ -98,12 +98,17 @@ async function teken() {
   actief = null;
   tekenNav(scherm);
   titelEl.textContent = SCHERMEN.get(scherm);
-  document.title = `${SCHERMEN.get(scherm)} — Marketingstudio — Mijntarieftool`;
+  document.title = `${SCHERMEN.get(scherm)} — Marketingstudio`;
   inhoudEl.replaceChildren();
   hoofdEl.setAttribute("aria-busy", "true");
   try {
     const [mod, merk, instellingen] = await Promise.all([MODULES[scherm](), laadMerk(), laadInstellingen()]);
     if (mijn !== renderTeller) return;
+    document.title = `${SCHERMEN.get(scherm)} — Marketingstudio — ${merk.naam}`;
+    document.getElementById("studio-merknaam").textContent = merk.naam;
+    const logoEl = document.getElementById("studio-logo");
+    logoEl.src = merk.logos.merkteken;
+    logoEl.hidden = false;
     const ctx = {
       api, merk, instellingen, delen,
       /** Of dit scherm nog het actieve is; een laat antwoord mag een nieuwer scherm niet overschrijven. */

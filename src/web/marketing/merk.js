@@ -1,6 +1,7 @@
-// Marketingstudio — het merk laden in de browser: merk.json, de logo's en de lokaal gehoste Geist,
-// allemaal als data-URI. Een beeld in een foreignObject mag niets van buiten ophalen (dan blijft
-// het leeg of wordt het canvas "vervuild"); met alles ingebed is voorbeeld gelijk aan export.
+// Marketingstudio — het merk laden in de browser: het actieve merk van `GET /api/merk`, de logo's
+// en het lettertype als data-URI. Een beeld in een foreignObject mag niets van buiten ophalen (dan
+// blijft het leeg of wordt het canvas "vervuild"); met alles ingebed is voorbeeld gelijk aan export.
+// De bestanden komen van `/marketing/merk/`: de map `data/brand` als daar een eigen merk staat.
 
 let merkBelofte = null;
 const mediaCache = new Map();
@@ -19,21 +20,28 @@ async function haalDataUri(pad, type) {
   return alsDataUri(new Blob([await r.arrayBuffer()], { type }));
 }
 
+const LETTERTYPE_FORMAAT = { woff2: "woff2", woff: "woff", ttf: "truetype", otf: "opentype" };
+const LETTERTYPE_MIME = { woff2: "font/woff2", woff: "font/woff", ttf: "font/ttf", otf: "font/otf" };
+const MERK_MAP = "/marketing/merk";
+
 /**
- * Het merk, één keer per pagina geladen. De lettertypen volgen letterlijk de @font-face-regels
- * van app.css (dezelfde twee bestanden, zonder unicode-range), zodat het beeld dezelfde Geist
- * gebruikt als de site.
+ * Het merk, één keer per pagina geladen. Het lettertype is één variabel bestand voor alle gewichten
+ * (of meerdere bestanden die samen de familie vormen); beide worden als @font-face ingebed.
  */
 export function laadMerk() {
   merkBelofte ??= (async () => {
-    const r = await fetch("/marketing/merk/merk.json");
-    if (!r.ok) throw new Error("Het merk kon niet worden geladen");
+    const r = await fetch("/api/merk");
+    if (!r.ok) throw new Error((await r.json().catch(() => null))?.fout ?? "Het merk kon niet worden geladen");
     const m = await r.json();
     const logos = Object.fromEntries(await Promise.all(Object.entries(m.logos)
-      .map(async ([stand, pad]) => [stand, await haalDataUri(`/marketing/merk/${pad}`, "image/svg+xml")])));
-    const letters = await Promise.all(["/fonts/geist-latijn.woff2", "/fonts/geist-latijn-uitgebreid.woff2"].map((p) => haalDataUri(p, "font/woff2")));
-    const lettertypeCss = letters.map((src) => `@font-face { font-family: "Geist"; font-style: normal; font-weight: 100 900; src: url("${src}") format("woff2"); }`).join("\n");
-    return { ...m, logos, lettertypeCss };
+      .map(async ([stand, pad]) => [stand, await haalDataUri(`${MERK_MAP}/${pad}`, "image/svg+xml")])));
+    const familie = m.lettertype.familie.replace(/["\\]/g, "");
+    const letters = await Promise.all(m.lettertype.bestanden.map((pad) => {
+      const ext = pad.split(".").pop().toLowerCase();
+      return haalDataUri(`${MERK_MAP}/${pad}`, LETTERTYPE_MIME[ext] ?? "application/octet-stream")
+        .then((src) => `@font-face { font-family: "${familie}"; font-style: normal; font-weight: 100 900; src: url("${src}") format("${LETTERTYPE_FORMAAT[ext] ?? "woff2"}"); }`);
+    }));
+    return { ...m, logos, lettertypeCss: letters.join("\n") };
   })();
   merkBelofte.catch(() => { merkBelofte = null; });
   return merkBelofte;

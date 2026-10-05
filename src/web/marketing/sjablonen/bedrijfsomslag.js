@@ -1,6 +1,5 @@
-// LinkedIn-bedrijfsomslag (1128×191), licht met de keten of op blauw met het logo. Het
+// LinkedIn-bedrijfsomslag (1128×191), licht met de keten of op accent met het logo. Het
 // bedrijfslogo van LinkedIn valt linksonder over de omslag; de inhoud staat rechts.
-// Bron: linkedin-bedrijfsbanner.html en linkedin-bedrijfsbanner-blauw.html in de Mixed-kit.
 import { kop, regel } from "./velden.js";
 
 export default {
@@ -11,7 +10,7 @@ export default {
   formaten: ["li-bedrijf"],
   voorbeelddata: false,
   velden: [
-    { id: "variant", label: "Variant", soort: "keuze", standaard: "licht", opties: [{ waarde: "licht", tekst: "Licht, met de keten" }, { waarde: "blauw", tekst: "Actieblauw, met het logo" }] },
+    { id: "variant", label: "Variant", soort: "keuze", standaard: "licht", opties: [{ waarde: "licht", tekst: "Licht, met de keten" }, { waarde: "accent", tekst: "Accent, met het logo" }] },
     kop("Achter elk tarief een *helder verhaal.*", 45),
     regel("keten1", "Keten 1", "De afspraken", 22, { hulp: "Alleen bij de lichte variant." }),
     regel("keten2", "Keten 2", "Uw controle", 22),
@@ -19,10 +18,10 @@ export default {
     regel("keten4", "Keten 4 (gevuld)", "Een uitlegbaar tarief", 24),
   ],
   html(v, c) {
-    if (v.variant === "blauw") {
-      return `<div class="beeld grond-blauw variant-blauw">
+    if (v.variant === "accent") {
+      return `<div class="beeld grond-accent variant-accent">
   ${c.route()}
-  ${c.logo("op-blauw", "omslaglogo")}
+  ${c.logo("op-accent", "omslaglogo")}
   <span class="scheiding" aria-hidden="true"></span>
   <h1 class="kop" data-veld="kop">${c.t("kop")}</h1>
 </div>`;
@@ -43,9 +42,9 @@ export default {
 .keten { margin-top: 2.2rem; font-size: 1.5rem; gap: 1rem; }
 .keten > span::before, .keten > strong::before { width: 1rem; height: 1rem; border-width: .17rem; }
 .keten > i { height: .15rem; }
-.variant-blauw { flex-direction: row; align-items: center; justify-content: flex-end; gap: 4.4rem; padding: 0 7rem; }
+.variant-accent { flex-direction: row; align-items: center; justify-content: flex-end; gap: 4.4rem; padding: 0 7rem; }
 .omslaglogo { height: 4.2rem; width: auto; }
 .scheiding { width: .15rem; height: 8.6rem; background: var(--haarlijn); }
-.variant-blauw .kop { font-size: 4.2rem; line-height: 1.08; }
+.variant-accent .kop { font-size: 4.2rem; line-height: 1.08; }
 `,
 };

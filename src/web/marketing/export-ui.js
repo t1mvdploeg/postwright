@@ -37,10 +37,14 @@ export async function alleBeelden(post, s, merk, voortgang = () => {}) {
   return uit;
 }
 
+/** Het begin van de naam van een zip of pdf: `<merk>_<campagne>_<post>`; lege delen vallen weg. */
+const basisNaam = (merk, campagne, titel, terugval) =>
+  [slugVan(merk.naam), slugVan(campagne), slugVan(titel) || terugval].filter(Boolean).join("_");
+
 export async function exporteerPng(post, s, merk, sleutel, dia, campagne) {
   const media = await laadMedia(mediaIds(post));
   const beeld = bouwBeeld({ sjabloon: s.id, inhoud: post.inhoud, dias: post.dias, dia, formaat: sleutel, merk, media });
-  const naam = bestandsnaam({ campagne, post: post.titel, formaat: sleutel, dia: s.soort === "carrousel" ? dia + 1 : null });
+  const naam = bestandsnaam({ merk: merk.naam, campagne, post: post.titel, formaat: sleutel, dia: s.soort === "carrousel" ? dia + 1 : null });
   download(await naarBlob(beeld), naam, "image/png");
 }
 
@@ -50,18 +54,18 @@ export async function exporteerZip(post, s, merk, campagne, voortgang) {
   for (const [i, b] of beelden.entries()) {
     voortgang?.(i + 1, beelden.length);
     bestanden.push({
-      naam: bestandsnaam({ campagne, post: post.titel, formaat: b.f, dia: s.soort === "carrousel" ? b.dia + 1 : null }),
+      naam: bestandsnaam({ merk: merk.naam, campagne, post: post.titel, formaat: b.f, dia: s.soort === "carrousel" ? b.dia + 1 : null }),
       bytes: await bytes(await naarBlob(b.beeld)),
     });
   }
   if (s.soort === "carrousel") {
     const pdf = await carrouselPdf(post, s, merk, () => {});
-    bestanden.push({ naam: `mijntarieftool_${[slugVan(campagne), slugVan(post.titel) || "carrousel"].filter(Boolean).join("_")}_carrousel.pdf`, bytes: pdf });
+    bestanden.push({ naam: `${basisNaam(merk, campagne, post.titel, "carrousel")}_carrousel.pdf`, bytes: pdf });
   }
   bestanden.push({ naam: "posttekst.txt", bytes: posttekstBestand(post) });
   const { geschiedenis: _weg, ...recept } = post;
   bestanden.push({ naam: "recept.json", bytes: `${JSON.stringify(recept, null, 2)}\n` });
-  const naam = `mijntarieftool_${[slugVan(campagne), slugVan(post.titel) || "post"].filter(Boolean).join("_")}.zip`;
+  const naam = `${basisNaam(merk, campagne, post.titel, "post")}.zip`;
   download(maakZip(bestanden), naam, "application/zip");
 }
 
@@ -80,5 +84,5 @@ async function carrouselPdf(post, s, merk, voortgang) {
 
 export async function exporteerPdf(post, s, merk, campagne, voortgang) {
   const pdf = await carrouselPdf(post, s, merk, voortgang);
-  download(pdf, `mijntarieftool_${[slugVan(campagne), slugVan(post.titel) || "carrousel"].filter(Boolean).join("_")}_carrousel.pdf`, "application/pdf");
+  download(pdf, `${basisNaam(merk, campagne, post.titel, "carrousel")}_carrousel.pdf`, "application/pdf");
 }

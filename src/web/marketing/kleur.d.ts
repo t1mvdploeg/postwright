@@ -1,4 +1,5 @@
 // Typedeclaratie naast kleur.js (platte browser-ESM, geen build-stap).
+import type { Merk } from "./sjablonen.js";
 export function contrastVerhouding(a: string, b: string): number;
-export const GRONDEN: Record<"licht" | "inkt" | "blauw", { achtergrond: string; tekst: string; nadruk: string; zacht: string }>;
-export function contrastenOp(grond: string): Array<{ wat: string; verhouding: number; drempel: number }>;
+export const DREMPEL: number;
+export function contrastOp(merk: Pick<Merk, "gronden">, grond: string): { verhouding: number; drempel: number } | null;

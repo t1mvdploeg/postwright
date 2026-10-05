@@ -63,7 +63,7 @@ export function nieuwRecept(id, { formatenAan = [], merkVersie = "" } = {}) {
     titel: "", soort: s.soort, sjabloon: s.id,
     formaten: formaten.length ? formaten : [s.formaten[0]],
     inhoud: s.soort === "carrousel" ? {} : standaardInhoud(s),
-    dias, posttekst: {}, altTekst: "", link: "https://mijntarieftool.nl/", feiten: [], campagne: null, merkVersie,
+    dias, posttekst: {}, altTekst: "", link: "", feiten: [], campagne: null, merkVersie,
   };
   recept.titel = titelUit(recept, s);
   return recept;

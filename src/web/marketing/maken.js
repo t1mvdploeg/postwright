@@ -167,7 +167,7 @@ async function toonEditor(container, ctx, begin) {
 
   const feitenHouder = el("div", { class: "studio-feitkeuze", id: "veld-feiten" });
 
-  const linkVeld = el("input", { id: "veld-link", type: "url", value: staat.post.link ?? "", placeholder: "https://mijntarieftool.nl/" });
+  const linkVeld = el("input", { id: "veld-link", type: "url", value: staat.post.link ?? "", placeholder: ctx.merk.url });
   linkVeld.addEventListener("input", () => { staat.post.link = linkVeld.value; wijzigde(false); });
   const altVeld = el("textarea", { id: "veld-altTekst", rows: "3", maxlength: "1500" });
   altVeld.value = staat.post.altTekst ?? "";
@@ -347,7 +347,7 @@ async function toonEditor(container, ctx, begin) {
     const beeldHouder = el("div", { class: "studio-voorbeeld studio-feed-beeld" });
     feedHouder.replaceChildren(
       el("article", { class: "studio-feed", "aria-label": `Benadering van de post in de tijdlijn van ${KANAAL_REGELS[kanaal].naam}` }, [
-        el("header", { class: "studio-feed-kop" }, [el("img", { src: ctx.merk.logos.merkteken, alt: "" }), el("div", {}, [el("b", { text: "Mijntarieftool" }), el("span", { text: "zojuist" })])]),
+        el("header", { class: "studio-feed-kop" }, [el("img", { src: ctx.merk.logos.merkteken, alt: "" }), el("div", {}, [el("b", { text: ctx.merk.naam }), el("span", { text: "zojuist" })])]),
         el("p", { class: "studio-feed-tekst" }, [boven.trimEnd() || "(Nog geen posttekst voor dit kanaal.)", onder ? el("span", { class: "studio-feed-meer", text: " … meer" }) : null]),
         beeldHouder,
         s.soort === "carrousel" ? el("p", { class: "studio-feed-onder", text: `Document · ${dias().length} pagina's` }) : null,
@@ -389,7 +389,7 @@ async function toonEditor(container, ctx, begin) {
   function controleNu() {
     staat.uitslag = controleer({
       post: staat.post, sjabloon: s, instellingen: ctx.instellingen, feiten: staat.feiten,
-      vandaag: vandaagAmsterdam(), merkVersie: ctx.merk.versie, overloop: staat.overloop,
+      vandaag: vandaagAmsterdam(), merkVersie: ctx.merk.versie, merk: ctx.merk, overloop: staat.overloop,
     });
     return staat.uitslag;
   }

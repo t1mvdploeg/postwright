@@ -21,6 +21,8 @@ export interface SjabloonContext {
   t(naam: string): string;
   e(naam: string): string;
   leeg(naam: string): boolean;
+  voet(naam: string): string;
+  merkUrl: string;
   logoBron(stand: string): string;
   logo(stand: string, klasse?: string): string;
   media(naam: string): string | null;
@@ -57,7 +59,11 @@ export interface Sjabloon {
 
 export interface Merk {
   versie: string;
+  naam: string;
+  url: string;
+  lettertype: { familie: string };
   css: Record<string, string>;
+  gronden: Record<"licht" | "inkt" | "accent", { achtergrond: string; tekst: string }>;
   logos: Record<string, string>;
   lettertypeCss?: string;
 }

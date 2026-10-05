@@ -2,11 +2,12 @@
 import { describe, it, expect } from "vitest";
 import { controleerPosttekst, hashtags, lengteVoor, linksZonderUtm, splitsBijVouw, telTekens, voegUtmToe, zetUtmInhoud } from "../src/web/marketing/posttekst.js";
 import { haalGetallen, ongedekteGetallen } from "../src/web/marketing/getallen.js";
-import { contrastVerhouding, contrastenOp, GRONDEN } from "../src/web/marketing/kleur.js";
+import { contrastVerhouding, contrastOp } from "../src/web/marketing/kleur.js";
 import { bevatWoord, controleer, feitBruikbaar, tekstenVan, titelUit } from "../src/web/marketing/merkcontrole.js";
 import { sjabloon } from "../src/web/marketing/sjablonen.js";
 import { feitOnbruikbaar } from "../src/server/api-marketing.js";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
+import { merkVanSchijf } from "./helpers/marketing-merk.js";
 
 describe("posttekst", () => {
   it("telt tekens zoals een lezer: een emoji of letter met accent is één teken", () => {
@@ -122,10 +123,13 @@ describe("contrast", () => {
     expect(contrastVerhouding("#ffffff", "#777777")).toBeLessThan(4.5);
   });
 
-  it("haalt op elke ondergrond van de kit de drempels", () => {
-    for (const grond of Object.keys(GRONDEN)) {
-      for (const c of contrastenOp(grond)) expect(c.verhouding, `${grond}: ${c.wat}`).toBeGreaterThanOrEqual(c.drempel);
+  it("haalt op elke ondergrond van het merk de drempel", () => {
+    const merk = merkVanSchijf();
+    for (const grond of Object.keys(merk.gronden)) {
+      const c = contrastOp(merk, grond)!;
+      expect(c.verhouding, grond).toBeGreaterThanOrEqual(c.drempel);
     }
+    expect(contrastOp(merk, "onbekend")).toBeNull();
   });
 });
 
@@ -135,14 +139,14 @@ describe("merkcontrole", () => {
   const instellingen = { kanalen: ["linkedin"], verbodenWoorden: STANDAARD_MARKETING_INSTELLINGEN.verbodenWoorden };
   const basis = {
     sjabloon: "stelling", formaten: ["li-vierkant"],
-    inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een uitvraag vol afspraken." },
+    inhoud: { ondergrond: "accent", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een uitvraag vol afspraken." },
     posttekst: { linkedin: "Een tarief dat u kunt uitleggen. https://example.com/?utm_source=linkedin" },
-    altTekst: "Tekst op blauw: Genoeg gezien.", feiten: [] as string[],
+    altTekst: "Tekst op accent: Genoeg gezien.", feiten: [] as string[],
   };
   const codes = (r: ReturnType<typeof controleer>) => r.bevindingen.filter((b) => b.niveau !== "ok").map((b) => b.code);
 
   it("geeft een schone stelling zonder fouten of let-op-punten", () => {
-    const r = controleer({ post: basis, sjabloon: stelling, instellingen, feiten: [], vandaag: "2026-10-01" });
+    const r = controleer({ post: basis, sjabloon: stelling, instellingen, feiten: [], vandaag: "2026-10-01", merk: merkVanSchijf() });
     expect(codes(r)).toEqual([]);
     expect(r.fouten).toBe(0);
     expect(r.bevindingen.some((b) => b.niveau === "ok" && b.code === "contrast")).toBe(true);
@@ -217,7 +221,7 @@ describe("merkcontrole", () => {
     // Geen enkele tekst (velden, posttekst, alt-tekst) noemt hier het voorbeeld.
     const post = {
       ...basis, inhoud: { ...basis.inhoud, kop: "Uurtarief *€ 62,75.*", tekst: "Een tarief dat u kunt uitleggen." },
-      altTekst: "Tekst op blauw: uurtarief.", feiten: ["f-vd"],
+      altTekst: "Tekst op accent: uurtarief.", feiten: ["f-vd"],
     };
     const labelFouten = (r: ReturnType<typeof controleer>) => r.bevindingen.filter((b) => b.niveau === "fout" && b.code === "voorbeelddossier-label");
 

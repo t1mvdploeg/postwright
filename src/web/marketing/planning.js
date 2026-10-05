@@ -438,7 +438,7 @@ export async function toon(container, ctx) {
     if (!gepland.length) { melding("Er staan geen posts in de toekomst gepland", "fout"); return; }
     // Teruggezette posts met een toekomstig moment gaan als ingetrokken mee, zodat een eerdere export opgeruimd wordt.
     const ingetrokken = posts.filter((p) => (p.status === "concept" || p.status === "gearchiveerd") && toekomst(p));
-    download(maakIcs([...gepland, ...ingetrokken], { basisUrl: location.origin }), "postwright.ics", "text/calendar;charset=utf-8");
+    download(maakIcs([...gepland, ...ingetrokken], { basisUrl: location.origin, merknaam: ctx.merk.naam }), "postwright.ics", "text/calendar;charset=utf-8");
     melding(`${gepland.length} afspra${gepland.length === 1 ? "ak" : "ken"} in de agenda-export`);
   });
 

@@ -7,7 +7,7 @@
 import { telNadruk, veldenVan, zonderNadruk } from "./sjablonen.js";
 import { controleerPosttekst, KANAAL_REGELS } from "./posttekst.js";
 import { ongedekteGetallen } from "./getallen.js";
-import { contrastenOp } from "./kleur.js";
+import { contrastOp } from "./kleur.js";
 import { diaHeeftVoorbeelddata } from "./sjablonen/carrousel.js";
 import { formaat } from "./formaten.js";
 
@@ -66,11 +66,12 @@ export function feitBruikbaar(f, vandaag) {
  *   feiten?: Array<{ id: string, tekst: string, soort?: string, status: string, geldigVan: string|null, geldigTot: string|null }> | null,
  *   vandaag: string,
  *   merkVersie?: string,
+ *   merk?: { gronden } | null,   // het merk waarvan het contrast gecontroleerd wordt; zonder merk geen contrastcontrole
  *   overloop?: Array<{ formaat: string, dia?: number|null, veld: string, soort: string }>,
  * }} invoer
  * @returns {{ bevindingen: Array<{ niveau: "fout"|"let-op"|"ok", code: string, tekst: string, veld?: string|null, dia?: number|null, kanaal?: string }>, fouten: number, letOp: number }}
  */
-export function controleer({ post, sjabloon: s, instellingen, feiten = null, vandaag, merkVersie = null, overloop = [] }) {
+export function controleer({ post, sjabloon: s, instellingen, feiten = null, vandaag, merkVersie = null, merk = null, overloop = [] }) {
   const b = [];
   const voeg = (niveau, code, tekst, extra = {}) => b.push({ niveau, code, tekst, ...extra });
 
@@ -131,10 +132,11 @@ export function controleer({ post, sjabloon: s, instellingen, feiten = null, van
 
   // Contrast op de gekozen ondergrond(en).
   const gronden = new Set(veldsets.map((v) => v.inhoud.ondergrond ?? v.velden.find((x) => x.id === "ondergrond")?.standaard).filter(Boolean));
-  for (const grond of gronden) {
-    const te = contrastenOp(grond).filter((c) => c.verhouding < c.drempel);
-    if (te.length) for (const c of te) voeg("fout", "contrast", `Contrast van de ${c.wat} op ${grond} is ${c.verhouding}:1; minimaal ${c.drempel}:1`);
-    else voeg("ok", "contrast", `Contrast op ${grond}: ${contrastenOp(grond).map((c) => `${c.wat} ${String(c.verhouding).replace(".", ",")}:1`).join(", ")}`);
+  for (const grond of merk ? gronden : []) {
+    const c = contrastOp(merk, grond);
+    if (!c) continue;
+    if (c.verhouding < c.drempel) voeg("fout", "contrast", `Contrast van de tekst op ${grond} is ${c.verhouding}:1; minimaal ${c.drempel}:1`);
+    else voeg("ok", "contrast", `Contrast op ${grond}: ${String(c.verhouding).replace(".", ",")}:1`);
   }
 
   // Posttekst per actief kanaal, link en alt-tekst.
