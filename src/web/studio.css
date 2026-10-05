@@ -1,11 +1,11 @@
-/* Postwright — stijlblad van de studio. Eerst de ontwerpvariabelen en de basis, dan de algemene
-   bouwstenen (schil, formulieren, knoppen, kaarten, tabellen, meldingen, dialoog) en tot slot de
-   opmaak van de schermen zelf (voorvoegsel studio-). Geen webfont: het systeemlettertype. */
+/* Postwright — stylesheet of the studio. First the design variables and the basics, then the
+   general building blocks (shell, forms, buttons, cards, tables, notices, dialog) and finally
+   the layout of the screens themselves (prefix studio-). No web font: the system font. */
 
 :root {
   color-scheme: light;
 
-  /* Kleuren */
+  /* Colours */
   --background: #fff7f3;
   --ink: #2b110b;
   --accent: #d13c21;
@@ -22,7 +22,7 @@
   --shadow-card-color: rgba(43, 17, 11, 0.04);
   --shadow-button: none;
 
-  /* Ruimte, tekstgrootte en ronding */
+  /* Space, text size and rounding */
   --r1: 4px;
   --r2: 8px;
   --r3: 12px;
@@ -41,7 +41,7 @@
   --round-m: 12px;
   --round-l: 16px;
 
-  /* Hoogte van de werkbalk; ui.js meet de echte hoogte en schrijft die op .app-shell. */
+  /* Height of the toolbar; ui.js measures the real height and writes it on .app-shell. */
   --headline-height: 58px;
   --headline-min-height: 58px;
 }
@@ -107,7 +107,7 @@ th.number {
   text-align: right;
 }
 
-/* Algemene bouwstenen */
+/* General building blocks */
 
 .icon {
   width: 1.15em;
@@ -1081,7 +1081,7 @@ textarea[readonly] {
   color: var(--text-muted);
 }
 
-/* De schermen van de studio */
+/* The screens of the studio */
 
 .visual-hidden {
   position: absolute;
@@ -1727,7 +1727,7 @@ textarea[readonly] {
   font-weight: 600;
 }
 
-/* Voorbeeldantwoorden van de AI: een vaste balk boven de voorstellen en een etiket bij elk voorstel. */
+/* Sample answers from the AI: a fixed bar above the suggestions and a label on each suggestion. */
 .studio-sample-bar {
   margin: var(--r2) 0;
   padding: var(--r2) var(--r3);

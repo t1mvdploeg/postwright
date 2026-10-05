@@ -201,7 +201,7 @@ main .text { margin-top: 4.4rem; }
 .slide > .text.lang { max-width: 42ch; font-size: 2.7rem; }
 .footer .icon { width: 3rem; height: 3rem; color: var(--emphasis); }
 .footer span:has(.icon) { display: inline-flex; align-items: center; gap: 1.6rem; }
-/* Vinklijst: een lijst met vinkjes in een vel. */
+/* Checklist: a list of ticks on a sheet. */
 .ill-checklist .paper { width: 84rem; transform: rotate(-2.5deg); }
 .ground-accent .paper { box-shadow: 0 5.2rem 8.2rem -3.7rem rgb(43 17 11 / .5); }
 `,

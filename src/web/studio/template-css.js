@@ -5,8 +5,8 @@
 //  - `.image` gets the size of the format (`--width`/`--height`) instead of 100vw/100vh;
 //  - a story recognises the image by the shape class `.shape-story`, not by a media query.
 // The colours and the font come from the active brand (see `brandCss` in templates.js).
-export const BASE_CSS = `/* Sjablonen voor sociale media. Eén rem is 10px op een canvas van 1080 breed en schaalt mee met de breedte,
-   zodat één bron zowel 1200×1200 als 1080×1350 oplevert. */
+export const BASE_CSS = `/* Templates for social media. One rem is 10px on a canvas 1080 wide and scales with the width,
+   so that one source gives both 1200×1200 and 1080×1350. */
 body { margin: 0; }
 .image {
   --emphasis: var(--accent);
@@ -29,7 +29,7 @@ h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
 svg { display: block; }
 .symbols { position: absolute; width: 0; height: 0; }
 
-/* Drie ondergronden, per beeld één; het accent van de kop volgt de ondergrond. De kleuren komen uit het merk (gronden). */
+/* Three grounds, one per image; the accent of the headline follows the ground. The colours come from the brand (grounds). */
 .ground-ink { background: var(--ground-ink); color: var(--ground-ink-text); --emphasis: var(--accent-light); --soft: var(--accent-pale); --hairline: color-mix(in srgb, var(--accent-pale) 22%, var(--ground-ink)); }
 .ground-accent { background: var(--ground-accent); color: var(--ground-accent-text); --emphasis: var(--accent-pale); --soft: var(--ground-accent-text); --hairline: color-mix(in srgb, var(--ground-accent-text) 32%, var(--ground-accent)); }
 
@@ -46,21 +46,21 @@ svg { display: block; }
 .footer strong { font-weight: 550; color: inherit; }
 .headline-row { display: flex; align-items: center; justify-content: space-between; gap: 3rem; }
 
-/* Motief: de zigzag van de W uit het logo, als lijn op grote schaal (merk/motieven/route.svg). */
+/* Motif: the zigzag of the W from the logo, as a line on a large scale (brand/motifs/route.svg). */
 .route { position: absolute; z-index: -1; width: 132rem; top: -16.75rem; left: -13.5rem; fill: none; stroke: var(--route, var(--accent-soft)); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
 .ground-ink .route { --route: color-mix(in srgb, var(--accent-light) 9%, var(--ground-ink)); }
 .ground-accent .route { --route: color-mix(in srgb, var(--ground-accent-text) 9%, var(--ground-accent)); }
 
-/* Motief: een haarlijnring, zoals de profielachtergrond hem gebruikt. */
+/* Motif: a hairline ring, as the profile background uses it. */
 .ring { position: absolute; z-index: -1; aspect-ratio: 1; border-radius: 50%; border: .2rem solid color-mix(in srgb, var(--accent) 18%, transparent); }
 .ground-ink .ring { border-color: var(--hairline); }
 .ground-accent .ring { border-color: var(--hairline); }
 
-/* Papieren lagen: vlak gedraaid, nooit perspectief; lange zachte schaduw die onder het papier blijft. */
+/* Paper layers: rotated flat, never in perspective; a long soft shadow that stays under the paper. */
 .paper { background: var(--white); color: var(--ink); border-radius: 1.8rem; box-shadow: 0 2.5rem 5.7rem -2.5rem rgb(43 17 11 / .24); }
 .amount { font-variant-numeric: tabular-nums; letter-spacing: -.035em; white-space: nowrap; }
 
-/* De keten: open knooppunten, een lijn, het laatste knooppunt gevuld. */
+/* The chain: open nodes, a line, the last node filled. */
 .chain { display: flex; align-items: center; gap: 1.6rem; font-size: 2.2rem; color: var(--soft); }
 .chain > span, .chain > strong { display: inline-flex; align-items: center; gap: 1.2rem; white-space: nowrap; }
 .chain > span::before, .chain > strong::before { content: ""; width: 1.4rem; height: 1.4rem; border: .22rem solid var(--emphasis); border-radius: 50%; }
@@ -68,7 +68,7 @@ svg { display: block; }
 .chain > strong::before { background: var(--emphasis); }
 .chain > i { flex: 1; min-width: 3rem; height: .2rem; background: var(--hairline); }
 
-/* Werkroute: genummerde stappen die een lijn verbindt; de volgorde draagt betekenis. */
+/* Steps: numbered steps joined by a line; the order carries meaning. */
 .steps { list-style: none; padding: 0; }
 .steps li { position: relative; display: flex; gap: 3.2rem; align-items: flex-start; padding-block: 2.6rem; }
 .steps li + li { border-top: .15rem solid var(--hairline); }
@@ -77,17 +77,17 @@ svg { display: block; }
 .steps h2 { padding-top: .8rem; font-size: 3.2rem; font-weight: 550; letter-spacing: -.02em; line-height: 1.3; }
 .steps p { margin-top: .8rem; max-width: 40ch; font-size: 2.4rem; line-height: 1.5; color: var(--soft); }
 
-/* Verticaal verhaal (9:16): 250px vrij boven en onder voor de bediening van het platform. */
+/* Vertical story (9:16): 250px free at the top and bottom for the platform's controls. */
 .shape-story .image { padding-block: 25rem; }
 
-/* Welke stap in een carrousel: vier (of drie) knooppunten, de huidige gevuld. LinkedIn telt zelf de pagina's. */
+/* Which step in a carousel: four (or three) nodes, the current one filled. LinkedIn counts the pages itself. */
 .step-chain { display: flex; align-items: center; gap: .8rem; }
 .step-chain i { width: 1.5rem; height: 1.5rem; border: .22rem solid var(--emphasis); border-radius: 50%; }
 .step-chain i.now { background: var(--emphasis); }
 .step-chain b { width: 3.2rem; height: .2rem; background: var(--hairline); }
 .image:not(.ground-ink):not(.ground-accent) .step-chain b { background: var(--accent-pale); }
 
-/* Een lijst met vinkjes in een vel, voor wat de gebruiker zelf doet. */
+/* A list of ticks on a sheet, for what the user does themselves. */
 .checklist { padding: 1.4rem 3.6rem; }
 .checklist li { display: flex; align-items: center; gap: 2rem; padding-block: 2.6rem; border-top: .15rem solid var(--stroke); font-size: 2.8rem; font-weight: 550; letter-spacing: -.015em; list-style: none; }
 .checklist li:first-child { border-top: 0; }
