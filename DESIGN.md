@@ -25,3 +25,6 @@ The selected dashboard now omits the summary strip, duplicate recent-draft list,
 
 ## Complete page family
 The approved compact, quiet A direction now covers overview, post library, editor, planner, all nine template types, brand kit, fact bank, snippets, and settings. Supporting pages use direct 26px headings, one-line descriptions, consistent 12–14px controls, thin separators, and minimal primary actions. Details disclose secondary editor tools and creation forms. The planner supports changing weeks and opens a new post with its date set. Facts, snippets, voice guidelines, and channel preferences are interactive sample state. The static page collection is available at src/web/mockup/pages.html; the working concept remains at src/web/mockup/index.html.
+
+## Dark mode
+The studio follows the system setting (prefers-color-scheme). The dark tokens in studio.css are the same warm studio at night: brown-grey paper (#1e1c19), clay lightened to #ec7d63 for text and lines, while buttons keep the clay fill with white text. Posts, thumbnails, exports and the brand colours are drawn in the brand's own colours and never use these tokens.
