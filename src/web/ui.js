@@ -4,13 +4,45 @@
 // environment (tests), so everything that touches the DOM sits in a function or behind a
 // `typeof document` check.
 
+const PROJECT_KEY = "postwright-project";
+
+/** The project the studio works in (a slug), as remembered in this browser; null if none was chosen yet. */
+export function activeProject() {
+  try {
+    return localStorage.getItem(PROJECT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Remembers the project. A browser that blocks storage just forgets it; that is not an error. */
+export function setActiveProject(slug) {
+  try {
+    localStorage.setItem(PROJECT_KEY, slug);
+  } catch {
+    // The first project is used next time.
+  }
+}
+
+/**
+ * The header that tells the server which project a call is about. Every call carries it:
+ * `api()` does so itself, and a plain `fetch` has to add it.
+ */
+export function projectHeaders() {
+  const slug = activeProject();
+  return slug ? { "x-postwright-project": slug } : {};
+}
+
 /**
  * Every screen talks to the server through this one function. An error comes back as an
  * `Error` with the server's message (`error`), the HTTP status in `.status` and the raw
  * content in `.data`.
  */
 export async function api(path, options = {}) {
-  const init = { method: options.method ?? "GET", headers: { "content-type": "application/json" } };
+  const init = {
+    method: options.method ?? "GET",
+    headers: { "content-type": "application/json", ...projectHeaders() },
+  };
   if (options.body !== undefined) init.body = JSON.stringify(options.body);
   if (options.signal) init.signal = options.signal;
   // A network error (TypeError; an AbortError stays as it is) or a gateway error without a
@@ -257,6 +289,22 @@ export async function confirmDialog(question, options = {}) {
   });
   return confirmed === true;
 }
+
+/** Asks for one line of text. Returns the trimmed text, or `null` on cancel or Escape. */
+export async function textDialog(title, label, options = {}) {
+  return dialog({
+    title,
+    confirmText: options.confirmText ?? "Create",
+    buildContent: (form) => {
+      const input = el("input", { type: "text", id: "dialog-text", maxlength: String(options.maxLength ?? 60) });
+      form.prepend(el("div", { class: "field" }, [el("label", { for: "dialog-text", text: label }), input]));
+      queueMicrotask(() => input.focus());
+      // An empty name keeps the dialog open.
+      return () => input.value.trim() || false;
+    },
+  });
+}
+
 export function debounce(fn, ms) {
   let t;
   return (...a) => {

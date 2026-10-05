@@ -1,7 +1,8 @@
 // Brand kit: the brand book in the tool. Colours with contrast, logos
 // (SVG and PNG), the route motif and the rules. Everything comes from the active brand
 // (`brand.json` and the files next to it, see `src/server/brand.ts`).
-import { el, notice } from "/ui.js";
+import { el, notice, projectHeaders } from "/ui.js";
+import { asDataUri } from "/studio/brand.js";
 import { contrastOn } from "/studio/color.js";
 import { slugOf } from "/studio/formats.js";
 import { download } from "/studio/render.js";
@@ -13,6 +14,12 @@ function groundFor(mode) {
   if (/on-ink|^white$/.test(mode)) return "ink";
   if (/on-accent/.test(mode)) return "accent";
   return "light";
+}
+
+/** The route motif of the brand as a data URI; null when the brand has none. */
+async function motifSource() {
+  const r = await fetch(`${FOLDER}/motifs/route.svg`, { headers: projectHeaders() }).catch(() => null);
+  return r?.ok ? asDataUri(new Blob([await r.arrayBuffer()], { type: "image/svg+xml" })) : null;
 }
 
 /** An SVG as a PNG with the longest side at `side` pixels, transparent. */
@@ -92,51 +99,59 @@ export async function show(container, ctx) {
     }),
   );
 
-  const motif = el("div", { class: "studio-file-grid" }, [
-    el("figure", { class: "studio-file" }, [
-      el("div", { class: "studio-file-image ground-ink" }, [el("img", { src: `${FOLDER}/motifs/route.svg`, alt: "" })]),
-      el("figcaption", { text: "route" }),
-      el("a", { class: "button-link small", href: `${FOLDER}/motifs/route.svg`, download: "route.svg", text: "SVG" }),
-    ]),
-  ]);
+  const motifUrl = await motifSource();
+  const motifCard = motifUrl
+    ? el("section", { class: "card" }, [
+        el("h2", { text: "Route motif" }),
+        el("div", { class: "studio-file-grid" }, [
+          el("figure", { class: "studio-file" }, [
+            el("div", { class: "studio-file-image ground-ink" }, [el("img", { src: motifUrl, alt: "" })]),
+            el("figcaption", { text: "route" }),
+            el("a", { class: "button-link small", href: motifUrl, download: "route.svg", text: "SVG" }),
+          ]),
+        ]),
+      ])
+    : null;
 
   container.replaceChildren(
-    el("section", { class: "page-intro" }, [
-      el("div", {}, [
-        el("p", { class: "intro-label", text: `Brand version ${m.version}` }),
-        el("p", {
-          text: `The brand the studio works from: ${m.name}. Put your own brand in data/projects/<slug>/brand/ (brand.json with the files next to it); the studio then uses that instead of this one.`,
-        }),
+    ...[
+      el("section", { class: "page-intro" }, [
+        el("div", {}, [
+          el("p", { class: "intro-label", text: `Brand version ${m.version}` }),
+          el("p", {
+            text: `The brand the studio works from: ${m.name}. Put your own brand in data/projects/<slug>/brand/ (brand.json with the files next to it); the studio then uses that instead of this one.`,
+          }),
+        ]),
       ]),
-    ]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Colours" }),
-      colors,
-      el("h3", { text: "Contrast per ground (WCAG: headline 3:1, text 4.5:1)" }),
-      contrast,
-    ]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Logos" }),
-      el("p", {
-        class: "help-text",
-        text: "On ink and accent, the light version. The single-colour modes leave the mark out, so a photo or an unusual colour shows through.",
-      }),
-      logos,
-    ]),
-    el("section", { class: "card" }, [el("h2", { text: "Route motif" }), motif]),
-    el("section", { class: "card" }, [
-      el("h2", { text: "Rules" }),
-      el(
-        "ul",
-        { class: "studio-lines" },
-        [
-          "Exactly one coloured phrase per headline.",
-          "The light logo on ink and accent.",
-          "Plain and calm, without exclamation marks.",
-          "Every number comes from a linked fact with a source.",
-          "The route is a watermark, never in an accent colour.",
-        ].map((t) => el("li", { text: t })),
-      ),
-    ]),
+      el("section", { class: "card" }, [
+        el("h2", { text: "Colours" }),
+        colors,
+        el("h3", { text: "Contrast per ground (WCAG: headline 3:1, text 4.5:1)" }),
+        contrast,
+      ]),
+      el("section", { class: "card" }, [
+        el("h2", { text: "Logos" }),
+        el("p", {
+          class: "help-text",
+          text: "On ink and accent, the light version. The single-colour modes leave the mark out, so a photo or an unusual colour shows through.",
+        }),
+        logos,
+      ]),
+      motifCard,
+      el("section", { class: "card" }, [
+        el("h2", { text: "Rules" }),
+        el(
+          "ul",
+          { class: "studio-lines" },
+          [
+            "Exactly one coloured phrase per headline.",
+            "The light logo on ink and accent.",
+            "Plain and calm, without exclamation marks.",
+            "Every number comes from a linked fact with a source.",
+            "The route is a watermark, never in an accent colour.",
+          ].map((t) => el("li", { text: t })),
+        ),
+      ]),
+    ].filter(Boolean),
   );
 }

@@ -2,8 +2,9 @@
 // (`src/web/studio/<screen>.js`).
 //
 // The editor needs the full width and the code loads only on this page.
-import { api, confirmDialog, el, icon, notice } from "/ui.js";
+import { activeProject, api, confirmDialog, el, icon, notice, setActiveProject, textDialog } from "/ui.js";
 import { loadBrand } from "/studio/brand.js";
+import { pickProject } from "/projects.js";
 
 const NAV_GROUPS = [
   [
@@ -55,6 +56,10 @@ const titleEl = document.getElementById("studio-title");
 const sidebarEl = document.getElementById("studio-sidebar");
 const overlayEl = document.getElementById("studio-overlay");
 const menuButton = document.getElementById("studio-menu");
+const projectSelect = document.getElementById("studio-project");
+
+const NEW_PROJECT = "__new__";
+let projectName = "";
 
 /** The screen that is open now, with its optional hooks `leave()` and `hasUnsaved()`. */
 let active = null;
@@ -137,7 +142,7 @@ async function render() {
   active = null;
   renderNav(screen);
   titleEl.textContent = SCREENS.get(screen);
-  document.title = `${SCREENS.get(screen)} — Postwright`;
+  document.title = `${SCREENS.get(screen)} — Postwright · ${projectName}`;
   contentEl.replaceChildren();
   mainEl.setAttribute("aria-busy", "true");
   try {
@@ -177,6 +182,41 @@ async function render() {
   }
 }
 
+/** Makes a project the active one and reloads the studio on its overview. */
+function openProject(slug) {
+  setActiveProject(slug);
+  history.replaceState(null, "", "#overview");
+  location.reload();
+}
+
+/**
+ * Fills the project picker and settles which project is active. A project that was removed
+ * by hand while this browser still remembers it falls back to the first one.
+ */
+async function setupProjects() {
+  // This route ignores the project header, so a remembered project that is gone cannot fail it.
+  const { projects } = await api("/api/projects");
+  const slug = pickProject(projects, activeProject());
+  setActiveProject(slug);
+  projectName = projects.find((p) => p.slug === slug).name;
+  document.querySelector(".app-page-headline span").textContent = `Marketing studio · ${projectName}`;
+  projectSelect.replaceChildren(
+    ...projects.map((p) => el("option", { value: p.slug, text: p.name, ...(p.slug === slug ? { selected: "" } : {}) })),
+    el("option", { value: NEW_PROJECT, text: "New project…" }),
+  );
+  projectSelect.addEventListener("change", async () => {
+    if (projectSelect.value !== NEW_PROJECT) return openProject(projectSelect.value);
+    projectSelect.value = slug; // back to the current one while the dialog is open
+    const name = await textDialog("New project", "Name of the brand or project");
+    if (!name) return;
+    try {
+      openProject((await api("/api/projects", { method: "POST", body: { name } })).slug);
+    } catch (e) {
+      notice(e.message, "error");
+    }
+  });
+}
+
 async function start() {
   menuButton.addEventListener("click", () => {
     const open = sidebarEl.classList.toggle("open");
@@ -194,6 +234,12 @@ async function start() {
     void render();
   });
   if (!location.hash) history.replaceState(null, "", "#overview");
+  try {
+    await setupProjects();
+  } catch (e) {
+    notice(e.message, "error");
+    return;
+  }
   await render();
 }
 

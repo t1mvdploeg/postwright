@@ -1,8 +1,10 @@
 // Loading the brand in the browser: the active brand from
 // `GET /api/brand`, the logos and the font as data URIs. An image in a foreignObject must
 // not fetch anything from outside (the image stays empty or the canvas gets "tainted");
-// with everything embedded, preview equals export. The files come from `/brand/`: the
-// folder `data/projects/<slug>/brand/` if a custom brand is there.
+// with everything embedded, preview equals export. The files come from `/brand/` of the
+// active project: its folder `data/projects/<slug>/brand/` if a custom brand is there. Every
+// fetch carries the project header, since an `<img>` or `@font-face` would not.
+import { projectHeaders } from "../ui.js";
 
 let brandPromise = null;
 const mediaCache = new Map();
@@ -19,7 +21,7 @@ export async function asDataUri(blob) {
 }
 
 async function getDataUri(path, type) {
-  const r = await fetch(path);
+  const r = await fetch(path, { headers: projectHeaders() });
   if (!r.ok) throw new Error(`Could not load ${path} (${r.status})`);
   return asDataUri(new Blob([await r.arrayBuffer()], { type }));
 }
@@ -34,7 +36,7 @@ const BRAND_FOLDER = "/brand";
  */
 export function loadBrand() {
   brandPromise ??= (async () => {
-    const r = await fetch("/api/brand");
+    const r = await fetch("/api/brand", { headers: projectHeaders() });
     if (!r.ok) throw new Error((await r.json().catch(() => null))?.error ?? "The brand could not be loaded");
     const m = await r.json();
     const logos = Object.fromEntries(
@@ -74,11 +76,13 @@ export async function loadMedia(ids, maxSide = 3200) {
     [...new Set(ids)]
       .filter((id) => /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id))
       .map(async (id) => {
-        if (!mediaCache.has(id)) {
+        // The size is part of the key: a 160 px thumbnail must not stand in for the editor's image.
+        const key = `${id}@${maxSide}`;
+        if (!mediaCache.has(key)) {
           mediaCache.set(
-            id,
+            key,
             (async () => {
-              const r = await fetch(`/api/media/${id}`);
+              const r = await fetch(`/api/media/${id}`, { headers: projectHeaders() });
               if (!r.ok) return null;
               const blob = await r.blob();
               const bitmap = await createImageBitmap(blob);
@@ -96,11 +100,11 @@ export async function loadMedia(ids, maxSide = 3200) {
             })().catch(() => null),
           );
         }
-        const source = await mediaCache.get(id);
+        const source = await mediaCache.get(key);
         // Do not remember a failed load: otherwise the image stays empty in preview and export
         // until a reload, without a notice. Next time just try again.
         if (source) out[id] = source;
-        else mediaCache.delete(id);
+        else mediaCache.delete(key);
       }),
   );
   return out;

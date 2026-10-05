@@ -4,11 +4,18 @@
 import { confirmDialog, el, notice } from "/ui.js";
 import { FORMATS, CHANNELS } from "/studio/formats.js";
 import { getAiMode } from "/studio/writing-help-ui.js";
+import { loadMedia } from "/studio/brand.js";
 
 export async function show(container, ctx) {
   const [i, { media: mediaList }, ai] = await Promise.all([ctx.reloadSettings(), ctx.api("/api/media"), getAiMode()]);
   if (!ctx.valid()) return;
   let media = mediaList;
+  // An <img src> sends no project header, so the thumbnails are fetched and shown as data URIs.
+  const thumbs = await loadMedia(
+    media.map((m) => m.id),
+    160,
+  );
+  if (!ctx.valid()) return;
 
   const channels = Object.entries(CHANNELS).map(([k, name]) =>
     el("label", { class: "studio-radio" }, [
@@ -112,7 +119,7 @@ export async function show(container, ctx) {
                 el("td", {}, [
                   el("img", {
                     class: "studio-media-mini",
-                    src: `/api/media/${encodeURIComponent(m.id)}`,
+                    src: thumbs[m.id] ?? "",
                     alt: "",
                     loading: "lazy",
                   }),

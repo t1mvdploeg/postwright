@@ -2069,3 +2069,20 @@ textarea[readonly] {
     transition: none;
   }
 }
+
+.project-picker {
+  display: grid;
+  gap: 4px;
+  padding: var(--r3) 20px;
+  border-bottom: 1px solid var(--edge);
+}
+
+.project-picker label {
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+  font-weight: 600;
+}
+
+.project-picker select {
+  width: 100%;
+}
