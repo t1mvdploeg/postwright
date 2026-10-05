@@ -1476,9 +1476,9 @@ async function showEditor(container, ctx, begin) {
     };
     try {
       exportStatus.textContent = "Exporting…";
-      if (kind === "png") await exportPng(state.post, s, ctx.brand, state.format, state.slide, campaignName());
-      else if (kind === "zip") await exportZip(state.post, s, ctx.brand, campaignName(), progress);
-      else await exportPdf(state.post, s, ctx.brand, campaignName(), progress);
+      if (kind === "png") await exportPng(state.post, ctx.brand, state.format, state.slide, campaignName());
+      else if (kind === "zip") await exportZip(state.post, ctx.brand, campaignName(), progress);
+      else await exportPdf(state.post, ctx.brand, campaignName(), progress);
       exportStatus.textContent = "Done; the download has started.";
     } catch (e) {
       exportStatus.textContent = "";

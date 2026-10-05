@@ -5,6 +5,7 @@ import { el } from "/ui.js";
 import { buildImage } from "/studio/templates.js";
 import { showPreview } from "/studio/render.js";
 import { loadMedia } from "/studio/brand.js";
+import { imagesOf, mediaIdsOf } from "/studio/slides.js";
 
 export const STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published", archived: "Archived" };
 
@@ -19,13 +20,18 @@ export function statusBadge(status) {
 export function postCard(p, { meta = null, side = null, warning = null, extra = null } = {}) {
   const art = el("div", { class: "studio-thumbnail" });
   art.dataset.id = p.id;
+  const count = imagesOf(p).length;
   return el("article", { class: "studio-post-card" }, [
     el("a", { href: `#editor/${p.id}`, class: "studio-post-link" }, [
       el("div", { class: "studio-artwork", "aria-hidden": "true" }, [art]),
       el("h3", { text: p.title }),
     ]),
     meta ? el("p", { class: "studio-post-meta", text: meta }) : null,
-    el("div", { class: "studio-post-status" }, [statusBadge(p.status), side]),
+    el("div", { class: "studio-post-status" }, [
+      statusBadge(p.status),
+      count > 1 ? el("span", { class: "badge", text: `${count} slides` }) : null,
+      side,
+    ]),
     warning ? el("p", { class: "studio-post-warning" }, [warning]) : null,
     extra,
   ]);
@@ -46,17 +52,8 @@ export function drawArtwork(root, posts, brand) {
         const p = byId.get(holder.dataset.id);
         void (async () => {
           try {
-            const ids = [p.content, ...p.slides.map((d) => d.content)].flatMap((i) => Object.values(i ?? {}));
-            const media = await loadMedia(ids);
-            const image = buildImage({
-              template: p.template,
-              content: p.content,
-              slides: p.slides,
-              slide: 0,
-              format: p.formats[0],
-              brand,
-              media,
-            });
+            const media = await loadMedia(mediaIdsOf(p));
+            const image = buildImage({ ...imagesOf(p)[0], format: p.formats[0], brand, media });
             // The artwork fits the square box: a portrait or a banner keeps its shape, centred.
             const side = holder.parentElement.clientWidth;
             const scale = showPreview(holder, image, { maxHeight: side });
