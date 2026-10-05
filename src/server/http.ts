@@ -255,11 +255,11 @@ export async function startServer(o: ServerOptions): Promise<{ url: string; clos
       }
       // Only a path: `//` and `//host/path` are not paths and are not silently read as a URL
       // with a different host.
-      const goal = req.url ?? "/";
+      const target = req.url ?? "/";
       let url: URL;
       try {
-        if (!goal.startsWith("/") || goal.startsWith("//")) throw new Error("no path");
-        url = new URL(goal, `http://127.0.0.1:${port}`);
+        if (!target.startsWith("/") || target.startsWith("//")) throw new Error("no path");
+        url = new URL(target, `http://127.0.0.1:${port}`);
       } catch {
         return sendJson(res, 400, { error: "Invalid request" });
       }

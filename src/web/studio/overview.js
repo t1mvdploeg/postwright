@@ -6,8 +6,8 @@ import { readableMoment } from "/studio/recipe.js";
 import { daysAgo } from "/studio/calendar.js";
 import { template } from "/studio/templates.js";
 
-function statCard(label, value, help, goal) {
-  return el("a", { class: "stat-card", href: goal }, [
+function statCard(label, value, help, href) {
+  return el("a", { class: "stat-card", href }, [
     el("span", { class: "stat-label", text: label }),
     el("strong", { text: String(value) }),
     el("span", { class: "stat-help", text: help }),
