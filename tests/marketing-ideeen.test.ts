@@ -1,26 +1,23 @@
-// Marketingstudio golf 2 — ideeën voorstellen over een periode. De server kiest wat het model ziet
+// Marketingstudio — ideeën voorstellen over een periode. De server kiest wat het model ziet
 // en rekent alles na wat terugkomt: datums binnen de periode, bestaande sjablonen, alleen
 // meegegeven feiten en momenten, en getallen zonder bron gemeld. Er wordt niets vanzelf bewaard.
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { mkdtempSync, rmSync, cpSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { startServer } from "../src/server/http.js";
-import { adminCookie } from "./helpers/sessie.js";
-import { leesKosten, telMee } from "../src/model/kosten.js";
-import { leesAudit } from "../src/model/audit.js";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
 import { plusDagen } from "../src/model/marketing-momenten.js";
-import { IdeeenVoorstelSchema, ruimIdeeenOp, werkdagen, type IdeeenOpdracht } from "../src/model/marketing-ideeen.js";
-import type { AnalyseProvider, IdeeenResultaat } from "../src/model/provider.js";
-import { NepProvider } from "../src/model/nep.js";
+import { ideeenInstructie, IdeeenVoorstelSchema, ruimIdeeenOp, werkdagen, type IdeeenOpdracht, type IdeeenVoorstel } from "../src/model/marketing-ideeen.js";
+import { LEGE_USAGE, type AiProvider, type AiResultaat } from "../src/server/ai/provider.js";
+import { maandtotaalUsd } from "../src/server/ai/verbruik.js";
+import { voorbeeldProvider } from "../src/server/ai/voorbeeld.js";
+import { startStudio } from "./helpers/studio.js";
 
 const OPDRACHT: IdeeenOpdracht = {
   van: "2026-10-05", tot: "2026-10-16", aantal: 3, kanaal: "linkedin", toelichting: "",
   sjablonen: [{ id: "stelling", naam: "Stelling", doel: "" }, { id: "vraag", naam: "Vraag", doel: "" }],
-  feiten: [{ id: "f-00000000-0000-4000-8000-000000000001", tekst: "Het minimumuurloon is € 14,99 per uur.", soort: "cao" }],
-  momenten: [{ sleutel: "wtta-aanmelden-overgang", datum: "2026-11-01", tot: "2026-12-31", titel: "Wtta", tekst: "Aanmelden kan van 1 november tot en met 31 december 2026." }],
-  bestaand: [], campagne: null, resultaten: [],
+  feiten: [{ id: "f-00000000-0000-4000-8000-000000000001", tekst: "The minimum hourly rate is € 14,99.", soort: "extern" }],
+  momenten: [{ sleutel: "aanmelden-overgang", datum: "2026-11-01", titel: "Registration", zin: "Registration is open from 1 November to 31 December 2026." }],
+  bestaand: [], campagne: null, resultaten: [], merk: { merknaam: "Testmerk", toon: [] },
 };
 const idee = (x: Partial<{ datum: string; titel: string; toelichting: string; sjabloon: string; kop: string; feiten: string[]; moment: string }>) =>
   ({ datum: "2026-10-06", titel: "Een idee", toelichting: "", sjabloon: "stelling", kop: "Een *kop.*", feiten: [], moment: "", ...x });
@@ -48,22 +45,30 @@ describe("ruimIdeeenOp", () => {
     expect(i).toMatchObject({ sjabloon: null, feiten: [OPDRACHT.feiten[0].id], moment: null });
   });
   it("meldt getallen zonder bron; een gekoppeld feit of moment dekt ze", () => {
-    const [zonder] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "Het WML is € 14,99 en de boete € 50.000." })] }, OPDRACHT);
+    const [zonder] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "The rate is € 14,99 and the fine € 50.000." })] }, OPDRACHT);
     expect(zonder.ongedekt).toEqual(["€ 14,99", "€ 50.000"]);
-    const [met] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "Het WML is € 14,99; aanmelden tot 31 december.", feiten: [OPDRACHT.feiten[0].id], moment: "wtta-aanmelden-overgang" })] }, OPDRACHT);
+    const [met] = ruimIdeeenOp({ ideeen: [idee({ toelichting: "The rate is € 14,99; register before 31 December.", feiten: [OPDRACHT.feiten[0].id], moment: "aanmelden-overgang" })] }, OPDRACHT);
     expect(met.ongedekt).toEqual([]);
   });
 });
 
-describe("nepprovider", () => {
+describe("voorbeeldgever en instructie", () => {
   it("geeft precies het gevraagde aantal ideeën op werkdagen in de periode, die het narekenen doorstaan", async () => {
-    const r = await NepProvider({} as never).marketingIdeeen!(OPDRACHT, { model: "nep" });
+    const r = await voorbeeldProvider.marketingIdeeen(OPDRACHT);
     expect(IdeeenVoorstelSchema.safeParse(r.voorstel).success).toBe(true);
     expect(r.voorstel.ideeen).toHaveLength(3);
     const uit = ruimIdeeenOp(r.voorstel, OPDRACHT);
     expect(uit).toHaveLength(3);
     expect(uit.every((i) => werkdagen(OPDRACHT.van, OPDRACHT.tot).includes(i.datum) && i.sjabloon !== null && i.ongedekt.length === 0)).toBe(true);
-    expect(uit[0].moment).toBe("wtta-aanmelden-overgang");
+    expect(uit[0].moment).toBe("aanmelden-overgang");
+    expect(r.usage).toEqual(LEGE_USAGE);
+  });
+
+  it("neemt de merknaam en de toonregels van het merk over en houdt de regel over de feiten overeind", () => {
+    const tekst = ideeenInstructie({ merknaam: "Voorbeeldmerk", toon: ["Be warm."] });
+    expect(tekst).toContain("Voorbeeldmerk");
+    expect(tekst).toContain("Tone: Be warm.");
+    expect(tekst).toContain("use only the facts provided");
   });
 });
 
@@ -72,22 +77,20 @@ describe("nepprovider", () => {
 // ---------------------------------------------------------------------------------------------
 const nep = {
   gezien: null as IdeeenOpdracht | null,
-  antwoord: null as ((o: IdeeenOpdracht) => IdeeenResultaat) | null,
+  antwoord: null as ((o: IdeeenOpdracht) => AiResultaat<IdeeenVoorstel>) | null,
 };
-const provider: AnalyseProvider = {
-  naam: "nep-ideeen",
-  analyseer: async () => { throw new Error("mag niet"); },
-  praat: async () => { throw new Error("mag niet"); },
+const provider: AiProvider = {
+  naam: "anthropic",
+  model: "claude-sonnet-5-5",
   marketingIdeeen: async (o) => { nep.gezien = o; return nep.antwoord!(o); },
-  // Alleen voor de plafondtest: een schrijfhulp-aanroep die iets kost.
+  // Alleen voor de plafondtest: een schrijfhulp-aanroep die iets kost ($ 0,40).
   marketingTekst: async () => ({
     voorstel: { varianten: [{ velden: [{ id: "kop", tekst: "Een *kop*" }], posttekst: "", altTekst: "", gebruikteFeiten: [] }] },
-    model: "nep-model", usage: { input: 100_000, output: 20_000, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+    model: "claude-sonnet-5-5", usage: { input: 100_000, output: 20_000, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
   }),
 };
 
 let basis = "";
-let cookie = "";
 let dataDir = "";
 let sluit: () => Promise<void>;
 const API = "/api";
@@ -96,36 +99,36 @@ const vandaag = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amste
 
 async function vraag(pad: string, body?: unknown, methode = body === undefined ? "GET" : "POST") {
   const r = await fetch(basis + pad, {
-    method: methode, headers: { cookie, ...(body !== undefined ? { "content-type": "application/json" } : {}) },
+    method: methode, headers: body !== undefined ? { "content-type": "application/json" } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   return { status: r.status, body: await r.json() as any };
 }
 
 async function zetAiHulp(aan: boolean, plafond = 10) {
-  const r = await vraag(`${API}/instellingen`, { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondEurPerMaand: plafond } }, "PUT");
+  const r = await vraag(`${API}/instellingen`, { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan, plafondUsdPerMaand: plafond } }, "PUT");
   expect(r.status).toBe(200);
 }
 
 const verzoek = (van: string, tot: string, extra: Record<string, unknown> = {}) =>
   ({ van, tot, aantal: 2, kanaal: "linkedin", toelichting: "Voor planners.", campagne: null, ...extra });
 
-const marketingRegels = async () => (await leesKosten({ dir: dataDir })).filter((r) => r.soort === "marketing");
+const boekingen = () => {
+  try { return readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; }
+};
 
 beforeAll(async () => {
-  dataDir = mkdtempSync(join(tmpdir(), "ct-marketing-ideeen-"));
-  cpSync("data/parameters", join(dataDir, "parameters"), { recursive: true });
-  const s = await startServer({ poort: 0, dataDir, provider, maxAanvragenPerMinuut: 10_000 });
-  basis = `http://127.0.0.1:${s.poort}`;
+  const s = await startStudio({ provider });
+  basis = s.basis;
+  dataDir = s.dataDir;
   sluit = s.sluit;
-  cookie = await adminCookie(basis);
 });
-afterAll(async () => { await sluit(); rmSync(dataDir, { recursive: true, force: true }); });
+afterAll(async () => { await sluit(); });
 beforeEach(() => {
   nep.gezien = null;
   nep.antwoord = (o) => ({
     voorstel: { ideeen: [idee({ datum: o.van, titel: "Eerste" })] },
-    model: "nep-model", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+    model: "claude-sonnet-5-5", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
   });
 });
 
@@ -149,12 +152,12 @@ describe("POST /ideeen/voorstellen", () => {
         idee({ datum: plusDagen(o.tot, 5), titel: "Erbuiten" }),
         idee({ datum: plusDagen(o.van, 2), titel: "Onbekend sjabloon", sjabloon: "onbekend" }),
       ] },
-      model: "nep-model", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
+      model: "claude-sonnet-5-5", usage: { input: 100, output: 50, cacheLezen: 0, cacheSchrijven: 0 }, duurMs: 5,
     });
-    const voor = (await marketingRegels()).length;
+    const voor = boekingen().length;
     const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, tot));
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ model: "nep-model", van });
+    expect(r.body).toMatchObject({ model: "claude-sonnet-5-5", van, voorbeeld: false });
     const voorstellen = r.body.voorstellen as Array<{ datum: string; titel: string; sjabloon: string | null }>;
     expect(voorstellen.length).toBeGreaterThan(0);
     expect(voorstellen.length).toBeLessThanOrEqual(2);
@@ -167,12 +170,10 @@ describe("POST /ideeen/voorstellen", () => {
     expect(nep.gezien!.sjablonen.some((s) => s.id === "stelling")).toBe(true);
     // Niets bewaard.
     expect((await vraag(`${API}/ideeen`)).body.ideeen).toEqual([]);
-    // Kosten als platformtaak "marketing", onderwerp ideeen:<van>..<tot>.
-    const regels = await marketingRegels();
+    // Eén boeking, met taak ideeen:<van>..<tot>.
+    const regels = boekingen();
     expect(regels.length).toBe(voor + 1);
-    expect(regels.at(-1)).toMatchObject({ soort: "marketing", onderwerp: `ideeen:${van}..${tot}`, uitkomst: "ok", model: "nep-model" });
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.some((a) => a.actie === "marketing.ideeen-voorgesteld" && a.doelwit === `${van}..${tot}`)).toBe(true);
+    expect(regels.at(-1)).toMatchObject({ taak: `ideeen:${van}..${tot}`, ok: true, model: "claude-sonnet-5-5" });
   });
 
   it("weigert een periode in het verleden en een periode langer dan drie maanden", async () => {
@@ -200,20 +201,6 @@ describe("POST /ideeen/voorstellen", () => {
     expect(nep.gezien).toBeNull();
   });
 
-  it("zegt 501 als de provider geen ideeën kent, zonder kostenregel", async () => {
-    await zetAiHulp(true);
-    const zonder = provider.marketingIdeeen;
-    delete provider.marketingIdeeen;
-    try {
-      const voor = (await marketingRegels()).length;
-      const van = plusDagen(vandaag(), 1);
-      const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, plusDagen(van, 9)));
-      expect(r.status).toBe(501);
-      expect(r.body.fout).toMatch(/geen ideeën/);
-      expect((await marketingRegels()).length).toBe(voor);
-    } finally { provider.marketingIdeeen = zonder; }
-  });
-
   it("vat een begin in het verleden op als vandaag", async () => {
     await zetAiHulp(true);
     const nu = vandaag();
@@ -226,24 +213,17 @@ describe("POST /ideeen/voorstellen", () => {
 
   it("deelt het maandplafond met de schrijfhulp", async () => {
     // Eerst een schrijfhulp-aanroep die echt iets kost, met ruimte onder het plafond.
-    await zetAiHulp(true, 10);
+    await zetAiHulp(true, 1000);
     const hulp = await vraag(`${API}/schrijfhulp`, {
       taak: "velden", sjabloon: "Stelling", kanaal: "linkedin", toelichting: "", feiten: [],
       velden: [{ id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true }],
     });
     expect(hulp.status).toBe(200);
-    const regels = await marketingRegels();
-    expect(regels.at(-1)).toMatchObject({ onderwerp: "schrijfhulp:velden", uitkomst: "ok" });
-    expect(regels.at(-1)!.eur).toBeGreaterThan(0);
-    // Het plafond precies op wat deze maand is besteed, schrijfhulp meegeteld; dezelfde som als de server.
-    const maand = new Date().toISOString().slice(0, 7);
-    const besteed = (await leesKosten({ dir: dataDir }))
-      .filter((r) => r.soort === "marketing" && r.tijdstip.slice(0, 7) === maand && telMee(r))
-      .reduce((som, r) => som + r.eur, 0);
-    const zonderSchrijfhulp = regels.filter((r) => r.tijdstip.slice(0, 7) === maand && telMee(r) && !r.onderwerp?.startsWith("schrijfhulp:"))
-      .reduce((som, r) => som + r.eur, 0);
-    expect(zonderSchrijfhulp).toBeLessThan(besteed);
-    await zetAiHulp(true, besteed);
+    const laatste = boekingen().at(-1);
+    expect(laatste).toMatchObject({ taak: "schrijfhulp:velden", ok: true });
+    expect(laatste.usd).toBeCloseTo(0.4, 8); // 100.000 in en 20.000 uit tegen $ 2 en $ 10 per miljoen
+    // Het plafond precies op wat deze maand is besteed, schrijfhulp meegeteld: dan is het bereikt.
+    await zetAiHulp(true, await maandtotaalUsd(dataDir, new Date()));
     const van = plusDagen(vandaag(), 1);
     const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, plusDagen(van, 9)));
     expect(r.status).toBe(429);
@@ -254,15 +234,15 @@ describe("POST /ideeen/voorstellen", () => {
   it("geeft het model alleen bruikbare feiten, en de campagne met naam en doel (afsluitende review, C3)", async () => {
     await zetAiHulp(true, 1000);
     const feit = async (tekst: string, status: string, geldigTot: string | null = null) => {
-      const r = await vraag(`${API}/feiten`, { tekst, soort: "product", bron: { soort: "site", verwijzing: "src/web/landing.html" }, status, geldigTot });
+      const r = await vraag(`${API}/feiten`, { tekst, soort: "product", bron: { soort: "site", verwijzing: "README.md" }, status, geldigTot });
       expect(r.status).toBe(201);
       return r.body.id as string;
     };
-    const actief = await feit("Een actief feit voor de ideeënhulp.", "actief");
-    const concept = await feit("Een concept-feit voor de ideeënhulp.", "concept");
-    const verlopen = await feit("Een verlopen feit voor de ideeënhulp.", "actief", plusDagen(vandaag(), -1));
-    const ingetrokken = await feit("Een ingetrokken feit voor de ideeënhulp.", "ingetrokken");
-    const campagne = await vraag(`${API}/campagnes`, { naam: "Najaar", utmCampagne: "najaar-ideeen", doel: "Uitzendbureaus op de Wtta wijzen." });
+    const actief = await feit("An active fact for the ideas help.", "actief");
+    const concept = await feit("A draft fact for the ideas help.", "concept");
+    const verlopen = await feit("An expired fact for the ideas help.", "actief", plusDagen(vandaag(), -1));
+    const ingetrokken = await feit("A withdrawn fact for the ideas help.", "ingetrokken");
+    const campagne = await vraag(`${API}/campagnes`, { naam: "Najaar", utmCampagne: "najaar-ideeen", doel: "Point readers to the new release." });
     expect(campagne.status).toBe(201);
     const van = plusDagen(vandaag(), 1);
     const r = await vraag(`${API}/ideeen/voorstellen`, verzoek(van, plusDagen(van, 9), { campagne: campagne.body.id }));
@@ -270,7 +250,7 @@ describe("POST /ideeen/voorstellen", () => {
     const gezien = nep.gezien!.feiten.map((f) => f.id);
     expect(gezien).toContain(actief);
     for (const id of [concept, verlopen, ingetrokken]) expect(gezien).not.toContain(id);
-    expect(nep.gezien!.campagne).toEqual({ naam: "Najaar", doel: "Uitzendbureaus op de Wtta wijzen." });
+    expect(nep.gezien!.campagne).toEqual({ naam: "Najaar", doel: "Point readers to the new release." });
   });
 
   it("weigert een campagne die niet bestaat met 400, zonder het model te vragen", async () => {

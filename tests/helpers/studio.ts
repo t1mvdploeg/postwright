@@ -5,10 +5,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { maakMarketingRoutes } from "../../src/server/api-marketing.js";
 import { startServer } from "../../src/server/http.js";
+import type { AiProvider } from "../../src/server/ai/provider.js";
 
-export async function startStudio() {
+export async function startStudio(opties: { provider?: AiProvider } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "pw-studio-"));
-  const s = await startServer({ dataDir, poort: 0, routes: maakMarketingRoutes({ dataDir }) });
+  const s = await startServer({
+    dataDir,
+    poort: 0,
+    routes: maakMarketingRoutes({ dataDir, provider: opties.provider }),
+  });
   return {
     dataDir,
     basis: s.url,

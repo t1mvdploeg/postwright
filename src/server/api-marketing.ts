@@ -3,7 +3,7 @@
 // maakt de agenda-export zelf in de browser.
 import { readFile } from "node:fs/promises";
 import { ApiFout, antwoord, route, type Ctx, type Route } from "./http.js";
-import { leesJson, pad, type Opslag } from "../data/bestanden.js";
+import { leesJson, pad, serialiseer, type Opslag } from "../data/bestanden.js";
 import {
   MarketingOpslagFout, bewaarMarketingInstellingen, bewaarMedia, geldigLijstId, laadMarketingInstellingen,
   leesLijst, leesMedia, leesPost, lijstMedia, lijstPosts, maakPost, mediaAfmetingen, mediaGebruik, mediaSoort,
@@ -16,19 +16,23 @@ import {
   type Campagne, type Feit, type Geschiedenisregel, type Idee, type Post, type PostInvoer, type PostSamenvatting, type Tekst, type TekstInvoer,
 } from "../model/marketing-schema.js";
 import { STARTFEITEN, STARTPOSTS, STARTTEKSTEN, type Startfeit } from "../model/marketing-startvulling.js";
-import { SchrijfhulpVerzoekSchema } from "../model/marketing-schrijfhulp.js";
-import { IdeeenVerzoekSchema } from "../model/marketing-ideeen.js";
+import { SchrijfhulpVerzoekSchema, type MarketingOpdracht, type PromptMerk } from "../model/marketing-schrijfhulp.js";
+import { IdeeenVerzoekSchema, ruimIdeeenOp, type IdeeenOpdracht } from "../model/marketing-ideeen.js";
 import { alleMomenten, type Moment } from "../model/marketing-momenten.js";
 import { resultatenPerSjabloon } from "../model/marketing-resultaten.js";
 // Elke studio-link in de posttekst wijst naar zijn eigen post; dezelfde functie als de editor
 // gebruikt bij "Link invoegen", zodat een link die daarvóór is geplakt of gedupliceerd is, ook klopt.
 import { zetUtmInhoud } from "../web/marketing/posttekst.js";
 // Voor de controle dat een idee naar een bestaand sjabloon wijst: dezelfde sjabloonlijst als de editor.
-import { sjabloon as sjabloonVan } from "../web/marketing/sjablonen.js";
+import { SJABLONEN, sjabloon as sjabloonVan } from "../web/marketing/sjablonen.js";
 // De merkcontrole van de browser, ook hier gebruikt voor de voorbeeldpost die ingepland wordt.
 import { controleer } from "../web/marketing/merkcontrole.js";
 // Datumhelpers: één versie voor server en browser (echteDatum laat 2026-13-01 en 2026-02-30 niet door).
 import { echteDatum, komendeWeken, plusDagen } from "../web/marketing/kalender.js";
+import { ongedekteGetallen } from "../web/marketing/getallen.js";
+import { AiFout, type AiProvider, type AiResultaat } from "./ai/provider.js";
+import { aiStand, kiesProvider } from "./ai/kies.js";
+import { boek, kostenUsd, maandtotaalUsd } from "./ai/verbruik.js";
 import { z } from "zod";
 
 /** Grootste upload: een schermafbeelding of foto. */
@@ -107,8 +111,16 @@ export async function leesEigenMomenten(o: Opslag): Promise<Moment[]> {
   }
 }
 
-export function maakMarketingRoutes(o: { dataDir: string }): Route[] {
+/**
+ * Wat de AI-instructies van het merk nodig hebben. Tijdelijk een vaste waarde: de merktaak vervangt hem
+ * door het geladen merk (de merknaam en de toonregels uit `merk.json`).
+ */
+const MERK_VOOR_PROMPT: PromptMerk = { merknaam: "Postwright", toon: [] };
+
+/** `provider`: de AI die de routes gebruiken; zonder gebruiken ze `kiesProvider()` (sleutel uit de omgeving). */
+export function maakMarketingRoutes(o: { dataDir: string; provider?: AiProvider }): Route[] {
   const gedeeld: Opslag = { dir: o.dataDir };
+  const provider = o.provider ?? kiesProvider();
 
   function postId(c: Ctx): string {
     const id = c.params.id;
@@ -227,6 +239,69 @@ export function maakMarketingRoutes(o: { dataDir: string }): Route[] {
       nieuw++;
     }
     return nieuw;
+  }
+
+  /**
+   * Eén AI-aanroep van de studio (schrijfhulp of ideeën): schakelaar, maandplafond, provider en boeking.
+   * Eén aanroep tegelijk voor beide, anders lezen snelle klikken hetzelfde bedrag en komen ze samen over
+   * het plafond. Het plafond geldt alleen voor de live-provider; de voorbeeldgever kost niets. Elke
+   * aanroep wordt geboekt, ook een mislukte (met de tokens die al verbruikt zijn). Een ApiFout uit
+   * `roep` gaat ongeboekt door.
+   */
+  async function aiHulp<T>(naam: string, taak: string, roep: () => Promise<AiResultaat<T>>): Promise<AiResultaat<T>> {
+    return serialiseer("marketing-ai", async () => {
+      const marketing = await laadMarketingInstellingen(gedeeld);
+      if (!marketing.schrijfhulp.aan) throw new ApiFout(409, `${naam} staat uit; zet de AI-hulp aan onder Instellingen`);
+      const plafond = marketing.schrijfhulp.plafondUsdPerMaand;
+      if (provider.naam === "anthropic" && (await maandtotaalUsd(o.dataDir, new Date())) >= plafond) {
+        throw new ApiFout(429, `Het maandplafond van de AI-hulp ($ ${plafond}) is bereikt`);
+      }
+      const modelNaam = aiStand(provider).model ?? "voorbeeld";
+      let resultaat: AiResultaat<T>;
+      try {
+        resultaat = await roep();
+      } catch (fout) {
+        if (fout instanceof ApiFout) throw fout;
+        const usd = fout instanceof AiFout && fout.usage ? kostenUsd(modelNaam, fout.usage) : 0;
+        await boek(o.dataDir, { tijdstip: new Date().toISOString(), model: modelNaam, taak, usd, ok: false });
+        throw new ApiFout(502, `${naam} gaf geen bruikbaar antwoord: ${fout instanceof Error ? fout.message : String(fout)}`);
+      }
+      await boek(o.dataDir, {
+        tijdstip: new Date().toISOString(), model: resultaat.model, taak, usd: kostenUsd(resultaat.model, resultaat.usage), ok: true,
+      });
+      return resultaat;
+    });
+  }
+
+  async function schrijfhulp(verzoek: z.infer<typeof SchrijfhulpVerzoekSchema>) {
+    const vandaag = vandaagAmsterdam(new Date());
+    const alleFeiten = await leesLijst<Feit>(gedeeld, "feiten");
+    const feiten = verzoek.feiten.map((id) => alleFeiten.find((f) => f.id === id));
+    if (feiten.some((f) => !f || feitOnbruikbaar(f, vandaag))) {
+      throw new ApiFout(400, "Een gekoppeld feit bestaat niet of is niet actief; de schrijfhulp werkt alleen met actieve feiten");
+    }
+    const bruikbaar = feiten as Feit[];
+
+    const opdracht: MarketingOpdracht = {
+      taak: verzoek.taak, sjabloon: verzoek.sjabloon, velden: verzoek.velden, kanaal: verzoek.kanaal,
+      toelichting: verzoek.toelichting, huidig: verzoek.huidig, feiten: bruikbaar.map((f) => ({ id: f.id, tekst: f.tekst, bron: f.bron.verwijzing })),
+      merk: MERK_VOOR_PROMPT,
+    };
+    const resultaat = await aiHulp("De schrijfhulp", `schrijfhulp:${verzoek.taak}`, () => provider.marketingTekst(opdracht));
+
+    const veldIds = new Set(verzoek.velden.map((v) => v.id));
+    const varianten = resultaat.voorstel.varianten.slice(0, 3).map((v) => {
+      const velden = Object.fromEntries(v.velden.filter((x) => veldIds.has(x.id)).map((x) => [x.id, x.tekst]));
+      const posttekst = verzoek.taak === "posttekst" ? v.posttekst : "";
+      const altTekst = verzoek.taak === "alt-tekst" ? v.altTekst : "";
+      const tekst = [...Object.values(velden), posttekst, altTekst].join("\n");
+      return {
+        velden, posttekst, altTekst,
+        gebruikteFeiten: v.gebruikteFeiten.filter((id) => verzoek.feiten.includes(id)),
+        ongedekt: [...new Set(ongedekteGetallen(tekst, bruikbaar).map((g) => g.tekst))],
+      };
+    });
+    return { varianten, model: resultaat.model, voorbeeld: provider.naam === "voorbeeld" };
   }
 
   const gebruiktIn = async (veld: "campagne" | "feiten", id: string) =>
@@ -486,17 +561,50 @@ export function maakMarketingRoutes(o: { dataDir: string }): Route[] {
     }),
 
     // -----------------------------------------------------------------------------------------
-    // Schrijfhulp en ideeën voorstellen: de AI komt in een volgende stap. Tot dan valideert de route
-    // de invoer en geeft hij 501.
+    // AI: de stand (live of voorbeeld), de schrijfhulp en ideeën voorstellen. De sleutel komt in geen
+    // enkel antwoord. De feiten komen bij de schrijfhulp alleen als id's binnen: de server laadt ze
+    // zelf, zodat er via de browser geen onbewezen claim de opdracht in kan. Elk voorstel gaat terug
+    // met de getallen die in geen van die feiten staan; de editor laat zo'n voorstel niet overnemen.
     // -----------------------------------------------------------------------------------------
-    route("POST", "/api/schrijfhulp", async (c) => {
-      valideer(SchrijfhulpVerzoekSchema, await c.leesJson());
-      throw new ApiFout(501, "De schrijfhulp is nog niet beschikbaar");
-    }),
+    route("GET", "/api/ai", () => aiStand(provider)),
 
+    route("POST", "/api/schrijfhulp", async (c) => schrijfhulp(valideer(SchrijfhulpVerzoekSchema, await c.leesJson()))),
+
+    // Ideeën voorstellen. De browser stuurt alleen periode, aantal, kanaal, campagne-id en wens; wat het
+    // model ziet, stelt de server zelf samen. Het antwoord gaat nagerekend terug en wordt niet bewaard:
+    // pas "Zet in de planner" maakt er ideeën van.
     route("POST", "/api/ideeen/voorstellen", async (c) => {
-      valideer(IdeeenVerzoekSchema, await c.leesJson());
-      throw new ApiFout(501, "Ideeën voorstellen is nog niet beschikbaar");
+      const v = valideer(IdeeenVerzoekSchema, await c.leesJson());
+      const vandaag = vandaagAmsterdam(new Date());
+      if (v.tot < vandaag) throw new ApiFout(400, "Deze periode ligt helemaal in het verleden");
+      const van = v.van < vandaag ? vandaag : v.van;
+      // Hooguit 92 dagen, van en tot meegeteld: tot ligt uiterlijk 91 dagen na van.
+      if (plusDagen(van, 91) < v.tot) throw new ApiFout(400, "Kies een periode van hooguit drie maanden");
+      const [feiten, posts, ideeen, campagnes, eigen] = await Promise.all([
+        leesLijst<Feit>(gedeeld, "feiten"), lijstPosts(gedeeld), leesLijst<Idee>(gedeeld, "ideeen"), leesLijst<Campagne>(gedeeld, "campagnes"),
+        eigenMomenten(),
+      ]);
+      const campagne = v.campagne ? campagnes.find((k) => k.id === v.campagne) ?? null : null;
+      if (v.campagne && !campagne) throw new ApiFout(400, "De gekozen campagne bestaat niet (meer)");
+      const dagVan = (p: Post) => (p.status === "gepland" && p.gepland ? vandaagAmsterdam(new Date(p.gepland))
+        : p.status === "gepubliceerd" && p.gepubliceerd ? vandaagAmsterdam(new Date(p.gepubliceerd.op)) : null);
+      const inPeriode = (d: string | null) => d !== null && d >= van && d <= v.tot;
+      const opdracht: IdeeenOpdracht = {
+        van, tot: v.tot, aantal: v.aantal, kanaal: v.kanaal, toelichting: v.toelichting,
+        sjablonen: SJABLONEN.map((s) => ({ id: s.id, naam: s.naam, doel: s.doel })),
+        feiten: feiten.filter((f) => !feitOnbruikbaar(f, vandaag)).slice(0, 60).map((f) => ({ id: f.id, tekst: f.tekst, soort: f.soort })),
+        // Ook momenten net na de periode: een post vlak ervoor kan erop vooruitlopen.
+        momenten: alleMomenten(van, plusDagen(v.tot, 21), eigen).map(({ sleutel, datum, titel, zin }) => ({ sleutel, datum, titel, zin })),
+        bestaand: [
+          ...posts.filter((p) => inPeriode(dagVan(p))).map((p) => ({ datum: dagVan(p) as string, titel: p.titel, soort: "post" as const })),
+          ...ideeen.filter((i) => inPeriode(i.datum)).map((i) => ({ datum: i.datum, titel: i.titel, soort: "idee" as const })),
+        ],
+        campagne: campagne ? { naam: campagne.naam, doel: campagne.doel } : null,
+        resultaten: resultatenPerSjabloon(posts, plusDagen(vandaag, -182)),
+        merk: MERK_VOOR_PROMPT,
+      };
+      const r = await aiHulp("De ideeënhulp", `ideeen:${van}..${v.tot}`, () => provider.marketingIdeeen(opdracht));
+      return { voorstellen: ruimIdeeenOp(r.voorstel, opdracht), model: r.model, van, voorbeeld: provider.naam === "voorbeeld" };
     }),
 
     // -----------------------------------------------------------------------------------------

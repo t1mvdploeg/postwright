@@ -1,11 +1,12 @@
 // Marketingstudio — Instellingen: welke kanalen en formaten aan staan, de UTM-standaard, de lijst
-// verboden woorden, standaardhashtags, de AI-hulp (schrijfhulp en ideeën) met haar maandplafond, en
+// verboden woorden, standaardhashtags, de AI-hulp (schrijfhulp en ideeën) met haar stand en maandplafond, en
 // het beheer van geüploade beelden.
 import { bevestigDialoog, el, melding } from "/app.js";
 import { FORMATEN, KANALEN } from "/marketing/formaten.js";
+import { haalAiStand } from "/marketing/schrijfhulp-ui.js";
 
 export async function toon(container, ctx) {
-  const [i, { media: mediaLijst }] = await Promise.all([ctx.herlaadInstellingen(), ctx.api("/api/media")]);
+  const [i, { media: mediaLijst }, ai] = await Promise.all([ctx.herlaadInstellingen(), ctx.api("/api/media"), haalAiStand()]);
   if (!ctx.geldig()) return;
   let media = mediaLijst;
 
@@ -25,7 +26,7 @@ export async function toon(container, ctx) {
   verboden.value = i.verbodenWoorden.join("\n");
   const hashtags = el("input", { type: "text", id: "standaard-hashtags", value: i.standaardHashtags, maxlength: "300" });
   const hulpAan = el("input", { type: "checkbox", id: "schrijfhulp-aan", ...(i.schrijfhulp.aan ? { checked: "" } : {}) });
-  const plafond = el("input", { type: "number", id: "schrijfhulp-plafond", min: "0", max: "1000", step: "1", value: String(i.schrijfhulp.plafondEurPerMaand) });
+  const plafond = el("input", { type: "number", id: "schrijfhulp-plafond", min: "0", max: "1000", step: "0.5", value: String(i.schrijfhulp.plafondUsdPerMaand) });
   const opslaan = el("button", { type: "button", text: "Instellingen bewaren" });
 
   opslaan.addEventListener("click", async () => {
@@ -38,7 +39,7 @@ export async function toon(container, ctx) {
       },
       verbodenWoorden: verboden.value.split("\n").map((w) => w.trim()).filter(Boolean),
       standaardHashtags: hashtags.value.trim(),
-      schrijfhulp: { aan: hulpAan.checked, plafondEurPerMaand: Number(plafond.value) || 0 },
+      schrijfhulp: { aan: hulpAan.checked, plafondUsdPerMaand: Number(plafond.value) || 0 },
     };
     opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
     try {
@@ -97,9 +98,11 @@ export async function toon(container, ctx) {
     ]),
     el("section", { class: "kaart" }, [
       el("h2", { text: "AI-hulp: schrijfhulp en ideeën" }),
-      el("p", { class: "hulptekst", text: "Stelt teksten voor uit gekoppelde feiten, en ideeën voor een periode in de planner. Kost API-geld als platformkosten; zichtbaar onder Kosten in Platformbeheer. Eén maandplafond voor beide." }),
+      el("p", { class: "hulptekst", text: "Stelt teksten voor uit gekoppelde feiten, en ideeën voor een periode in de planner. Echte antwoorden kosten API-geld; het verbruik staat in ai-usage.jsonl in de datamap. Eén maandplafond voor beide." }),
+      el("p", { role: "status", text: ai?.stand === "live" ? `Stand: echte antwoorden van ${ai.model}.` : ai?.stand === "voorbeeld" ? "Stand: voorbeeldantwoorden." : "Stand: niet te bepalen." }),
+      ai?.stand === "voorbeeld" ? el("p", { class: "hulptekst", text: "Set ANTHROPIC_API_KEY and restart to get real suggestions." }) : null,
       el("label", { class: "studio-radio" }, [hulpAan, el("span", { text: "AI-hulp aan" })]),
-      el("div", { class: "veld" }, [el("label", { for: "schrijfhulp-plafond", text: "Maandplafond in euro" }), plafond]),
+      el("div", { class: "veld" }, [el("label", { for: "schrijfhulp-plafond", text: "Maandplafond in dollars (alleen voor echte antwoorden)" }), plafond]),
     ]),
     el("div", { class: "knoppenrij" }, [opslaan]),
     el("section", { class: "kaart" }, [

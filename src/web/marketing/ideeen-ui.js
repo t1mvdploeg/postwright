@@ -1,4 +1,4 @@
-// Marketingstudio — de ideeënplanner in Planning (golf 2): het ideepaneel (een idee bekijken,
+// Marketingstudio — de ideeënplanner in Planning: het ideepaneel (een idee bekijken,
 // bewerken, wissen of er een post van maken) en de AI-voorstellen over een periode. Planning
 // (planning.js) houdt de lijsten en de periode bij en geeft ze via haken mee.
 //
@@ -7,6 +7,7 @@
 import { bevestigDialoog, el, melding, veldFout } from "/app.js";
 import { SJABLONEN, sjabloon as sjabloonVan, zonderNadruk } from "/marketing/sjablonen.js";
 import { ideeNaarRecept, naarInvoer } from "/marketing/recept.js";
+import { haalAiStand, voorbeeldBalk, voorbeeldEtiket } from "/marketing/schrijfhulp-ui.js";
 
 const KORT = new Intl.DateTimeFormat("nl-NL", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const LANG = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -295,6 +296,9 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
   const uit = aan ? null : el("p", { class: "hulptekst" }, ["De AI-hulp staat uit. ", el("a", { href: "#instellingen", text: "Zet hem aan onder Instellingen" }), "."]);
   const stand = el("p", { class: "hulptekst", role: "status", "aria-live": "polite" });
   const lijst = el("div", { class: "studio-varianten" });
+  const balk = el("div");
+  haalAiStand().then((a) => { if (a?.stand === "voorbeeld") balk.replaceChildren(voorbeeldBalk()); });
+  let voorbeeldAntwoord = false;
   const zet = el("button", { type: "button", text: "Zet 0 in de planner" });
   const weg = el("button", { type: "button", class: "secundair", text: "Weggooien" });
   const acties = el("div", { class: "knoppenrij", hidden: "" }, [zet, weg]);
@@ -325,7 +329,7 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     vink.addEventListener("change", telOp);
     const s = v.sjabloon ? sjabloonVan(v.sjabloon) : null;
     const article = el("article", { class: "studio-variant" }, [
-      el("label", { class: "studio-radio studio-voorsteltitel" }, [vink, el("b", { text: `${korteDag(v.datum)} · ${v.titel}` })]),
+      el("label", { class: "studio-radio studio-voorsteltitel" }, [vink, el("b", { text: `${korteDag(v.datum)} · ${v.titel}` }), voorbeeldAntwoord ? voorbeeldEtiket() : null]),
       v.toelichting ? el("p", { text: v.toelichting }) : null,
       el("p", { class: "hulptekst", text: s ? `Sjabloon: ${s.naam}` : "Nog geen sjabloon" }),
       v.kop ? el("p", {}, [el("b", { text: "Kop: " }), zonderNadruk(v.kop)]) : null,
@@ -354,6 +358,7 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
       // met een AbortError, en die is geen foutmelding.
       const data = await ctx.api("/api/ideeen/voorstellen", { method: "POST", body, signal: afbreken.signal });
       campagneVanVerzoek = body.campagne;
+      voorbeeldAntwoord = data?.voorbeeld === true;
       voorstellen = (data?.voorstellen ?? []).map(voorstel);
       tekenLijst();
       const n = voorstellen.length;
@@ -414,5 +419,5 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     vraag.focus();
   });
 
-  return { vraag, annuleer, uit, element: el("div", { class: "studio-voorstellen" }, [stand, lijst, acties]) };
+  return { vraag, annuleer, uit, element: el("div", { class: "studio-voorstellen" }, [stand, balk, lijst, acties]) };
 }

@@ -191,14 +191,15 @@ export const MarketingInstellingenSchema = z.object({
   standaardHashtags: z.string().max(300),
   schrijfhulp: z.object({
     aan: z.boolean(),
-    plafondEurPerMaand: z.number().finite().min(0).max(1000),
+    plafondUsdPerMaand: z.number().finite().min(0).max(1000),
   }).strict(),
 }).strict();
 export type MarketingInstellingen = z.infer<typeof MarketingInstellingenSchema>;
 
 /**
- * De standaard zolang er niets is ingesteld. LinkedIn-first; de schrijfhulp staat uit (hij kost
- * API-geld). De verboden woorden zijn beloftes die een merk zelden kan waarmaken.
+ * De standaard zolang er niets is ingesteld. LinkedIn-first; de AI-hulp staat aan: zonder API-sleutel
+ * geeft hij voorbeeldantwoorden die niets kosten. Het plafond is in dollars, want zo rekent de API.
+ * De verboden woorden zijn beloftes die een merk zelden kan waarmaken.
  */
 export const STANDAARD_MARKETING_INSTELLINGEN: MarketingInstellingen = {
   kanalen: ["linkedin"],
@@ -206,5 +207,5 @@ export const STANDAARD_MARKETING_INSTELLINGEN: MarketingInstellingen = {
   utm: { medium: "social", bron: { linkedin: "linkedin", instagram: "instagram", x: "x", facebook: "facebook" } },
   verbodenWoorden: ["gegarandeerd", "garantie", "100%", "altijd correct", "foutloos", "nooit meer", "beste", "revolutionair"],
   standaardHashtags: "#postwright",
-  schrijfhulp: { aan: false, plafondEurPerMaand: 10 },
+  schrijfhulp: { aan: true, plafondUsdPerMaand: 10 },
 };

@@ -252,7 +252,7 @@ describe("instellingen en overzicht", () => {
   it("geeft standaardinstellingen, bewaart geldige en weigert ongeldige", async () => {
     const standaard = await vraag(`${API}/instellingen`);
     expect(standaard.body.kanalen).toEqual(["linkedin"]);
-    expect(standaard.body.schrijfhulp.aan).toBe(false);
+    expect(standaard.body.schrijfhulp).toEqual({ aan: true, plafondUsdPerMaand: 10 });
     const nieuw = { ...standaard.body, kanalen: ["linkedin", "instagram"], verbodenWoorden: ["gratis"] };
     expect((await vraag(`${API}/instellingen`, { methode: "PUT", body: nieuw })).status).toBe(200);
     expect((await vraag(`${API}/instellingen`)).body.kanalen).toEqual(["linkedin", "instagram"]);
