@@ -206,6 +206,11 @@ export async function show(container, ctx) {
 
   container.replaceChildren(
     el("div", { class: "sheet" }, [
+      row(
+        "Company profile",
+        "The planner and writing help use this to suggest posts that fit your business. It is background only: numbers still come from your facts.",
+        profileFields,
+      ),
       row("Channels and formats", "Which channels get a caption, and the formats a new post starts with.", [
         el("fieldset", { class: "studio-choice" }, [
           el("legend", { text: "Channels with a caption" }),
@@ -223,11 +228,6 @@ export async function show(container, ctx) {
           el("div", { class: "field" }, [el("label", { for: "utm-medium", text: "utm_medium" }), medium]),
           el("div", { class: "field-row" }, sources),
         ],
-      ),
-      row(
-        "Company profile",
-        "The planner and writing help use this to suggest posts that fit your business. It is background only: numbers still come from your facts.",
-        profileFields,
       ),
       row("Tone and words", "A little guidance for every caption, and the words the brand check watches for.", [
         el("div", { class: "field" }, [

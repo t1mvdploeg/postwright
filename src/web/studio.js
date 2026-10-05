@@ -49,7 +49,7 @@ const SCREEN_LEDE = {
   facts: "A source behind every claim.",
   snippets: "Openers, closers and hashtags to reuse.",
   "brand-kit": "The essentials that make every post look like the brand.",
-  settings: "Channels, writing help and the spending cap.",
+  settings: "Your company profile, channels, writing help and the spending cap.",
 };
 // The icon per screen, the same sprite as the rest of the tool (/icons.svg).
 const SCREEN_ICON = {
