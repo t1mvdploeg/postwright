@@ -426,3 +426,8 @@ if (typeof document !== "undefined" && typeof ResizeObserver !== "undefined") {
   document.querySelectorAll(".table-scroll").forEach((e) => tableScrollObserver.observe(e));
   linkLabels(document);
 }
+
+/** True for Ctrl+S or Cmd+S, without Shift or Alt. */
+export function isSaveShortcut(e) {
+  return (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "s";
+}

@@ -9,3 +9,10 @@ export function activeProject(): string | null;
 export function setActiveProject(slug: string): void;
 export function pinProject(slug: string | null): void;
 export function projectHeaders(): Record<string, string>;
+export function isSaveShortcut(e: {
+  key: string;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}): boolean;

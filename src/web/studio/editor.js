@@ -2,7 +2,17 @@
 // the fields, in the middle the preview per format, on the right the brand check, the
 // caption and the status. On Save the recipe goes to the server, together with the outcome
 // of the check over exactly that content.
-import { confirmDialog, debounce, el, emptyState, icon, notice, fieldError, projectHeaders } from "/ui.js";
+import {
+  confirmDialog,
+  debounce,
+  el,
+  emptyState,
+  icon,
+  isSaveShortcut,
+  notice,
+  fieldError,
+  projectHeaders,
+} from "/ui.js";
 import {
   TEMPLATES,
   buildImage,
@@ -174,7 +184,12 @@ async function showEditor(container, ctx, begin) {
   const campaignName = () => state.campaigns.find((c) => c.id === state.post.campaign)?.utmCampaign ?? "";
 
   // ---------------- build ----------------
-  const saveButton = el("button", { type: "button", text: "Save" });
+  const saveButton = el("button", {
+    type: "button",
+    text: "Save",
+    title: "Save (Ctrl+S / ⌘S)",
+    "aria-keyshortcuts": "Control+S Meta+S",
+  });
   const saveStatus = el("span", { class: "studio-save-status", role: "status" });
   const exportStatus = el("p", { class: "help-text studio-export-status", role: "status", "aria-live": "polite" });
   const fieldsHolder = el("div", { class: "studio-fields" });
@@ -378,6 +393,14 @@ async function showEditor(container, ctx, begin) {
   saveButton.addEventListener("click", () => {
     void save();
   });
+  // Ctrl/Cmd+S saves instead of opening the browser's "save page" dialog. The listener only
+  // exists while the editor is open, so on other screens the key keeps its normal meaning.
+  // A save that is already running is skipped by save() itself.
+  const onKeydown = (e) => {
+    if (!isSaveShortcut(e)) return;
+    e.preventDefault();
+    void save();
+  };
 
   // ---------------- render ----------------
   function renderFields() {
@@ -1400,10 +1423,13 @@ async function showEditor(container, ctx, begin) {
   measure();
   const rescale = new ResizeObserver(debounce(() => renderPreview(), 100));
   rescale.observe(previewFrame);
+  // Only now: if the screen was closed during loading, leave() never runs for it.
+  document.addEventListener("keydown", onKeydown);
 
   return {
     hasUnsaved: () => state.unsaved,
     leave: () => {
+      document.removeEventListener("keydown", onKeydown);
       rescale.disconnect();
       removeMeasureFrames();
     },
