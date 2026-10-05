@@ -80,12 +80,12 @@ The key is read from the environment only: never written to a file, sent to the 
 The browser does the drawing. A template is a small module that turns fields into HTML and CSS; the preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas, so preview equals export. The server is a small Node http server on `127.0.0.1` only, which stores everything as JSON files and talks to the Claude API. There is no build step: plain ES modules in the browser, TypeScript on the server through `tsx`.
 
 ```bash
-npm test            # 690 tests, among them a leak check on every tracked file
+npm test            # 681 tests, among them a leak check on every tracked file
 npm run typecheck
 npm run format:check
 ```
 
-The studio's look, warm paper with clay as the one accent, started as a concept in `src/web/mockup`; see [DESIGN.md](DESIGN.md).
+The studio's look, warm paper with clay as the one accent, is described in [DESIGN.md](DESIGN.md).
 
 ## What it does not do
 

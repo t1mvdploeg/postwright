@@ -15,7 +15,7 @@ The repository describes a local marketing studio for one person. The intended a
 Nine templates, ten supported formats, a fact bank with sources, reusable snippets, brand checks, a publication planner, and image/PDF/ZIP export. Plain browser ES modules and CSS, with a Node TypeScript server. No automatic publishing, accounts, or team features. AI writing assistance can run with sample answers.
 
 ## Evidence on Hand
-README.md, src/web/brand/brand.json, existing SVG identity assets, and assets/demo.png. The requested mockup is illustrative and should not imply live data or automatic publication.
+README.md, src/web/brand/brand.json, existing SVG identity assets, and assets/demo.png.
 
-## Current Request
-The user explicitly delegates creative direction for a professional frontend mockup. Build an independent interactive concept inside the existing app, preserving the working product.
+## Design Direction
+Warm and quiet: the working studio is described in DESIGN.md. The interface should not imply live data or automatic publication.

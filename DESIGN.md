@@ -1,27 +1,13 @@
-# Postwright studio concept
-
-This direction started in src/web/mockup and now also applies to the studio itself (src/web/index.html, studio.css and the screens). The working studio keeps all its functions; the mockup remains as the illustrative concept.
+# Postwright studio design
 
 ## Direction
-An independent design studio specimen catalog: warm paper, matte clay, olive ink, confident typesetting, and social artwork as the main content. The operating surface keeps navigation, post states, and planning calm and predictable.
-
-## Grounded candidates
-1. Newspaper editorial desk; 2. Art gallery catalogue; 3. Independent design studio specimen catalogue; 4. Production board; 5. Camera contact sheet; 6. Typesetting desk; 7. Civic schedule.
-The concept assignment selected candidate 3. Spectrogram, dance score, developer console, character catalogue, record sleeve, and airport signs were considered. None improves both audience identification and product clarity. Keep their disciplines of alignment, temporal legibility, separated actions, whole-cell reflow, strong artwork hierarchy, and unmistakable navigation within the studio world.
+A quiet working surface around loud artwork: warm paper, matte clay as the one accent, olive ink, and the social posts as the main content. The interface stays calm and predictable so the posts carry the colour. The look lives in `src/web/studio.css`; `src/web/index.html` is the shell.
 
 ## System
-Inter from the existing local font asset. Background #f8f7f4; sidebar #f0f0eb; primary ink #292b27; clay #bc452e; olive #404b39; paper #e9e5da. Hairline separators, native form controls, visible focus, modest radii. Large editorial headings are confined to introductions; operational labels remain compact. Social post previews deliberately scale as artwork.
+Inter from the local font asset (`src/web/fonts`). Colours are CSS variables at the top of `studio.css`: background #f8f7f4, sidebar #f3f3ee, ink #292b27, clay #bc452e (hover #a33825), olive #404b39, hairline edges #e7e7e0. Hairline separators, native form controls, visible focus, modest radii (7, 12 and 14px). Operational labels are compact (12-14px); large headings appear only in screen introductions. Post previews scale as artwork.
 
 ## Surface
-Operate mode. Overview presents the post desk and a weekly agenda. Drafts are directly accessible through post previews; brand details and templates remain in navigation. Navigation includes the library, planner, templates, brand kit, fact bank, and snippets. The editor offers live text/background changes, sample scheduling and a simplified SVG export. Data stays in memory and the screen is explicitly marked as a mockup.
+A persistent sidebar with the project picker and two groups: Workspace (Overview, All posts, Planner, Editor) and Your foundation (Brand kit, Fact bank, Snippets), with Settings at the foot. A toolbar above the screen shows the project and the current screen. The overview is a post desk of previews showing only title and state, next to a weekly agenda. Details such as format and channel stay in the library and the editor.
 
 ## Responsive behavior
-Desktop uses persistent navigation and a three-column desk plus weekly agenda. Tablet moves the agenda below. Mobile exposes navigation through a menu, displays two artwork columns and stacks editor sections. Reduced-motion preferences disable the entrance treatment.
-
-## Selected refinement
-The user selected A (Warm studio) and asked for a smaller, less prominent interface. Use a 28px introduction, 64px toolbar, 212px navigation, four smaller square post previews on wide desktops, and tighter section rhythm. Tablet retains three previews and mobile retains two. Keep operational type legible and preserve the warm visual identity.
-
-The selected dashboard now omits the summary strip, duplicate recent-draft list, template promotion, and brand-kit reassurance block. Overview previews show only the post title and state; format and channel details remain in the library and editor. The decorative profile and local-status footer are removed from the mockup shell.
-
-## Complete page family
-The approved compact, quiet A direction now covers overview, post library, editor, planner, all nine template types, brand kit, fact bank, snippets, and settings. Supporting pages use direct 26px headings, one-line descriptions, consistent 12–14px controls, thin separators, and minimal primary actions. Details disclose secondary editor tools and creation forms. The planner supports changing weeks and opens a new post with its date set. Facts, snippets, voice guidelines, and channel preferences are interactive sample state. The static page collection is available at src/web/mockup/pages.html; the working concept remains at src/web/mockup/index.html.
+Desktop shows the navigation permanently. At 1180px and narrower the agenda moves below the desk and the desk shows three previews; at 700px and narrower previews go to two columns. At 900px and narrower the sidebar becomes a menu behind a Menu button. At 1500px and wider, the post library shows five columns. `prefers-reduced-motion` switches the entrance animations off.
