@@ -14,7 +14,7 @@ afterEach(async () => {
 async function start() {
   const s = await startStudio();
   studios.push(s);
-  const file = (...parts: string[]) => join(s.dataDir, ...parts);
+  const file = (...parts: string[]) => join(s.projectDir, ...parts);
   const set = (name: string, content: string) => {
     mkdirSync(join(file(name), ".."), { recursive: true });
     writeFileSync(file(name), content);
@@ -133,7 +133,7 @@ describe("PUT /api/settings", () => {
 describe("POST /api/sample-content", () => {
   it.each([
     ["broken settings", "marketing/settings.json", "{broken", "marketing/settings.json"],
-    ["a broken brand", "brand/brand.json", "{broken", "data/brand/brand.json"],
+    ["a broken brand", "brand/brand.json", "{broken", "data/projects/postwright/brand/brand.json"],
   ])("writes nothing when it meets %s", async (_name, fileName, content, named) => {
     const { set, ask, file } = await start();
     set(fileName, content);

@@ -4,11 +4,18 @@
 import { confirmDialog, el, notice } from "/ui.js";
 import { FORMATS, CHANNELS } from "/studio/formats.js";
 import { getAiMode } from "/studio/writing-help-ui.js";
+import { loadMedia } from "/studio/brand.js";
 
 export async function show(container, ctx) {
   const [i, { media: mediaList }, ai] = await Promise.all([ctx.reloadSettings(), ctx.api("/api/media"), getAiMode()]);
   if (!ctx.valid()) return;
   let media = mediaList;
+  // An <img src> sends no project header, so the thumbnails are fetched and shown as data URIs.
+  const thumbs = await loadMedia(
+    media.map((m) => m.id),
+    160,
+  );
+  if (!ctx.valid()) return;
 
   const channels = Object.entries(CHANNELS).map(([k, name]) =>
     el("label", { class: "studio-radio" }, [
@@ -34,6 +41,8 @@ export async function show(container, ctx) {
       el("input", { type: "text", id: `utm-source-${k}`, value: i.utm.source?.[k] ?? k, maxlength: "50" }),
     ]),
   );
+  const tone = el("textarea", { id: "tone", rows: "3", maxlength: "1500" });
+  tone.value = i.tone ?? "";
   const banned = el("textarea", { id: "banned-words", rows: "6" });
   banned.value = i.bannedWords.join("\n");
   const hashtags = el("input", {
@@ -69,6 +78,7 @@ export async function show(container, ctx) {
             .filter(([, v]) => v),
         ),
       },
+      tone: tone.value.trim(),
       bannedWords: banned.value
         .split("\n")
         .map((w) => w.trim())
@@ -112,7 +122,7 @@ export async function show(container, ctx) {
                 el("td", {}, [
                   el("img", {
                     class: "studio-media-mini",
-                    src: `/api/media/${encodeURIComponent(m.id)}`,
+                    src: thumbs[m.id] ?? "",
                     alt: "",
                     loading: "lazy",
                   }),
@@ -182,6 +192,14 @@ export async function show(container, ctx) {
     ]),
     el("section", { class: "card" }, [
       el("h2", { text: "Tone and words" }),
+      el("div", { class: "field" }, [
+        el("label", { for: "tone", text: "Tone of voice" }),
+        tone,
+        el("p", {
+          class: "help-text",
+          text: "A few sentences. A brand kit you create fills this in; nothing reads it automatically yet.",
+        }),
+      ]),
       el("div", { class: "field" }, [
         el("label", { for: "banned-words", text: "Banned words, one per line" }),
         banned,

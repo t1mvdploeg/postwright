@@ -1,12 +1,14 @@
-// The brand: the built-in brand is valid and complete, a custom brand in data/brand wins,
+// The brand: the built-in brand is valid and complete, a custom brand in the project's brand folder wins,
 // and a broken custom brand gives a clear error without taking the server down.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { createApp } from "../src/server/app.js";
 import { startServer } from "../src/server/http.js";
+import { prepareData } from "../src/server/projects.js";
 import { raw } from "./helpers/raw.js";
-import { BrandSchema, loadBrand, brandFolder, brandRoutes } from "../src/server/brand.js";
+import { BrandSchema, loadBrand } from "../src/server/brand.js";
 import { contrastRatio } from "../src/web/studio/color.js";
 import { runCheck } from "../src/web/studio/brand-check.js";
 import { template, defaultContent } from "../src/web/studio/templates.js";
@@ -23,21 +25,18 @@ afterEach(async () => {
 
 /**
  * A server with the brand route and the brand files, on a fresh data folder; `brand` puts
- * files in data/brand.
+ * files in the brand folder of the project `postwright`.
  */
 async function start(brand?: Record<string, string>) {
   const dataDir = join(mkdtempSync(join(tmpdir(), "pw-brand-")), "data");
-  mkdirSync(dataDir, { recursive: true });
-  writeFileSync(join(dataDir, "secret.json"), SECRET);
+  await prepareData(dataDir);
+  const projectDir = join(dataDir, "projects", "postwright");
+  writeFileSync(join(projectDir, "secret.json"), SECRET);
   if (brand) {
-    mkdirSync(join(dataDir, "brand", "logo"), { recursive: true });
-    for (const [path, content] of Object.entries(brand)) writeFileSync(join(dataDir, "brand", path), content);
+    mkdirSync(join(projectDir, "brand", "logo"), { recursive: true });
+    for (const [path, content] of Object.entries(brand)) writeFileSync(join(projectDir, "brand", path), content);
   }
-  const s = await startServer({
-    dataDir,
-    routes: brandRoutes({ dataDir }),
-    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
-  });
+  const s = await startServer({ dataDir, ...createApp({ dataDir }) });
   close = s.close;
   return s;
 }
@@ -79,7 +78,7 @@ describe("GET /api/brand", () => {
     expect(font.headers.get("content-type")).toBe("font/woff2");
   });
 
-  it("gives a valid brand from data/brand, and serves the file from data/brand", async () => {
+  it("gives a valid brand from the project, and serves the file from its brand folder", async () => {
     const { url } = await start({ "brand.json": JSON.stringify(customBrand), "logo/x.svg": "<svg>custom</svg>" });
     expect(await (await fetch(`${url}/api/brand`)).json()).toMatchObject({
       name: "Test brand",
@@ -96,7 +95,7 @@ describe("GET /api/brand", () => {
     const r = await fetch(`${url}/api/brand`);
     expect(r.status).toBe(500);
     const { error } = await r.json();
-    expect(error).toContain("data/brand/brand.json");
+    expect(error).toContain("data/projects/postwright/brand/brand.json");
     expect(error).toContain("url");
     expect((await fetch(`${url}/api/brand`)).status).toBe(500);
     expect((await fetch(`${url}/api/does-not-exist`)).status).toBe(404);
@@ -107,13 +106,13 @@ describe("GET /api/brand", () => {
     const r = await fetch(`${url}/api/brand`);
     expect(r.status).toBe(500);
     const { error } = await r.json();
-    expect(error).toContain("data/brand/brand.json");
+    expect(error).toContain("data/projects/postwright/brand/brand.json");
     expect(error).not.toContain(tmpdir());
     expect((await fetch(`${url}/api/brand`)).status).toBe(500);
   });
 
   it("does not serve files outside the brand folder, even if they really exist", async () => {
-    // `start` puts `secret.json` directly next to data/brand; without the guard, `..%2f` would
+    // `start` puts `secret.json` directly next to the brand folder of the project; without the guard, `..%2f` would
     // give it.
     const { url } = await start({ "brand.json": JSON.stringify(customBrand), "logo/x.svg": "<svg/>" });
     for (const path of [
@@ -133,12 +132,12 @@ describe("GET /api/brand", () => {
 
 describe("loadBrand", () => {
   it("names the field where the brand fails", async () => {
-    const dataDir = join(mkdtempSync(join(tmpdir(), "pw-brand-")), "data");
-    mkdirSync(join(dataDir, "brand"), { recursive: true });
-    writeFileSync(join(dataDir, "brand", "brand.json"), JSON.stringify({ ...customBrand, colors: [] }));
-    await expect(loadBrand(dataDir, BUILT_IN)).rejects.toMatchObject({
+    const projectDir = join(mkdtempSync(join(tmpdir(), "pw-brand-")), "data", "projects", "postwright");
+    mkdirSync(join(projectDir, "brand"), { recursive: true });
+    writeFileSync(join(projectDir, "brand", "brand.json"), JSON.stringify({ ...customBrand, colors: [] }));
+    await expect(loadBrand(projectDir, BUILT_IN)).rejects.toMatchObject({
       status: 500,
-      message: expect.stringMatching(/^data\/brand\/brand\.json: colors:/),
+      message: expect.stringMatching(/^data\/projects\/postwright\/brand\/brand\.json: colors:/),
     });
   });
 });

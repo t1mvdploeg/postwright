@@ -270,6 +270,7 @@ export const SettingsSchema = z
       .strict(),
     bannedWords: z.array(z.string().trim().min(1).max(60)).max(100),
     defaultHashtags: z.string().max(300),
+    tone: z.string().max(1500).default(""),
     writingHelp: z
       .object({
         enabled: z.boolean(),
@@ -300,5 +301,6 @@ export const DEFAULT_SETTINGS: Settings = {
     "revolutionary",
   ],
   defaultHashtags: "#postwright",
+  tone: "",
   writingHelp: { enabled: true, capUsdPerMonth: 10 },
 };

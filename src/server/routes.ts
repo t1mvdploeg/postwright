@@ -1,11 +1,13 @@
 // The studio's routes, all under `/api/`. The server stores recipes, lists, settings and
-// uploaded images in the data folder; the studio renders, exports (PNG, PDF, ZIP) and
+// uploaded images in the folder of the project the request is about (`data/projects/<slug>/marketing/`); the studio renders, exports (PNG, PDF, ZIP) and
 // builds the calendar export itself in the browser.
 import { ApiError, response, route, type Ctx, type Route } from "./http.js";
-import { readJson, path, reason, serialize, type Storage } from "./files.js";
+import { readJson, path, reason, type Storage } from "./files.js";
 import {
   StorageError,
   saveSettingsFile,
+  readGlobalCap,
+  saveGlobalCap,
   saveMedia,
   validListId,
   loadSettingsFile,
@@ -68,10 +70,10 @@ import { runCheck } from "../web/studio/brand-check.js";
 // 2026-02-30 through).
 import { realDate, upcomingWeeks, plusDays } from "../web/studio/calendar.js";
 import { uncoveredNumbers } from "../web/studio/numbers.js";
-import { AiError, type AiProvider, type AiResult } from "./ai/provider.js";
+import type { AiProvider, AiResult } from "./ai/provider.js";
 import { aiMode, chooseProvider } from "./ai/choose.js";
 import { loadBrand, type Brand } from "./brand.js";
-import { assertBookable, book, costUsd, monthTotalUsd, type UsageEntry } from "./ai/usage.js";
+import { runPaid } from "./ai/guard.js";
 import { z } from "zod";
 
 /** Largest upload: a screenshot or photo. */
@@ -175,10 +177,21 @@ export async function readCustomMoments(o: Storage): Promise<Moment[]> {
  * environment).
  */
 export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Route[] {
-  const shared: Storage = { dir: o.dataDir };
+  /** The storage of the project this request is about. */
+  const store = async (c: Ctx): Promise<Storage> => ({ dir: (await c.project()).dir });
   const provider = o.provider ?? chooseProvider();
-  /** The settings; an unreadable file becomes a 500 with its name (never silently the default). */
-  const loadSettings = () => loadSettingsFile(shared).catch(toApiError);
+  /**
+   * The settings of the project, with the cap that is the same for all projects. An unreadable
+   * file becomes a 500 with its name (never silently the default).
+   */
+  const loadSettings = async (s: Storage): Promise<Settings> => {
+    try {
+      const settings = await loadSettingsFile(s);
+      return { ...settings, writingHelp: { ...settings.writingHelp, capUsdPerMonth: await readGlobalCap(o.dataDir) } };
+    } catch (e) {
+      return toApiError(e);
+    }
+  };
 
   function postId(c: Ctx): string {
     const id = c.params.id;
@@ -187,11 +200,18 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   }
 
   /** A campaign attached to a post must exist; otherwise the post points to nothing. */
-  async function checkCampaign(input: PostInput): Promise<void> {
+  async function checkCampaign(s: Storage, input: PostInput): Promise<void> {
     if (!input.campaign) return;
-    const campaigns = await readList<Campaign>(shared, "campaigns");
+    const campaigns = await readList<Campaign>(s, "campaigns");
     if (!campaigns.some((k) => k.id === input.campaign))
       throw new ApiError(400, "The chosen campaign no longer exists");
+  }
+
+  /** A fact that a post links to must exist in this project. */
+  async function checkFacts(s: Storage, input: PostInput): Promise<void> {
+    const known = new Set((await readList<Fact>(s, "facts")).map((f) => f.id));
+    if (input.facts.some((id) => !known.has(id)))
+      throw new ApiError(400, "A linked fact does not exist in this project");
   }
 
   /** Generic routes for a small list (campaigns, snippets): list, new, update, delete. */
@@ -204,7 +224,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       /** Extra check before saving (uniqueness); throws an ApiError. */
       runCheck?: (input: Record<string, unknown>, lines: T[], id: string | null) => void;
       /** Why this entry may not be deleted, or null. */
-      isProtected?: (id: string) => Promise<string | null>;
+      isProtected?: (s: Storage, id: string) => Promise<string | null>;
     },
   ): Route[] {
     const idFrom = (c: Ctx) => {
@@ -212,11 +232,12 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       return c.params.id;
     };
     return [
-      route("GET", path, async () => ({ [list]: await readList<T>(shared, list) })),
+      route("GET", path, async (c) => ({ [list]: await readList<T>(await store(c), list) })),
       route("POST", path, async (c) => {
+        const s = await store(c);
         const input = validate(schema, await c.readJson()) as Record<string, unknown>;
         const now = new Date().toISOString();
-        const line = await updateList<T, T>(shared, list, (lines) => {
+        const line = await updateList<T, T>(s, list, (lines) => {
           options.runCheck?.(input, lines, null);
           if (lines.length >= 500) throw new ApiError(409, `There are already 500 ${list}; clear some out first`);
           const item = { ...input, id: newListId(list), created: now, updated: now } as unknown as T;
@@ -225,9 +246,10 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         return response({ status: 201, body: line });
       }),
       route("PUT", `${path}/:id`, async (c) => {
+        const s = await store(c);
         const id = idFrom(c);
         const input = validate(schema, await c.readJson()) as Record<string, unknown>;
-        const line = await updateList<T, T>(shared, list, (lines) => {
+        const line = await updateList<T, T>(s, list, (lines) => {
           const i = lines.findIndex((r) => r.id === id);
           if (i < 0) throw new ApiError(404, `${options.name[0].toUpperCase()}${options.name.slice(1)} not found`);
           options.runCheck?.(input, lines, id);
@@ -239,10 +261,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         return line;
       }),
       route("DELETE", `${path}/:id`, async (c) => {
+        const s = await store(c);
         const id = idFrom(c);
-        const reason = await options.isProtected?.(id);
+        const reason = await options.isProtected?.(s, id);
         if (reason) throw new ApiError(409, reason);
-        const remove = await updateList<T, boolean>(shared, list, (lines) => {
+        const remove = await updateList<T, boolean>(s, list, (lines) => {
           const remaining = lines.filter((r) => r.id !== id);
           return { lines: remaining, outcome: remaining.length !== lines.length };
         });
@@ -253,11 +276,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   }
 
   /** The user's own moments, or an empty list if the file does not exist. */
-  const customMoments = () => readCustomMoments(shared);
+  const customMoments = (s: Storage) => readCustomMoments(s);
 
   /** Look up a moment by key: an annual day (the key is its date) or a custom moment. */
-  async function findMoment(key: string): Promise<Moment | undefined> {
-    const custom = await customMoments();
+  async function findMoment(s: Storage, key: string): Promise<Moment | undefined> {
+    const custom = await customMoments(s);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(key) ? key : null;
     return (date ? allMoments(date, date, custom) : custom).find((m) => m.key === key);
   }
@@ -268,26 +291,26 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
    * minus the overflow measurement); the drafts are stored without one: the editor checks
    * them when it opens.
    */
-  async function fillPosts(settings: Settings, brand: Brand): Promise<number> {
-    const [existing, facts] = await Promise.all([listPosts(shared), readList<Fact>(shared, "facts")]);
+  async function fillPosts(s: Storage, settings: Settings, brand: Brand): Promise<number> {
+    const [existing, facts] = await Promise.all([listPosts(s), readList<Fact>(s, "facts")]);
     let added = 0;
-    for (const s of SAMPLE_POSTS) {
-      const tpl = templateOf(s.template);
-      if (!tpl || existing.some((p) => p.title === s.title)) continue;
+    for (const sample of SAMPLE_POSTS) {
+      const tpl = templateOf(sample.template);
+      if (!tpl || existing.some((p) => p.title === sample.title)) continue;
       const id = newPostId();
       const now = new Date();
-      const factId = s.fact ? facts.find((f) => f.text === s.fact)?.id : undefined;
+      const factId = sample.fact ? facts.find((f) => f.text === sample.fact)?.id : undefined;
       const post: Post = {
         id,
         version: 1,
-        title: s.title,
+        title: sample.title,
         kind: "image",
-        template: s.template,
+        template: sample.template,
         formats: [tpl.formats[0]],
-        content: s.content,
+        content: sample.content,
         slides: [],
-        caption: { linkedin: s.caption },
-        altText: s.altText,
+        caption: { linkedin: sample.caption },
+        altText: sample.altText,
         link: "",
         facts: factId ? [factId] : [],
         campaign: null,
@@ -301,7 +324,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         created: now.toISOString(),
         updated: now.toISOString(),
       };
-      if (s.inDays !== undefined) {
+      if (sample.inDays !== undefined) {
         const c = runCheck({
           post,
           template: tpl,
@@ -314,7 +337,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         post.check = { errors: c.errors, attention: c.attention, on: now.toISOString() };
         if (c.errors === 0) {
           post.status = "scheduled";
-          post.scheduled = new Date(now.getTime() + s.inDays * 24 * 3600 * 1000).toISOString();
+          post.scheduled = new Date(now.getTime() + sample.inDays * 24 * 3600 * 1000).toISOString();
           post.history = withHistory(post, {
             on: now.toISOString(),
             who: "",
@@ -323,7 +346,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         }
       }
       try {
-        await createPost(shared, post);
+        await createPost(s, post);
       } catch (e) {
         toApiError(e);
       }
@@ -333,60 +356,38 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
   }
 
   /**
-   * One AI call of the studio (writing help or ideas): switch, monthly cap, provider and
-   * booking. One call at a time for both, otherwise fast clicks read the same amount and
-   * together exceed the cap. The cap applies only to the live provider; the sample provider
-   * costs nothing. Every call is booked, a failed one too (with the tokens already spent).
-   * The cap fails closed: the usage file must be appendable before the call, and the cost of
-   * a call that could not be booked is kept in memory and counted with what the file says.
+   * One AI call of the studio (writing help or ideas): the switch of the project, then the
+   * guard (monthly cap, one call at a time, booking). The cap applies only to the live
+   * provider; the sample provider costs nothing.
    */
-  const unbooked = new Map<string, number>(); // UTC month -> dollars spent but not in the file
-  async function bookCounted(line: UsageEntry) {
-    try {
-      await book(o.dataDir, line);
-    } catch (e) {
-      const month = line.timestamp.slice(0, 7);
-      unbooked.set(month, (unbooked.get(month) ?? 0) + line.usd);
-      throw e;
-    }
-  }
-  async function aiHelp<T>(name: string, task: string, call: () => Promise<AiResult<T>>): Promise<AiResult<T>> {
-    return serialize("marketing-ai", async () => {
-      const currentSettings = await loadSettings();
-      if (!currentSettings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
-      const cap = currentSettings.writingHelp.capUsdPerMonth;
-      if (provider.name === "anthropic") {
-        const now = new Date();
-        const total = (await monthTotalUsd(o.dataDir, now)) + (unbooked.get(now.toISOString().slice(0, 7)) ?? 0);
-        if (total >= cap) throw new ApiError(429, `The monthly cap for AI help ($${cap}) has been reached`);
-        await assertBookable(o.dataDir);
-      }
-      const modelName = aiMode(provider).model ?? "sample";
-      let result: AiResult<T>;
-      try {
-        result = await call();
-      } catch (error) {
-        const usd = error instanceof AiError && error.usage ? costUsd(modelName, error.usage) : 0;
-        await bookCounted({ timestamp: new Date().toISOString(), model: modelName, task, usd, ok: false });
-        throw new ApiError(
-          502,
-          `${name} did not give a usable answer: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      await bookCounted({
-        timestamp: new Date().toISOString(),
-        model: result.model,
+  async function aiHelp<T>(
+    s: Storage,
+    name: string,
+    task: string,
+    call: () => Promise<AiResult<T>>,
+  ): Promise<AiResult<T>> {
+    const settings = await loadSettings(s);
+    if (!settings.writingHelp.enabled) throw new ApiError(409, `${name} is off; turn AI help on in Settings`);
+    const result = await runPaid(
+      {
+        dataDir: o.dataDir,
+        cap: () => readGlobalCap(o.dataDir).catch(toApiError),
+        label: name,
         task,
-        usd: costUsd(result.model, result.usage),
-        ok: true,
-      });
-      return result;
-    });
+        model: aiMode(provider).model ?? "sample",
+        capped: provider.name === "anthropic",
+      },
+      async () => {
+        const r = await call();
+        return { value: r, model: r.model, usage: r.usage };
+      },
+    );
+    return result.value;
   }
 
-  async function writingHelp(request: z.infer<typeof WritingHelpRequestSchema>) {
+  async function writingHelp(s: Storage, request: z.infer<typeof WritingHelpRequestSchema>) {
     const today = localToday(new Date());
-    const allFacts = await readList<Fact>(shared, "facts");
+    const allFacts = await readList<Fact>(s, "facts");
     const facts = request.facts.map((id) => allFacts.find((f) => f.id === id));
     if (facts.some((f) => !f || factUnusable(f, today))) {
       throw new ApiError(
@@ -396,8 +397,8 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     }
     const usable = facts as Fact[];
 
-    const brand = await loadBrand(o.dataDir);
-    const settings = await loadSettings();
+    const brand = await loadBrand(s.dir);
+    const settings = await loadSettings(s);
     const prompt: WritingTask = {
       task: request.task,
       template: request.template,
@@ -408,7 +409,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       facts: usable.map((f) => ({ id: f.id, text: f.text, source: f.source.reference })),
       brand: { brandName: brand.name, bannedWords: settings.bannedWords },
     };
-    const result = await aiHelp("The writing help", `writingHelp:${request.task}`, () => provider.writeText(prompt));
+    const result = await aiHelp(s, "The writing help", `writingHelp:${request.task}`, () => provider.writeText(prompt));
 
     const fieldIds = new Set(request.fields.map((v) => v.id));
     const variants = result.suggestion.variants.slice(0, 3).map((v) => {
@@ -427,25 +428,28 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     return { variants, model: result.model, sample: provider.name === "sample" };
   }
 
-  const usedIn = async (field: "campaign" | "facts", id: string) =>
-    (await listPosts(shared)).filter((p) => (field === "campaign" ? p.campaign === id : p.facts.includes(id))).length;
+  const usedIn = async (s: Storage, field: "campaign" | "facts", id: string) =>
+    (await listPosts(s)).filter((p) => (field === "campaign" ? p.campaign === id : p.facts.includes(id))).length;
 
   const routes: Route[] = [
     // -----------------------------------------------------------------------------------------
     // Posts
     // -----------------------------------------------------------------------------------------
     route("GET", "/api/posts", async (c) => {
+      const s = await store(c);
       const status = c.url.searchParams.get("status");
       const campaign = c.url.searchParams.get("campaign");
-      const posts = (await listPosts(shared))
+      const posts = (await listPosts(s))
         .filter((p) => !status || p.status === status)
         .filter((p) => !campaign || p.campaign === campaign);
       return { posts: posts.map(summary) };
     }),
 
     route("POST", "/api/posts", async (c) => {
+      const s = await store(c);
       const input = validate(PostInputSchema, await c.readJson());
-      await checkCampaign(input);
+      await checkCampaign(s, input);
+      await checkFacts(s, input);
       const now = new Date().toISOString();
       const { check, ...rest } = input;
       const id = newPostId();
@@ -462,7 +466,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         updated: now,
       };
       try {
-        await createPost(shared, post);
+        await createPost(s, post);
       } catch (e) {
         toApiError(e);
       }
@@ -470,21 +474,24 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     }),
 
     route("GET", "/api/posts/:id", async (c) => {
-      const post = await readPost(shared, postId(c));
+      const s = await store(c);
+      const post = await readPost(s, postId(c));
       if (!post) throw new ApiError(404, "Post not found");
       return post;
     }),
 
     route("PUT", "/api/posts/:id", async (c) => {
+      const s = await store(c);
       const id = postId(c);
       const body = await c.readJson<Record<string, unknown>>();
       const version = body.version;
       if (typeof version !== "number" || !Number.isInteger(version)) throw new ApiError(400, "version: missing");
       const { version: _v, ...rest } = body;
       const input = validate(PostInputSchema, rest);
-      await checkCampaign(input);
+      await checkCampaign(s, input);
+      await checkFacts(s, input);
       try {
-        return await updatePost(shared, id, version, (p) => {
+        return await updatePost(s, id, version, (p) => {
           const now = new Date().toISOString();
           const { check, ...raw } = input;
           const fields = withCustomUtm(raw, id);
@@ -510,13 +517,15 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     }),
 
     route("DELETE", "/api/posts/:id", async (c) => {
+      const s = await store(c);
       const id = postId(c);
-      if (!(await deletePost(shared, id))) throw new ApiError(404, "Post not found");
+      if (!(await deletePost(s, id))) throw new ApiError(404, "Post not found");
       return { ok: true };
     }),
 
     route("POST", "/api/posts/:id/duplicate", async (c) => {
-      const source = await readPost(shared, postId(c));
+      const s = await store(c);
+      const source = await readPost(s, postId(c));
       if (!source) throw new ApiError(404, "Post not found");
       const now = new Date().toISOString();
       const title = `Copy of ${source.title}`.slice(0, 120);
@@ -535,7 +544,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         updated: now,
       };
       try {
-        await createPost(shared, copy);
+        await createPost(s, copy);
       } catch (e) {
         toApiError(e);
       }
@@ -548,14 +557,15 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
      * and archiving are always possible; an archived post only comes back via draft.
      */
     route("POST", "/api/posts/:id/status", async (c) => {
+      const s = await store(c);
       const id = postId(c);
       const transition = validate(StatusTransitionSchema, await c.readJson());
       // The check in the post was computed by the browser when saving; a fact may have been
       // withdrawn, expired or deleted since. The server re-checks that here itself.
       const today = localToday(new Date());
-      const currentFacts = new Map((await readList<Fact>(shared, "facts")).map((f) => [f.id, f]));
+      const currentFacts = new Map((await readList<Fact>(s, "facts")).map((f) => [f.id, f]));
       try {
-        return await updatePost(shared, id, null, (p) => {
+        return await updatePost(s, id, null, (p) => {
           const now = new Date();
           const target = transition.target;
           if (target === p.status && target !== "scheduled")
@@ -638,10 +648,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
      * (for example after a wrong entry).
      */
     route("PUT", "/api/posts/:id/result", async (c) => {
+      const s = await store(c);
       const id = postId(c);
       const r = validate(ResultInputSchema, await c.readJson());
       try {
-        return await updatePost(shared, id, null, (p) => {
+        return await updatePost(s, id, null, (p) => {
           if (p.status !== "published") throw new ApiError(409, "Only a published post has results");
           const now = new Date().toISOString();
           const empty = r.impressions === null && r.comments === null && r.clicks === null;
@@ -667,16 +678,16 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
           throw new ApiError(409, `The UTM name "${String(input.utmCampaign)}" is already used by another campaign`);
         }
       },
-      isProtected: async (id) => {
-        const n = await usedIn("campaign", id);
+      isProtected: async (s, id) => {
+        const n = await usedIn(s, "campaign", id);
         return n ? `This campaign belongs to ${n} post${n === 1 ? "" : "s"}; archive it instead of deleting it` : null;
       },
     }),
     ...listRoutes<Text>("snippets", "/api/snippets", SnippetInputSchema, { name: "snippet" }),
     ...listRoutes<Fact>("facts", "/api/facts", FactInputSchema, {
       name: "fact",
-      isProtected: async (id) => {
-        const n = await usedIn("facts", id);
+      isProtected: async (s, id) => {
+        const n = await usedIn(s, "facts", id);
         return n
           ? `This fact is in ${n} post${n === 1 ? "" : "s"}; set it to "withdrawn" instead of deleting it`
           : null;
@@ -696,17 +707,18 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     // Sample content: sample facts, snippets and posts about Postwright itself. Top-up only:
     // whatever is already there with exactly the same text (or the same title) stays as it is,
     // including a fact the user has withdrawn. Clicking twice therefore adds no duplicates.
-    route("POST", "/api/sample-content", async () => {
+    route("POST", "/api/sample-content", async (c) => {
+      const s = await store(c);
       // Settings and brand first: if those are broken, nothing has been written yet.
-      const settings = await loadSettings();
-      const brand = await loadBrand(o.dataDir);
+      const settings = await loadSettings(s);
+      const brand = await loadBrand(s.dir);
       const now = new Date().toISOString();
       const fill = <B extends { text: string }, T extends { id: string; text: string }>(
         list: "facts" | "snippets",
         source: readonly B[],
         create: (b: B) => T,
       ) =>
-        updateList<T, number>(shared, list, (lines) => {
+        updateList<T, number>(s, list, (lines) => {
           const existing = new Set(lines.map((r) => r.text));
           const added = source.filter((b) => !existing.has(b.text)).map(create);
           if (lines.length + added.length > 500)
@@ -728,34 +740,37 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         created: now,
         updated: now,
       }));
-      const posts = await fillPosts(settings, brand);
+      const posts = await fillPosts(s, settings, brand);
       return { facts, snippets, posts };
     }),
 
     // -----------------------------------------------------------------------------------------
     // Settings and overview
     // -----------------------------------------------------------------------------------------
-    route("GET", "/api/settings", async () => loadSettings()),
+    route("GET", "/api/settings", async (c) => loadSettings(await store(c))),
     route("PUT", "/api/settings", async (c) => {
+      const s = await store(c);
       const i = validate(SettingsSchema, await c.readJson());
       // Read first: a file that cannot be read is reported and not silently overwritten.
-      await loadSettings();
-      await saveSettingsFile(shared, i);
+      await loadSettings(s);
+      await saveGlobalCap(o.dataDir, i.writingHelp.capUsdPerMonth).catch(toApiError);
+      await saveSettingsFile(s, i);
       return i;
     }),
 
     /** Counts for the studio's overview page. */
-    route("GET", "/api/overview", async () => {
+    route("GET", "/api/overview", async (c) => {
+      const s = await store(c);
       const now = new Date();
       const today = localToday(now);
       const week = now.getTime() + 7 * 24 * 3600 * 1000;
       const monthBack = now.getTime() - 30 * 24 * 3600 * 1000;
       const [posts, facts, media, ideas, custom] = await Promise.all([
-        listPosts(shared),
-        readList<Fact>(shared, "facts"),
-        listMedia(shared),
-        readList<Idea>(shared, "ideas"),
-        customMoments(),
+        listPosts(s),
+        readList<Fact>(s, "facts"),
+        listMedia(s),
+        readList<Idea>(s, "ideas"),
+        customMoments(s),
       ]);
       const unusable = new Set(facts.filter((f) => factUnusable(f, today)).map((f) => f.id));
       const known = new Set(facts.map((f) => f.id));
@@ -781,7 +796,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
           .sort((a, b) => time(a) - time(b))
           .slice(0, 3)
           .map(summary),
-        media: { count: media.length, bytes: media.reduce((s, m) => s + m.bytes, 0) },
+        media: { count: media.length, bytes: media.reduce((sum, m) => sum + m.bytes, 0) },
         // Rhythm, moments and results.
         // An archived post keeps its publication: it did go out.
         lastPublished:
@@ -809,13 +824,14 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     route("GET", "/api/ai", () => aiMode(provider)),
 
     route("POST", "/api/writing-help", async (c) =>
-      writingHelp(validate(WritingHelpRequestSchema, await c.readJson())),
+      writingHelp(await store(c), validate(WritingHelpRequestSchema, await c.readJson())),
     ),
 
     // Suggesting ideas. The browser sends only period, count, channel, campaign id and wish;
     // what the model sees is assembled by the server itself. The response goes back re-checked
     // and is not stored: only "Add to planner" turns it into ideas.
     route("POST", "/api/ideas/suggest", async (c) => {
+      const s = await store(c);
       const v = validate(IdeasRequestSchema, await c.readJson());
       const today = localToday(new Date());
       if (v.to < today) throw new ApiError(400, "This period lies entirely in the past");
@@ -823,11 +839,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       // At most 92 days, from and to both counted: `to` is at most 91 days after `from`.
       if (plusDays(from, 91) < v.to) throw new ApiError(400, "Choose a period of at most three months");
       const [facts, posts, ideas, campaigns, custom] = await Promise.all([
-        readList<Fact>(shared, "facts"),
-        listPosts(shared),
-        readList<Idea>(shared, "ideas"),
-        readList<Campaign>(shared, "campaigns"),
-        customMoments(),
+        readList<Fact>(s, "facts"),
+        listPosts(s),
+        readList<Idea>(s, "ideas"),
+        readList<Campaign>(s, "campaigns"),
+        customMoments(s),
       ]);
       const campaign = v.campaign ? (campaigns.find((k) => k.id === v.campaign) ?? null) : null;
       if (v.campaign && !campaign) throw new ApiError(400, "The chosen campaign no longer exists");
@@ -867,11 +883,11 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         campaign: campaign ? { name: campaign.name, goal: campaign.goal } : null,
         results: resultsPerTemplate(posts, plusDays(today, -182)),
         brand: {
-          brandName: (await loadBrand(o.dataDir)).name,
-          bannedWords: (await loadSettings()).bannedWords,
+          brandName: (await loadBrand(s.dir)).name,
+          bannedWords: (await loadSettings(s)).bannedWords,
         },
       };
-      const r = await aiHelp("The idea help", `ideas:${from}..${v.to}`, () => provider.suggestIdeas(prompt));
+      const r = await aiHelp(s, "The idea help", `ideas:${from}..${v.to}`, () => provider.suggestIdeas(prompt));
       return {
         suggestions: tidyIdeas(r.suggestion, prompt),
         model: r.model,
@@ -890,7 +906,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       if (!realDate(from)) throw error;
       const to = c.url.searchParams.get("to") ?? plusDays(from, 120);
       if (!realDate(to) || from > to) throw error;
-      return { moments: allMoments(from, to, await customMoments()) };
+      return { moments: allMoments(from, to, await customMoments(await store(c))) };
     }),
 
     // Turn a moment into a draft fact. If a fact with exactly the same text already exists,
@@ -900,11 +916,12 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
     // The planner recognises the 404 text "Unknown moment" (ideas-ui.js); do not change it
     // casually.
     route("POST", "/api/moments/:key/fact", async (c) => {
-      const m = await findMoment(c.params.key);
+      const s = await store(c);
+      const m = await findMoment(s, c.params.key);
       if (!m) throw new ApiError(404, "Unknown moment");
       const text = `${m.title}: ${m.sentence}`;
       const now = new Date().toISOString();
-      const { fact, isNew } = await updateList<Fact, { fact: Fact; isNew: boolean }>(shared, "facts", (lines) => {
+      const { fact, isNew } = await updateList<Fact, { fact: Fact; isNew: boolean }>(s, "facts", (lines) => {
         const already = lines.find((f) => f.text === text);
         if (already?.status === "withdrawn") {
           throw new ApiError(
@@ -937,6 +954,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       "POST",
       "/api/media",
       async (c) => {
+        const s = await store(c);
         const content = await c.read(MAX_MEDIA_BYTES);
         if (!content.length) throw new ApiError(400, "No file was sent");
         const kind = mediaKind(content);
@@ -945,38 +963,41 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         if (!size || size.width < 1 || size.height < 1) throw new ApiError(400, "This image is unreadable or damaged");
         if (size.width > 8000 || size.height > 8000)
           throw new ApiError(400, "This image is larger than 8000 pixels; reduce it first");
-        const id = await saveMedia(shared, content, kind);
+        const id = await saveMedia(s, content, kind);
         return response({ status: 201, body: { id, bytes: content.length, ...size } });
       },
       { rawBody: true },
     ),
 
-    route("GET", "/api/media", async () => {
-      const [media, posts] = await Promise.all([listMedia(shared), listPosts(shared)]);
+    route("GET", "/api/media", async (c) => {
+      const s = await store(c);
+      const [media, posts] = await Promise.all([listMedia(s), listPosts(s)]);
       const usage = mediaUsage(posts);
       return { media: media.map((m) => ({ ...m, used: usage.get(m.id) ?? 0 })) };
     }),
 
     route("DELETE", "/api/media/:id", async (c) => {
+      const s = await store(c);
       const id = c.params.id;
       if (!MEDIA_ID.test(id)) throw new ApiError(400, "Invalid media id");
       // Deliberate limitation: checking and deleting are two steps; with a single administrator,
       // a post that picks the image in exactly that gap is not a realistic scenario. A lock
       // across posts if more users come.
-      const n = mediaUsage(await listPosts(shared)).get(id) ?? 0;
+      const n = mediaUsage(await listPosts(s)).get(id) ?? 0;
       if (n)
         throw new ApiError(
           409,
           `This image is in ${n} post${n === 1 ? "" : "s"} (archived ones count); remove it from there first`,
         );
-      if (!(await deleteMedia(shared, id))) throw new ApiError(404, "Image not found");
+      if (!(await deleteMedia(s, id))) throw new ApiError(404, "Image not found");
       return { ok: true };
     }),
 
     route("GET", "/api/media/:id", async (c) => {
+      const s = await store(c);
       const id = c.params.id;
       if (!MEDIA_ID.test(id)) throw new ApiError(400, "Invalid media id");
-      const content = await readMedia(shared, id);
+      const content = await readMedia(s, id);
       if (!content) throw new ApiError(404, "Image not found");
       return response({
         contentType: MEDIA_CONTENT_TYPES[id.slice(id.lastIndexOf(".") + 1) as MediaKind],

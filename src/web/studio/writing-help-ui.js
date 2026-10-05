@@ -2,7 +2,7 @@
 // itself by id and checks every suggestion for numbers that are in no fact; such a
 // suggestion cannot be adopted here with a single click. Nothing is ever saved
 // automatically.
-import { el, notice } from "/ui.js";
+import { el, notice, projectHeaders } from "/ui.js";
 import { withoutEmphasis } from "/studio/templates.js";
 
 /**
@@ -11,7 +11,7 @@ import { withoutEmphasis } from "/studio/templates.js";
  */
 export async function getAiMode() {
   try {
-    const r = await fetch("/api/ai");
+    const r = await fetch("/api/ai", { headers: projectHeaders() });
     return r.ok ? await r.json() : null;
   } catch {
     return null;
@@ -132,7 +132,7 @@ export function writingHelpPanel({
       const r = await fetch("/api/writing-help", {
         method: "POST",
         signal: abort.signal,
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...projectHeaders() },
         body: JSON.stringify({
           task: task.value,
           template: template.name,
