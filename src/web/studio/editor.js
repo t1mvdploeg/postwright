@@ -558,6 +558,14 @@ async function showEditor(container, ctx, begin) {
     else renderPages();
   }
 
+  /**
+   * The slide list is rebuilt while typing (renderDeferred); a template chosen in a select just
+   * before must survive that, or "Add slide" adds the first option instead.
+   */
+  function keepChoice(select, previous) {
+    if (previous && [...select.options].some((o) => o.value === previous.value)) select.value = previous.value;
+  }
+
   function renderPages() {
     const pages = state.pages;
     const n = pages.length;
@@ -583,6 +591,7 @@ async function showEditor(container, ctx, begin) {
           .map((t) => el("option", { value: t.id, text: templateLabel(t) })),
       );
     const newChoice = choices("new-slide", "Template of the new slide", null);
+    keepChoice(newChoice, slideHolder.querySelector("#new-slide"));
     const add = button(
       "Add slide",
       () => {
@@ -671,6 +680,10 @@ async function showEditor(container, ctx, begin) {
       ),
     ]);
     const changeChoice = choices("slide-template", "Other template for this slide", pages[i].template);
+    changeChoice.dataset.slide = String(i);
+    // Only for the same slide: another slide starts from the first option again.
+    const previousChange = slideHolder.querySelector("#slide-template");
+    if (previousChange?.dataset.slide === String(i)) keepChoice(changeChoice, previousChange);
     const change = button("Change template", () => {
       const id = changeChoice.value;
       if (!id) return;
@@ -765,6 +778,7 @@ async function showEditor(container, ctx, begin) {
       { id: "new-slide", "aria-label": "Kind of new slide" },
       s.slides.map((d) => el("option", { value: d.kind, text: d.name })),
     );
+    keepChoice(kindChoice, slideHolder.querySelector("#new-slide"));
     const add = el("button", {
       type: "button",
       class: "secondary small",
