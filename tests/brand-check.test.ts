@@ -164,6 +164,41 @@ describe("numbers", () => {
     expect(values("on 01.10.2026")).toEqual([]);
   });
 
+  it("counts numbers that have a letter glued to them, so they need a fact too", () => {
+    expect(values("2.5M users")).toEqual([["number", 2500000]]);
+    expect(values("10M users")).toEqual([["number", 10000000]]);
+    expect(values("5k")).toEqual([["number", 5000]]);
+    expect(values("3.2bn")).toEqual([["number", 3200000000]]);
+    expect(values("€2.5M")).toEqual([["amount", 2500000]]);
+    expect(values("$10k")).toEqual([["amount", 10000]]);
+    expect(values("10EUR")).toEqual([["amount", 10]]);
+    // Other notations with a letter behind them are unclear, as without the letter.
+    expect(values("2,5M")).toEqual([["unclear", "2,5"]]);
+    expect(values("€2,5M")).toEqual([["unclear", "2,5"]]);
+    expect(values("12,50EUR")).toEqual([["unclear", "12,50"]]);
+    expect(uncoveredNumbers("2.5M users", [{ text: "2,500,000 users" }])).toEqual([]);
+    expect(uncoveredNumbers("2.5M users", [{ text: "2.5 users" }]).map((g) => g.value)).toEqual([2500000]);
+  });
+
+  it("does not count digits that belong to a word", () => {
+    // The line: only a glued k, m, b (bn, mln, ...) is a magnitude. Names and units are not.
+    for (const text of [
+      "4K video",
+      "H2O",
+      "B2B and B2C",
+      "Q3 plans",
+      "2FA is on",
+      "x2 faster",
+      "5G and 3D",
+      "MP3",
+      "5kg, 10min, 2MB",
+      "10px",
+    ])
+      expect(values(text), text).toEqual([]);
+    // Not told apart from a word: "iOS 18" is a number of two digits, as before.
+    expect(values("iOS 18")).toEqual([["number", 18]]);
+  });
+
   it("needs a fact for a number in another notation", () => {
     expect(uncoveredNumbers("Only € 12,50 per seat", []).map((g) => g.text)).toEqual(["12,50"]);
     expect(uncoveredNumbers("Only € 12,50 per seat", [{ text: "Seat price € 12.50" }]).map((g) => g.text)).toEqual([
