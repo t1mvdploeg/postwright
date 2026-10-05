@@ -74,14 +74,14 @@ function kindOf(name: string): InputRole {
         : "font";
 }
 
-function checkImage(content: Buffer, kind: "png" | "jpg" | "webp") {
+export function checkImage(content: Buffer, kind: "png" | "jpg" | "webp") {
   const size = mediaDimensions(content, kind);
   if (!size || size.width < 1 || size.height < 1) throw new ApiError(400, "This image is unreadable or damaged");
   if (size.width > 8000 || size.height > 8000) throw new ApiError(400, "This image is larger than 8000 pixels");
 }
 
 /** What the file is, from its content: the stored name and bytes, or a 400. */
-function classify(role: InputRole, content: Buffer): { name: string; stored: Buffer } {
+export function classify(role: InputRole, content: Buffer): { name: string; stored: Buffer } {
   if (role === "logo") {
     if (mediaKind(content) === "png") {
       checkImage(content, "png");
