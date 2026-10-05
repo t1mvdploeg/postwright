@@ -1,17 +1,17 @@
-// De hulpfuncties van de studio: alleen wat zonder DOM te testen is.
+// The studio's helper functions: only what can be tested without a DOM.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { debounce } from "../src/web/ui.js";
 
 describe("debounce", () => {
   afterEach(() => vi.useRealTimers());
 
-  it("roept de functie één keer aan, met de laatste argumenten, na de wachttijd", () => {
+  it("calls the function once, with the last arguments, after the wait time", () => {
     vi.useFakeTimers();
     const fn = vi.fn();
-    const traag = debounce(fn, 200);
-    traag("a");
+    const slow = debounce(fn, 200);
+    slow("a");
     vi.advanceTimersByTime(150);
-    traag("b");
+    slow("b");
     vi.advanceTimersByTime(150);
     expect(fn).not.toHaveBeenCalled();
     vi.advanceTimersByTime(50);

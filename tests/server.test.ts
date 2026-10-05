@@ -4,69 +4,73 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, expect, test, vi } from "vitest";
-import { ApiFout, antwoord, route, startServer } from "../src/server/http.js";
-import { ruw } from "./helpers/ruw.js";
+import { ApiError, response, route, startServer } from "../src/server/http.js";
+import { raw } from "./helpers/raw.js";
 
-let sluit: (() => Promise<void>) | undefined;
-const mappen: string[] = [];
+let close: (() => Promise<void>) | undefined;
+const folders: string[] = [];
 afterEach(async () => {
-  await sluit?.();
-  sluit = undefined;
-  while (mappen.length) rmSync(mappen.pop()!, { recursive: true, force: true });
+  await close?.();
+  close = undefined;
+  while (folders.length) rmSync(folders.pop()!, { recursive: true, force: true });
 });
 
-/** Elke test krijgt een eigen map; `web/` is de webmap en `GEHEIM` staat er direct naast, buiten bereik. */
-const GEHEIM = "dit-hoort-er-niet-uit-te-komen";
-async function start(dataDir?: string, poort = 0) {
-  const wortel = mkdtempSync(join(tmpdir(), "pw-"));
-  mappen.push(wortel);
-  dataDir ??= join(wortel, "data");
-  const web = join(wortel, "web");
+/**
+ * Every test gets its own folder; `web/` is the web folder and `SECRET` sits directly next
+ * to it, out of reach.
+ */
+const SECRET = "this-should-not-come-out";
+async function start(dataDir?: string, port = 0) {
+  const root = mkdtempSync(join(tmpdir(), "pw-"));
+  folders.push(root);
+  dataDir ??= join(root, "data");
+  const web = join(root, "web");
   mkdirSync(web);
-  writeFileSync(join(wortel, "secret.txt"), GEHEIM);
+  writeFileSync(join(root, "secret.txt"), SECRET);
   writeFileSync(join(web, "index.html"), "<h1>studio</h1>");
-  writeFileSync(join(web, "plaatje.svg"), "<svg xmlns='http://www.w3.org/2000/svg'><script>1</script></svg>");
+  writeFileSync(join(web, "picture.svg"), "<svg xmlns='http://www.w3.org/2000/svg'><script>1</script></svg>");
   mkdirSync(join(web, "sub"));
   writeFileSync(join(web, "sub", "a.js"), "export const a = 1;");
   const s = await startServer({
     dataDir,
-    poort,
+    port,
     webDir: web,
     routes: [
-      route("GET", "/api/ding/:id", (c) => ({ id: c.params.id })),
-      route("POST", "/api/echo", async (c) => c.leesJson()),
-      route("POST", "/api/ruw", async (c) => ({ bytes: (await c.lees()).length }), { ruweBody: true }),
-      route("GET", "/api/kapot", () => {
-        throw new ApiFout(409, "Bezet");
+      route("GET", "/api/thing/:id", (c) => ({ id: c.params.id })),
+      route("POST", "/api/echo", async (c) => c.readJson()),
+      route("POST", "/api/raw", async (c) => ({ bytes: (await c.read()).length }), { rawBody: true }),
+      route("GET", "/api/broken", () => {
+        throw new ApiError(409, "Busy");
       }),
       route("GET", "/api/crash", () => {
-        throw new Error("geheim detail");
+        throw new Error("secret detail");
       }),
-      route("GET", "/api/ruw", () => antwoord({ contentType: "text/plain", body: "hoi" })),
+      route("GET", "/api/raw", () => response({ contentType: "text/plain", body: "hoi" })),
     ],
   });
-  sluit = s.sluit;
+  close = s.close;
   return { ...s, dataDir };
 }
 
-test("maakt de datamap aan bij de eerste start", async () => {
+test("creates the data folder on first start", async () => {
   const { dataDir } = await start();
   expect(existsSync(dataDir)).toBe(true);
 });
-test("serveert index.html op / met een CSP", async () => {
+test("serves index.html at / with a CSP", async () => {
   const { url } = await start();
   const r = await fetch(url + "/");
   expect(await r.text()).toContain("studio");
   expect(r.headers.get("content-security-policy")).toContain("default-src 'self'");
 });
-test("serveert statische modules met het juiste type", async () => {
+test("serves static modules with the right type", async () => {
   const { url } = await start();
   expect((await fetch(url + "/sub/a.js")).headers.get("content-type")).toContain("javascript");
 });
-test("geeft 404 op een pad buiten de webmap, ook als het bestand echt bestaat", async () => {
+test("gives 404 for a path outside the web folder, even if the file really exists", async () => {
   const { url } = await start();
-  // Het bestand staat direct naast de webmap; zonder de bewaking zou `/..%2fsecret.txt` het geven.
-  for (const pad of [
+  // The file sits directly next to the web folder; without the guard, `/..%2fsecret.txt`
+  // would give it.
+  for (const path of [
     "/..%2fsecret.txt",
     "/..%2Fsecret.txt",
     "/sub/..%2f..%2fsecret.txt",
@@ -76,172 +80,172 @@ test("geeft 404 op een pad buiten de webmap, ook als het bestand echt bestaat", 
     "/%252e%252e%252fsecret.txt",
     "/..%2fsecret.txt%00.png",
   ]) {
-    const r = await ruw(url, { pad });
-    expect(r.status, pad).toBe(404);
-    expect(r.tekst, pad).not.toContain(GEHEIM);
+    const r = await raw(url, { path });
+    expect(r.status, path).toBe(404);
+    expect(r.text, path).not.toContain(SECRET);
   }
-  expect((await ruw(url, { pad: "/sub/a.js" })).status).toBe(200);
+  expect((await raw(url, { path: "/sub/a.js" })).status).toBe(200);
 });
-test("vult padparameters in", async () => {
+test("fills in path parameters", async () => {
   const { url } = await start();
-  expect(await (await fetch(url + "/api/ding/42")).json()).toEqual({ id: "42" });
+  expect(await (await fetch(url + "/api/thing/42")).json()).toEqual({ id: "42" });
 });
-test("onbekende api-route geeft 404 als JSON", async () => {
+test("unknown api route gives 404 as JSON", async () => {
   const { url } = await start();
-  const r = await fetch(url + "/api/bestaat-niet");
+  const r = await fetch(url + "/api/does-not-exist");
   expect(r.status).toBe(404);
-  expect(await r.json()).toHaveProperty("fout");
+  expect(await r.json()).toHaveProperty("error");
 });
-test("ApiFout wordt status en bericht; een andere fout lekt geen details", async () => {
+test("ApiError becomes status and message; another error leaks no details", async () => {
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
   try {
     const { url } = await start();
-    const a = await fetch(url + "/api/kapot");
+    const a = await fetch(url + "/api/broken");
     expect(a.status).toBe(409);
-    expect((await a.json()).fout).toBe("Bezet");
+    expect((await a.json()).error).toBe("Busy");
     const b = await fetch(url + "/api/crash");
     expect(b.status).toBe(500);
-    expect(JSON.stringify(await b.json())).not.toContain("geheim");
+    expect(JSON.stringify(await b.json())).not.toContain("secret");
     expect(log).toHaveBeenCalledTimes(1);
   } finally {
     log.mockRestore();
   }
 });
-test("POST zonder json-type geeft 415, ongeldige json 400, te groot 413", async () => {
+test("POST without json type gives 415, invalid json 400, too large 413", async () => {
   const { url } = await start();
   const post = (body: string, type = "application/json") =>
     fetch(url + "/api/echo", { method: "POST", headers: { "content-type": type }, body });
   expect((await post("{}", "text/plain")).status).toBe(415);
-  expect((await post("{nee")).status).toBe(400);
+  expect((await post("{no")).status).toBe(400);
   expect((await post(JSON.stringify({ x: "a".repeat(1_100_000) }))).status).toBe(413);
   expect(await (await post('{"ok":true}')).json()).toEqual({ ok: true });
 });
-test("Host en Origin: alleen de eigen pagina komt erdoor", async () => {
+test("Host and Origin: only the own page gets through", async () => {
   const { url } = await start();
-  const poort = new URL(url).port;
-  const eigen = [`127.0.0.1:${poort}`, `localhost:${poort}`];
-  const gevallen: Array<[string, string, string | undefined, number]> = [
-    // [naam, Host, Origin, verwachte status]
-    ["127.0.0.1 zonder Origin", eigen[0], undefined, 200],
-    ["localhost zonder Origin", eigen[1], undefined, 200],
-    ["127.0.0.1 met eigen Origin", eigen[0], `http://${eigen[0]}`, 200],
-    ["localhost met eigen Origin", eigen[1], `http://${eigen[1]}`, 200],
-    ["vreemde Host", "kwaad.example", undefined, 403],
-    ["Host zonder poort", "127.0.0.1", undefined, 403],
-    ["Host met verkeerde poort", "127.0.0.1:1", undefined, 403],
-    ["Host in hoofdletters", `LOCALHOST:${poort}`, undefined, 403],
-    ["localhost met punt erachter", `localhost.:${poort}`, undefined, 403],
-    ["IPv6-Host", `[::1]:${poort}`, undefined, 403],
-    ["vreemde Origin", eigen[0], "https://kwaad.example", 403],
-    ["Origin: null", eigen[0], "null", 403],
-    ["https-Origin van het eigen adres", eigen[0], `https://${eigen[0]}`, 403],
-    ["Origin met verkeerde poort", eigen[0], "http://127.0.0.1:1", 403],
-    ["IPv6-Origin", eigen[0], `http://[::1]:${poort}`, 403],
-    ["Origin met pad erachter", eigen[0], `http://${eigen[0]}/`, 403],
+  const port = new URL(url).port;
+  const custom = [`127.0.0.1:${port}`, `localhost:${port}`];
+  const cases: Array<[string, string, string | undefined, number]> = [
+    // [name, Host, Origin, expected status]
+    ["127.0.0.1 without Origin", custom[0], undefined, 200],
+    ["localhost without Origin", custom[1], undefined, 200],
+    ["127.0.0.1 with own Origin", custom[0], `http://${custom[0]}`, 200],
+    ["localhost with own Origin", custom[1], `http://${custom[1]}`, 200],
+    ["foreign Host", "evil.example", undefined, 403],
+    ["Host without port", "127.0.0.1", undefined, 403],
+    ["Host with wrong port", "127.0.0.1:1", undefined, 403],
+    ["Host in capitals", `LOCALHOST:${port}`, undefined, 403],
+    ["localhost with a trailing dot", `localhost.:${port}`, undefined, 403],
+    ["IPv6-Host", `[::1]:${port}`, undefined, 403],
+    ["foreign Origin", custom[0], "https://evil.example", 403],
+    ["Origin: null", custom[0], "null", 403],
+    ["https Origin of the own address", custom[0], `https://${custom[0]}`, 403],
+    ["Origin with wrong port", custom[0], "http://127.0.0.1:1", 403],
+    ["IPv6-Origin", custom[0], `http://[::1]:${port}`, 403],
+    ["Origin with a path", custom[0], `http://${custom[0]}/`, 403],
   ];
-  for (const [naam, host, origin, verwacht] of gevallen) {
+  for (const [name, host, origin, expected] of cases) {
     const headers: Record<string, string> = { host };
     if (origin !== undefined) headers.origin = origin;
-    const r = await ruw(url, { pad: "/api/ding/1", headers });
-    expect(r.status, naam).toBe(verwacht);
-    if (verwacht === 403) expect(r.tekst, naam).not.toContain('"id"');
+    const r = await raw(url, { path: "/api/thing/1", headers });
+    expect(r.status, name).toBe(expected);
+    if (expected === 403) expect(r.text, name).not.toContain('"id"');
   }
 });
-test("een niet-parseerbaar verzoekdoel geeft 400 en de server blijft draaien", async () => {
+test("an unparseable request target gives 400 and the server keeps running", async () => {
   const { url } = await start();
-  for (const pad of ["//", "//kwaad.example/x", "//:"]) {
-    expect((await ruw(url, { pad })).status, pad).toBe(400);
+  for (const path of ["//", "//evil.example/x", "//:"]) {
+    expect((await raw(url, { path })).status, path).toBe(400);
   }
-  expect((await fetch(url + "/api/ding/ok")).status).toBe(200);
+  expect((await fetch(url + "/api/thing/ok")).status).toBe(200);
 });
-test("de beveiligingskoppen staan op HTML: geen inlijsten, geen base of form naar elders", async () => {
+test("the security headers are on HTML: no framing, no base or form elsewhere", async () => {
   const { url } = await start();
   const r = await fetch(url + "/");
   const csp = r.headers.get("content-security-policy") ?? "";
-  for (const deel of ["frame-ancestors 'self'", "base-uri 'none'", "form-action 'self'", "object-src 'none'"])
-    expect(csp).toContain(deel);
+  for (const part of ["frame-ancestors 'self'", "base-uri 'none'", "form-action 'self'", "object-src 'none'"])
+    expect(csp).toContain(part);
   expect(r.headers.get("x-frame-options")).toBe("SAMEORIGIN");
 });
-test("een SVG krijgt een CSP die scripts en navigatie uitsluit, en nosniff", async () => {
+test("an SVG gets a CSP that excludes scripts and navigation, and nosniff", async () => {
   const { url } = await start();
-  const r = await fetch(url + "/plaatje.svg");
+  const r = await fetch(url + "/picture.svg");
   expect(r.headers.get("content-type")).toBe("image/svg+xml");
   expect(r.headers.get("content-security-policy")).toBe("default-src 'none'; style-src 'unsafe-inline'; sandbox");
   expect(r.headers.get("x-content-type-options")).toBe("nosniff");
 });
-test("een body die al in de kop te groot is, krijgt 413 zonder dat hij wordt gelezen", async () => {
+test("a body that is already too large in the header gets 413 without being read", async () => {
   const { url } = await start();
-  const r = await ruw(url, {
-    pad: "/api/ruw",
-    methode: "POST",
+  const r = await raw(url, {
+    path: "/api/raw",
+    method: "POST",
     headers: { "content-length": "5000000", "content-type": "application/octet-stream" },
-    // Er komen maar twee bytes; zonder kopcontrole zou de server op de rest blijven wachten.
+    // Only two bytes arrive; without a header check the server would keep waiting for the rest.
     body: "ab",
   });
   expect(r.status).toBe(413);
 });
-test("een body zonder Content-Length die de grens passeert, wordt afgebroken en niet tot het eind gelezen", async () => {
+test("a body without Content-Length that passes the limit is aborted and not read to the end", async () => {
   const { url } = await start();
   const { hostname, port } = new URL(url);
-  const blok = Buffer.alloc(64 * 1024, 97);
-  const GRENS_TOTAAL = 200 * 1024 * 1024;
-  let geschreven = 0;
-  const antwoordStatus = await new Promise<number | string>((klaar) => {
+  const block = Buffer.alloc(64 * 1024, 97);
+  const LIMIT_TOTAL = 200 * 1024 * 1024;
+  let written = 0;
+  const replyStatus = await new Promise<number | string>((resolve) => {
     const r = request({
       host: hostname,
       port,
-      path: "/api/ruw",
+      path: "/api/raw",
       method: "POST",
       headers: { "content-type": "application/octet-stream" }, // chunked
     });
-    let gedaan = false;
-    const einde = (x: number | string) => {
-      if (gedaan) return;
-      gedaan = true;
+    let done = false;
+    const end = (x: number | string) => {
+      if (done) return;
+      done = true;
       r.destroy();
-      klaar(x);
+      resolve(x);
     };
     r.on("response", (res) => {
       res.resume();
-      einde(res.statusCode ?? 0);
+      end(res.statusCode ?? 0);
     });
-    r.on("error", (e) => einde(`fout: ${(e as NodeJS.ErrnoException).code}`));
-    const schrijf = () => {
-      while (!gedaan && geschreven < GRENS_TOTAAL) {
-        geschreven += blok.length;
-        if (!r.write(blok)) return void r.once("drain", schrijf);
+    r.on("error", (e) => end(`error: ${(e as NodeJS.ErrnoException).code}`));
+    const write = () => {
+      while (!done && written < LIMIT_TOTAL) {
+        written += block.length;
+        if (!r.write(block)) return void r.once("drain", write);
       }
-      if (!gedaan) r.end();
+      if (!done) r.end();
     };
-    schrijf();
+    write();
   });
-  expect(antwoordStatus).toBe(413);
-  expect(geschreven).toBeLessThan(GRENS_TOTAAL);
+  expect(replyStatus).toBe(413);
+  expect(written).toBeLessThan(LIMIT_TOTAL);
 });
-test("PORT=abc geeft één regel en afsluitcode 1, geen stacktrace", () => {
+test("PORT=abc gives one line and exit code 1, no stack trace", () => {
   const data = mkdtempSync(join(tmpdir(), "pw-port-"));
-  mappen.push(data);
-  for (const poort of ["abc", "70000", "-1", "80.5", ""]) {
+  folders.push(data);
+  for (const port of ["abc", "70000", "-1", "80.5", ""]) {
     const r = spawnSync(process.execPath, ["--import", "tsx", "src/server/start.ts"], {
-      env: { ...process.env, PORT: poort, POSTWRIGHT_DATA_DIR: join(data, "data") },
+      env: { ...process.env, PORT: port, POSTWRIGHT_DATA_DIR: join(data, "data") },
       encoding: "utf8",
       timeout: 20_000,
     });
-    expect(r.status, poort).toBe(1);
-    const regels = r.stderr.trim().split("\n");
-    expect(regels, poort).toHaveLength(1);
-    expect(regels[0], poort).toMatch(/^PORT must be a whole number between 0 and 65535/);
-    expect(r.stderr, poort).not.toContain(" at ");
+    expect(r.status, port).toBe(1);
+    const lines = r.stderr.trim().split("\n");
+    expect(lines, port).toHaveLength(1);
+    expect(lines[0], port).toMatch(/^PORT must be a whole number between 0 and 65535/);
+    expect(r.stderr, port).not.toContain(" at ");
   }
 });
-test("een niet-JSON-antwoord houdt zijn type", async () => {
+test("a non-JSON response keeps its type", async () => {
   const { url } = await start();
-  const r = await fetch(url + "/api/ruw");
+  const r = await fetch(url + "/api/raw");
   expect(r.headers.get("content-type")).toContain("text/plain");
   expect(await r.text()).toBe("hoi");
 });
-test("een bezette poort verwerpt met EADDRINUSE", async () => {
-  const eerste = await start();
-  const poort = Number(new URL(eerste.url).port);
-  await expect(start(undefined, poort)).rejects.toMatchObject({ code: "EADDRINUSE" });
+test("a busy port rejects with EADDRINUSE", async () => {
+  const first = await start();
+  const port = Number(new URL(first.url).port);
+  await expect(start(undefined, port)).rejects.toMatchObject({ code: "EADDRINUSE" });
 });

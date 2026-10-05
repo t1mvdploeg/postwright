@@ -1,62 +1,64 @@
-// De hulpfuncties van de studio: één plek voor de verbinding met de server, het bouwen van
-// elementen en de gedeelde bouwstenen (melding, dialoog, veldfout, lege staat, icoon).
-// Platte browser-ESM zonder build-stap; het bestand laadt ook in een kale Node-omgeving (tests),
-// dus alles wat de DOM aanraakt zit in een functie of achter een `typeof document`-controle.
+// The studio's helper functions: one place for the connection to the server, building
+// elements and the shared building blocks (notice, dialog, field error, empty state,
+// icon). Plain browser ESM without a build step; the file also loads in a bare Node
+// environment (tests), so everything that touches the DOM sits in a function or behind a
+// `typeof document` check.
 
 /**
- * Elk scherm praat via deze ene functie met de server. Een fout komt terug als `Error` met de
- * melding van de server (`fout`), de HTTP-status in `.status` en de ruwe inhoud in `.data`.
+ * Every screen talks to the server through this one function. An error comes back as an
+ * `Error` with the server's message (`error`), the HTTP status in `.status` and the raw
+ * content in `.data`.
  */
-export async function api(pad, opties = {}) {
-  const init = { method: opties.method ?? "GET", headers: { "content-type": "application/json" } };
-  if (opties.body !== undefined) init.body = JSON.stringify(opties.body);
-  if (opties.signal) init.signal = opties.signal;
-  // Een netwerkfout (TypeError; een AbortError blijft zoals hij is) of een gateway-fout zonder
-  // JSON-antwoord krijgt een Nederlandse melding in plaats van "Failed to fetch"/"Fout 502".
-  const GEEN_VERBINDING = "Geen verbinding met de server; probeer het opnieuw.";
-  const r = await fetch(pad, init).catch((e) => {
-    throw e instanceof TypeError ? new Error(GEEN_VERBINDING) : e;
+export async function api(path, options = {}) {
+  const init = { method: options.method ?? "GET", headers: { "content-type": "application/json" } };
+  if (options.body !== undefined) init.body = JSON.stringify(options.body);
+  if (options.signal) init.signal = options.signal;
+  // A network error (TypeError; an AbortError stays as it is) or a gateway error without a
+  // JSON response gets a readable message instead of the bare "Failed to fetch"/"Error 502".
+  const NO_CONNECTION = "No connection to the server; try again.";
+  const r = await fetch(path, init).catch((e) => {
+    throw e instanceof TypeError ? new Error(NO_CONNECTION) : e;
   });
-  const tekst = await r.text();
+  const text = await r.text();
   let data = null;
   try {
-    data = tekst ? JSON.parse(tekst) : null;
+    data = text ? JSON.parse(text) : null;
   } catch {
     data = null;
   }
   if (!r.ok)
     throw Object.assign(
-      new Error(data?.fout ?? ([502, 503, 504].includes(r.status) ? GEEN_VERBINDING : `Fout ${r.status}`)),
+      new Error(data?.error ?? ([502, 503, 504].includes(r.status) ? NO_CONNECTION : `Error ${r.status}`)),
       { status: r.status, data },
     );
   return data;
 }
 
-const VELD_SELECTOR = "input:not([type=hidden]), select, textarea";
-let labelTeller = 0;
+const FIELD_SELECTOR = "input:not([type=hidden]), select, textarea";
+let labelCounter = 0;
 
 /**
- * Koppelt elk `<label>` zonder `for` (en zonder veld erin) aan zijn veld, zodat een schermlezer
- * het label voorleest en een klik op het label de cursor in het veld zet. Het veld is het
- * eerstvolgende broerelement, of anders het enige veld in de ouder. Al gekoppelde labels en
- * velden blijven ongemoeid.
- * @param {ParentNode} wortel
+ * Links every `<label>` without `for` (and without a field inside) to its field, so that a
+ * screen reader reads out the label and a click on the label puts the cursor in the field.
+ * The field is the next sibling element, or otherwise the only field in the parent.
+ * Labels and fields that are already linked are left alone.
+ * @param {ParentNode} root
  */
-function koppelLabels(wortel) {
-  for (const label of wortel.querySelectorAll("label:not([for])")) {
-    if (label.querySelector(VELD_SELECTOR)) continue;
-    let veld = label.nextElementSibling;
-    if (!veld || !veld.matches(VELD_SELECTOR)) {
-      const velden = label.parentElement ? label.parentElement.querySelectorAll(VELD_SELECTOR) : [];
-      veld = velden.length === 1 ? velden[0] : null;
+function linkLabels(root) {
+  for (const label of root.querySelectorAll("label:not([for])")) {
+    if (label.querySelector(FIELD_SELECTOR)) continue;
+    let field = label.nextElementSibling;
+    if (!field || !field.matches(FIELD_SELECTOR)) {
+      const fields = label.parentElement ? label.parentElement.querySelectorAll(FIELD_SELECTOR) : [];
+      field = fields.length === 1 ? fields[0] : null;
     }
-    if (!veld) continue;
-    if (!veld.id) veld.id = `veld-${++labelTeller}`;
-    label.htmlFor = veld.id;
+    if (!field) continue;
+    if (!field.id) field.id = `field-${++labelCounter}`;
+    label.htmlFor = field.id;
   }
 }
 
-export function el(tag, attrs = {}, kinderen = []) {
+export function el(tag, attrs = {}, children = []) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
     if (k === "class") e.className = v;
@@ -64,195 +66,196 @@ export function el(tag, attrs = {}, kinderen = []) {
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
     else if (v !== null && v !== undefined) e.setAttribute(k, v);
   }
-  for (const kind of [].concat(kinderen)) if (kind !== null && kind !== undefined) e.append(kind);
+  for (const kind of [].concat(children)) if (kind !== null && kind !== undefined) e.append(kind);
   return e;
 }
 
 /**
- * Een icoon uit `/iconen.svg`. Altijd decoratief (`aria-hidden`): de tekst ernaast draagt de
- * betekenis. Lijn en kleur komen uit `.icoon` in studio.css (currentColor).
- * @param {string} naam symbool-id in /iconen.svg
- * @param {string} [klasse] extra klasse naast `icoon`
+ * An icon from `/icons.svg`. Always decorative (`aria-hidden`): the text next to it carries
+ * the meaning. Stroke and colour come from `.icon` in studio.css (currentColor).
+ * @param {string} name symbol id in /icons.svg
+ * @param {string} [className] extra class next to `icon`
  */
-export function icoon(naam, klasse = "") {
+export function icon(name, className = "") {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("class", klasse ? `icoon ${klasse}` : "icoon");
+  svg.setAttribute("class", className ? `icon ${className}` : "icon");
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("focusable", "false");
   const use = document.createElementNS(ns, "use");
-  use.setAttribute("href", `/iconen.svg#${naam}`);
+  use.setAttribute("href", `/icons.svg#${name}`);
   svg.append(use);
   return svg;
 }
 
 /**
- * Lege staat: één vaste vorm voor "hier staat nog niets", met optioneel `actie` = `{ tekst, href }`
- * als directe link naar de plek waar je het eerste record aanmaakt.
+ * Empty state: one fixed shape for "nothing here yet", with an optional
+ * `action` = `{ text, href }` as a direct link to the place where you create the first
+ * record.
  */
-export function legeStaat(titel, tekst, actie) {
-  return el("div", { class: "lege-staat" }, [
-    el("b", { text: titel }),
-    el("p", { text: tekst }),
-    actie ? el("a", { class: "knop-link", href: actie.href, text: actie.tekst }) : null,
+export function emptyState(title, text, action) {
+  return el("div", { class: "empty-state" }, [
+    el("b", { text: title }),
+    el("p", { text: text }),
+    action ? el("a", { class: "button-link", href: action.href, text: action.text }) : null,
   ]);
 }
 
 /**
- * Toast. Het vak is een live region, zodat een schermlezer de melding voorleest zonder dat de
- * focus verspringt: `polite` voor gewone meldingen, `assertive` voor fouten. De sluitknop is er
- * voor wie een melding wil wegklikken voor de vijf seconden om zijn.
+ * Toast. The box is a live region, so that a screen reader reads out the notice without
+ * focus jumping: `polite` for ordinary notices, `assertive` for errors. The close button is
+ * there for anyone who wants to dismiss a notice before its five seconds are up.
  */
-const MELDING_ICOON = { info: "info", ok: "vink", fout: "let-op", waarschuwing: "let-op" };
-export function melding(tekst, soort = "info") {
-  let vak = document.getElementById("meldingen");
-  if (!vak) {
-    vak = el("div", { id: "meldingen", role: "status", "aria-live": "polite" });
-    document.body.prepend(vak);
+const NOTICE_ICON = { info: "info", ok: "tick", error: "attention", warning: "attention" };
+export function notice(text, kind = "info") {
+  let control = document.getElementById("notices");
+  if (!control) {
+    control = el("div", { id: "notices", role: "status", "aria-live": "polite" });
+    document.body.prepend(control);
   }
-  vak.setAttribute("aria-live", soort === "fout" ? "assertive" : "polite");
-  const m = el("div", { class: `melding ${soort}` }, [
-    icoon(MELDING_ICOON[soort] ?? "info"),
-    el("span", { text: tekst }),
+  control.setAttribute("aria-live", kind === "error" ? "assertive" : "polite");
+  const m = el("div", { class: `notice ${kind}` }, [
+    icon(NOTICE_ICON[kind] ?? "info"),
+    el("span", { text: text }),
     el(
       "button",
-      { type: "button", class: "knop-stil melding-sluit", "aria-label": "Melding sluiten", onclick: () => m.remove() },
-      [icoon("kruis")],
+      { type: "button", class: "button-plain notice-close", "aria-label": "Close notice", onclick: () => m.remove() },
+      [icon("cross")],
     ),
   ]);
-  vak.append(m);
+  control.append(m);
   setTimeout(() => m.remove(), 5000);
 }
 
 /**
- * Voegt `id` toe aan een ruimte-gescheiden `aria-describedby`-waarde zonder het tweemaal toe te
- * voegen; `zonderBeschrijving` haalt precies dat ene id er weer uit.
+ * Adds `id` to a space-separated `aria-describedby` value without adding it twice;
+ * `withoutDescription` removes exactly that one id again.
  */
-function metBeschrijving(bestaand, id) {
-  const delen = (bestaand ?? "").split(" ").filter(Boolean);
-  return delen.includes(id) ? delen.join(" ") : [...delen, id].join(" ");
+function withDescription(existing, id) {
+  const share = (existing ?? "").split(" ").filter(Boolean);
+  return share.includes(id) ? share.join(" ") : [...share, id].join(" ");
 }
-function zonderBeschrijving(bestaand, id) {
-  return (bestaand ?? "")
+function withoutDescription(existing, id) {
+  return (existing ?? "")
     .split(" ")
     .filter((d) => d && d !== id)
     .join(" ");
 }
 
 /**
- * Een foutmelding die bij het veld hangt en blijft staan tot hij is opgelost, in plaats van een
- * toast die na vijf seconden verdwijnt. `veld` heeft een `id` nodig; een lege `tekst` wist de
- * fout weer. Bestaat er al een element `<id>-fout`, dan wordt dat hergebruikt.
+ * An error message attached to the field that stays until it is resolved, instead of a
+ * toast that disappears after five seconds. `field` needs an `id`; an empty `text` clears
+ * the error again. If an element `<id>-error` already exists, it is reused.
  *
- * In een `.veld` dat al drie kinderen heeft (label, invoer, hulptekst) is geen plek voor een
- * vierde: de grid van `.veldrij` geeft precies drie rijen door. Dan verbergt de fout de
- * hulptekst tijdelijk en neemt zijn rij over; de hulptekst komt terug zodra de fout is opgelost.
+ * In a `.field` that already has three children (label, input, help text) there is no room
+ * for a fourth: the grid of `.field-row` passes on exactly three rows. The error then
+ * hides the help text temporarily and takes over its row; the help text returns as soon as
+ * the error is resolved.
  */
-const verborgenHulpteksten = new WeakMap();
-export function veldFout(veld, tekst) {
-  const foutId = `${veld.id}-fout`;
-  let foutEl = document.getElementById(foutId);
-  const houder = veld.closest(".veld") ?? veld.parentElement ?? veld;
-  if (!tekst) {
-    if (foutEl) foutEl.hidden = true;
-    const hulptekst = verborgenHulpteksten.get(houder);
-    if (hulptekst) {
-      hulptekst.hidden = false;
-      verborgenHulpteksten.delete(houder);
+const hiddenHelpTexts = new WeakMap();
+export function fieldError(field, text) {
+  const errorId = `${field.id}-error`;
+  let errorEl = document.getElementById(errorId);
+  const holder = field.closest(".field") ?? field.parentElement ?? field;
+  if (!text) {
+    if (errorEl) errorEl.hidden = true;
+    const helpText = hiddenHelpTexts.get(holder);
+    if (helpText) {
+      helpText.hidden = false;
+      hiddenHelpTexts.delete(holder);
     }
-    veld.removeAttribute("aria-invalid");
-    if (veld.hasAttribute("aria-describedby")) {
-      const rest = zonderBeschrijving(veld.getAttribute("aria-describedby"), foutId);
-      if (rest) veld.setAttribute("aria-describedby", rest);
-      else veld.removeAttribute("aria-describedby");
+    field.removeAttribute("aria-invalid");
+    if (field.hasAttribute("aria-describedby")) {
+      const rest = withoutDescription(field.getAttribute("aria-describedby"), errorId);
+      if (rest) field.setAttribute("aria-describedby", rest);
+      else field.removeAttribute("aria-describedby");
     }
     return;
   }
-  if (!foutEl) {
-    foutEl = el("p", { id: foutId, class: "foutmelding veld-fout", role: "alert" });
-    if (houder.classList.contains("veld") && houder.children.length >= 3) {
-      const hulptekst = houder.children[2];
-      hulptekst.hidden = true;
-      verborgenHulpteksten.set(houder, hulptekst);
-      houder.insertBefore(foutEl, hulptekst.nextSibling);
+  if (!errorEl) {
+    errorEl = el("p", { id: errorId, class: "error-message field-error", role: "alert" });
+    if (holder.classList.contains("field") && holder.children.length >= 3) {
+      const helpText = holder.children[2];
+      helpText.hidden = true;
+      hiddenHelpTexts.set(holder, helpText);
+      holder.insertBefore(errorEl, helpText.nextSibling);
     } else {
-      houder.append(foutEl);
+      holder.append(errorEl);
     }
   }
-  foutEl.textContent = tekst;
-  foutEl.hidden = false;
-  // aria-invalid en de auto-clear-listener horen bij een waardedragend formulierveld; op een knop
-  // (bijv. een algemene opslaan-fout die aan de opslaanknop hangt) betekent aria-invalid niets en
-  // vuurt een input-event nooit — zo'n listener zou zich bij elke mislukte poging opnieuw
-  // registreren zonder ooit op te ruimen.
-  const formulierveld = ["INPUT", "SELECT", "TEXTAREA"].includes(veld.tagName);
-  if (formulierveld) veld.setAttribute("aria-invalid", "true");
-  veld.setAttribute("aria-describedby", metBeschrijving(veld.getAttribute("aria-describedby"), foutId));
-  if (formulierveld) veld.addEventListener("input", () => veldFout(veld, ""), { once: true });
+  errorEl.textContent = text;
+  errorEl.hidden = false;
+  // aria-invalid and the auto-clear listener belong to a value-carrying form field; on a
+  // button (e.g. a general save error attached to the save button) aria-invalid means
+  // nothing and an input event never fires — such a listener would register again on every
+  // failed attempt without ever being cleaned up.
+  const formField = ["INPUT", "SELECT", "TEXTAREA"].includes(field.tagName);
+  if (formField) field.setAttribute("aria-invalid", "true");
+  field.setAttribute("aria-describedby", withDescription(field.getAttribute("aria-describedby"), errorId));
+  if (formField) field.addEventListener("input", () => fieldError(field, ""), { once: true });
 }
 
 /**
- * Modale dialoog op basis van het native `<dialog>`-element: dat regelt focusopsluiting, Escape
- * en de achtergrondlaag zelf. `bouwInhoud` krijgt het formulier mee en geeft de waarde terug die
- * bij "bevestigen" hoort (`false` houdt de dialoog open); sluiten via Escape, annuleren of de
- * achtergrond levert `null`.
+ * Modal dialog based on the native `<dialog>` element: that takes care of focus trapping,
+ * Escape and the backdrop itself. `buildContent` receives the form and returns the value
+ * that belongs to "confirm" (`false` keeps the dialog open); closing via Escape, cancel or
+ * the backdrop yields `null`.
  */
-function dialoog({ titel, bevestigTekst = "Bevestigen", annuleerTekst = "Annuleren", gevaarlijk = false, bouwInhoud }) {
-  return new Promise((klaar) => {
-    const form = el("form", { method: "dialog", class: "dialoog-form" });
-    const waardeVan = bouwInhoud(form) ?? (() => true);
+function dialog({ title, confirmText = "Confirm", cancelText = "Cancel", dangerous = false, buildContent }) {
+  return new Promise((resolve) => {
+    const form = el("form", { method: "dialog", class: "dialog-form" });
+    const readValue = buildContent(form) ?? (() => true);
 
-    // annuleerTekst: null laat de annuleerknop weg (voor een dialoog die alleen iets toont).
-    const annuleer =
-      annuleerTekst === null ? null : el("button", { type: "button", class: "secundair", text: annuleerTekst });
-    const bevestig = el("button", { type: "submit", class: gevaarlijk ? "secundair gevaar" : "", text: bevestigTekst });
-    form.append(el("div", { class: "dialoog-knoppen" }, [annuleer, bevestig].filter(Boolean)));
+    // cancelText: null leaves out the cancel button (for a dialog that only shows something).
+    const cancel = cancelText === null ? null : el("button", { type: "button", class: "secondary", text: cancelText });
+    const confirm = el("button", { type: "submit", class: dangerous ? "secondary danger" : "", text: confirmText });
+    form.append(el("div", { class: "dialog-buttons" }, [cancel, confirm].filter(Boolean)));
 
-    const d = el("dialog", { class: "dialoog" }, [el("h2", { text: titel }), form]);
+    const d = el("dialog", { class: "dialog" }, [el("h2", { text: title }), form]);
     document.body.append(d);
 
-    // Sluiten gaat altijd via `rond`: het `close`-event is niet overal betrouwbaar, en een
-    // dialoog die zijn promise nooit afrondt laat de aanroeper voor altijd hangen.
-    let afgerond = false;
-    const rond = (waarde) => {
-      if (afgerond) return;
-      afgerond = true;
+    // Closing always goes through `round`: the `close` event is not reliable everywhere, and a
+    // dialog that never settles its promise leaves the caller hanging forever.
+    let finished = false;
+    const round = (value) => {
+      if (finished) return;
+      finished = true;
       if (d.open) d.close();
       d.remove();
-      klaar(waarde);
+      resolve(value);
     };
 
-    annuleer?.addEventListener("click", () => rond(null));
+    cancel?.addEventListener("click", () => round(null));
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      const waarde = waardeVan();
-      // `false` betekent "invoer niet in orde"; de dialoog blijft dan open staan.
-      if (waarde === false) return;
-      rond(waarde);
+      const value = readValue();
+      // `false` means "input not valid"; the dialog then stays open.
+      if (value === false) return;
+      round(value);
     });
-    // Klikken buiten de dialoog (op de ::backdrop) sluit hem, net als Escape.
+    // Clicking outside the dialog (on the ::backdrop) closes it, just like Escape.
     d.addEventListener("click", (e) => {
-      if (e.target === d) rond(null);
+      if (e.target === d) round(null);
     });
-    d.addEventListener("cancel", () => rond(null));
-    d.addEventListener("close", () => rond(null));
+    d.addEventListener("cancel", () => round(null));
+    d.addEventListener("close", () => round(null));
 
     d.showModal();
   });
 }
 
-/** Ja/nee-vraag. Geeft `true` bij bevestigen, `false` bij annuleren of Escape. */
-export async function bevestigDialoog(vraag, opties = {}) {
-  const uit = await dialoog({
-    titel: opties.titel ?? "Weet u het zeker?",
-    bevestigTekst: opties.bevestigTekst ?? "Ja, doorgaan",
-    gevaarlijk: opties.gevaarlijk ?? false,
-    bouwInhoud: (form) => {
-      form.prepend(el("p", { text: vraag }));
+/** Yes/no question. Returns `true` on confirm, `false` on cancel or Escape. */
+export async function confirmDialog(question, options = {}) {
+  const off = await dialog({
+    title: options.title ?? "Are you sure?",
+    confirmText: options.confirmText ?? "Yes, continue",
+    dangerous: options.dangerous ?? false,
+    buildContent: (form) => {
+      form.prepend(el("p", { text: question }));
       return () => true;
     },
   });
-  return uit === true;
+  return off === true;
 }
 export function debounce(fn, ms) {
   let t;
@@ -263,101 +266,102 @@ export function debounce(fn, ms) {
 }
 
 /**
- * Een scrollcontainer die alleen met de muis te verschuiven is, verbergt zijn rechterkant voor
- * een toetsenbordgebruiker. Een tabindex lost dat op, maar een naamloze tabstop is zijn eigen
- * probleem; daarom eerst een naam, dan pas een tabstop. De naam komt uit een eigen aria-label,
- * de <caption> van de tabel, of de dichtstbijzijnde kop erboven. Levert dat niets op, dan blijft
- * de container zoals hij was.
+ * A scroll container that can only be moved with the mouse hides its right-hand side from
+ * a keyboard user. A tabindex solves that, but a nameless tab stop is a problem of its
+ * own; so first a name, only then a tab stop. The name comes from its own aria-label, the
+ * table's <caption>, or the nearest heading above it. If that yields nothing, the
+ * container stays as it was.
  */
-function afgeleidTabelLabel(vak) {
-  const eigen = vak.getAttribute("aria-label");
-  if (eigen?.trim()) return eigen.trim();
-  if (vak.getAttribute("aria-labelledby")) return null; // al benoemd via een ander element
-  const caption = vak.querySelector("table > caption");
+function derivedTableLabel(control) {
+  const custom = control.getAttribute("aria-label");
+  if (custom?.trim()) return custom.trim();
+  if (control.getAttribute("aria-labelledby")) return null; // already named via another element
+  const caption = control.querySelector("table > caption");
   if (caption?.textContent?.trim()) return caption.textContent.trim();
-  const KOPPEN = "h1, h2, h3, h4, h5, h6, summary";
-  for (let knoop = vak.previousElementSibling; knoop; knoop = knoop.previousElementSibling) {
-    const kop = knoop.matches?.(KOPPEN) ? knoop : knoop.querySelector?.(KOPPEN);
-    const tekst = kop?.textContent?.trim();
-    if (tekst) return tekst;
+  const HEADLINES = "h1, h2, h3, h4, h5, h6, summary";
+  for (let node = control.previousElementSibling; node; node = node.previousElementSibling) {
+    const headline = node.matches?.(HEADLINES) ? node : node.querySelector?.(HEADLINES);
+    const text = headline?.textContent?.trim();
+    if (text) return text;
   }
-  const ouder = vak.parentElement?.closest(".kaart, details.blok, section, .app-inhoud");
-  const kop = ouder?.querySelector(KOPPEN);
-  return kop?.textContent?.trim() || null;
+  const parent = control.parentElement?.closest(".card, details.block, section, .app-content");
+  const headline = parent?.querySelector(HEADLINES);
+  return headline?.textContent?.trim() || null;
 }
 
 /**
- * Zet (of haalt weg) de tabstop en de regio-rol van een scrollcontainer. Wat deze functie zelf
- * heeft toegevoegd, haalt ze ook zelf weer weg (`data-regio-afgeleid`); een aria-label of role
- * die de pagina zélf heeft gezet blijft onaangeroerd.
+ * Sets (or removes) the tab stop and the region role of a scroll container. What this
+ * function added itself, it also removes itself (`data-regio-afgeleid`); an aria-label or
+ * role that the page set itself is left untouched.
  */
-function zetTabelScrollTabstop(vak, smal) {
-  if (!smal) {
-    vak.removeAttribute("tabindex");
-    const eerderGezet = vak.dataset.regioAfgeleid ?? "";
-    if (eerderGezet.includes("rol")) vak.removeAttribute("role");
-    if (eerderGezet.includes("label")) vak.removeAttribute("aria-label");
-    delete vak.dataset.regioAfgeleid;
+function setTableScrollTabstop(control, narrow) {
+  if (!narrow) {
+    control.removeAttribute("tabindex");
+    const previouslySet = control.dataset.regionDerived ?? "";
+    if (previouslySet.includes("role")) control.removeAttribute("role");
+    if (previouslySet.includes("label")) control.removeAttribute("aria-label");
+    delete control.dataset.regionDerived;
     return;
   }
-  const alBenoemd = vak.hasAttribute("aria-label") || vak.hasAttribute("aria-labelledby");
-  const naam = alBenoemd ? true : afgeleidTabelLabel(vak);
-  if (!naam) {
-    vak.removeAttribute("tabindex");
+  const alreadyNamed = control.hasAttribute("aria-label") || control.hasAttribute("aria-labelledby");
+  const name = alreadyNamed ? true : derivedTableLabel(control);
+  if (!name) {
+    control.removeAttribute("tabindex");
     return;
   }
-  const gezet = [];
-  if (!alBenoemd) {
-    vak.setAttribute("aria-label", naam);
-    gezet.push("label");
+  const set = [];
+  if (!alreadyNamed) {
+    control.setAttribute("aria-label", name);
+    set.push("label");
   }
-  if (!vak.hasAttribute("role")) {
-    vak.setAttribute("role", "region");
-    gezet.push("rol");
+  if (!control.hasAttribute("role")) {
+    control.setAttribute("role", "region");
+    set.push("role");
   }
-  if (gezet.length) vak.dataset.regioAfgeleid = gezet.join("+");
-  vak.setAttribute("tabindex", "0");
+  if (set.length) control.dataset.regionDerived = set.join("+");
+  control.setAttribute("tabindex", "0");
 }
 
-// Alleen in de browser: in een kale Node-omgeving bestaan document en ResizeObserver niet.
+// Browser only: in a bare Node environment document and ResizeObserver do not exist.
 if (typeof document !== "undefined" && typeof ResizeObserver !== "undefined") {
-  // De werkbalk kan bij zoom of lange paginatitels over meerdere regels lopen. Meet zijn echte
-  // hoogte, zodat ankers en tabelkoppen er altijd onder blijven.
-  const werkbalk = document.querySelector(".app-werkbalk");
-  if (werkbalk) {
+  // With zoom or long page titles the toolbar can run over several lines. Measure its real
+  // height, so that anchors and table headings always stay below it.
+  const toolbar = document.querySelector(".app-toolbar");
+  if (toolbar) {
     new ResizeObserver(() => {
-      const hoogte = werkbalk.getBoundingClientRect().height;
-      if (hoogte > 0) werkbalk.closest(".app-shell").style.setProperty("--kop-hoogte", `${hoogte}px`);
-    }).observe(werkbalk);
+      const height = toolbar.getBoundingClientRect().height;
+      if (height > 0) toolbar.closest(".app-shell").style.setProperty("--headline-height", `${height}px`);
+    }).observe(toolbar);
   }
-  // `.tabel-scroll` krijgt overflow-x pas als hij te weinig ruimte heeft (`.smal`, zie studio.css),
-  // anders breekt de sticky kolomkop. "Te weinig ruimte" is de werkelijke breedte, niet die van het venster.
-  const TABEL_SCROLL_BREUK = 900;
-  const tabelScrollObserver = new ResizeObserver((items) => {
+  // `.table-scroll` only gets overflow-x when it has too little room (`.narrow`, see
+  // studio.css), otherwise the sticky column header breaks. "Too little room" is the actual
+  // width, not that of the window.
+  const TABLE_SCROLL_BREAKPOINT = 900;
+  const tableScrollObserver = new ResizeObserver((items) => {
     for (const item of items) {
-      const smal = item.contentRect.width <= TABEL_SCROLL_BREUK;
-      item.target.classList.toggle("smal", smal);
-      zetTabelScrollTabstop(item.target, smal);
+      const narrow = item.contentRect.width <= TABLE_SCROLL_BREAKPOINT;
+      item.target.classList.toggle("narrow", narrow);
+      setTableScrollTabstop(item.target, narrow);
     }
   });
-  // Elk scherm bouwt zijn tabellen en velden pas na het laden op (fetch + el()). Een
-  // MutationObserver op <body> ziet elke `.tabel-scroll` en elk label zodra het verschijnt, en
-  // meldt verwijderde tabellen weer af zodat er niets blijft hangen.
-  new MutationObserver((mutaties) => {
-    for (const m of mutaties) {
-      for (const knoop of m.addedNodes) {
-        if (knoop.nodeType !== Node.ELEMENT_NODE) continue;
-        if (knoop.matches(".tabel-scroll")) tabelScrollObserver.observe(knoop);
-        knoop.querySelectorAll?.(".tabel-scroll").forEach((e) => tabelScrollObserver.observe(e));
-        koppelLabels(knoop.parentNode ?? knoop);
+  // Every screen builds its tables and fields only after loading (fetch + el()). A
+  // MutationObserver on <body> sees every `.table-scroll` and every label as soon as it
+  // appears, and unregisters removed tables again so that nothing lingers.
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        if (node.matches(".table-scroll")) tableScrollObserver.observe(node);
+        node.querySelectorAll?.(".table-scroll").forEach((e) => tableScrollObserver.observe(e));
+        linkLabels(node.parentNode ?? node);
       }
-      for (const knoop of m.removedNodes) {
-        if (knoop.nodeType !== Node.ELEMENT_NODE) continue;
-        if (knoop.matches(".tabel-scroll")) tabelScrollObserver.unobserve(knoop);
-        knoop.querySelectorAll?.(".tabel-scroll").forEach((e) => tabelScrollObserver.unobserve(e));
+      for (const node of m.removedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        if (node.matches(".table-scroll")) tableScrollObserver.unobserve(node);
+        node.querySelectorAll?.(".table-scroll").forEach((e) => tableScrollObserver.unobserve(e));
       }
     }
   }).observe(document.body, { childList: true, subtree: true });
-  document.querySelectorAll(".tabel-scroll").forEach((e) => tabelScrollObserver.observe(e));
-  koppelLabels(document);
+  document.querySelectorAll(".table-scroll").forEach((e) => tableScrollObserver.observe(e));
+  linkLabels(document);
 }

@@ -1,5 +1,5 @@
-// Zet zod's standaardmeldingen op Nederlands. Validatiemeldingen komen letterlijk bij de gebruiker
-// terecht, dus die moeten Nederlands zijn en niet zod's Engelse standaardteksten.
+// Sets zod's default messages to Dutch. Validation messages reach the user verbatim, so
+// they have to be Dutch and not zod's default English texts.
 import { z } from "zod";
 
 z.config(z.locales.nl());

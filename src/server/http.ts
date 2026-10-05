@@ -3,84 +3,93 @@ import { mkdir, readFile } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Een fout met een HTTP-status en een bericht dat de gebruiker mag zien. */
-export class ApiFout extends Error {
+/** An error with an HTTP status and a message the user may see. */
+export class ApiError extends Error {
   status: number;
-  constructor(status: number, bericht: string) {
-    super(bericht);
+  constructor(status: number, message: string) {
+    super(message);
     this.status = status;
   }
 }
 
 /**
- * Wat een route van de aanvraag mag weten. Bewust géén `IncomingMessage`/`ServerResponse`: een
- * route leest de body via `lees`/`leesJson` en geeft een antwoord terug in plaats van het zelf
- * weg te schrijven.
+ * What a route may know about the request. Deliberately NOT `IncomingMessage`/
+ * `ServerResponse`: a route reads the body via `read`/`readJson` and returns a response
+ * instead of writing it out itself.
  */
 export interface Ctx {
   params: Record<string, string>;
   url: URL;
-  /** Ruwe body; meer dan `maxBytes` (standaard 1 MB) geeft een 413. */
-  lees(maxBytes?: number): Promise<Buffer>;
-  leesJson<T>(): Promise<T>;
-  header(naam: string): string | undefined;
+  /** Raw body; more than `maxBytes` (default 1 MB) gives a 413. */
+  read(maxBytes?: number): Promise<Buffer>;
+  readJson<T>(): Promise<T>;
+  header(name: string): string | undefined;
 }
 
-/** Een antwoord dat geen JSON-object is (bestand, tekst) of een andere status dan 200 nodig heeft. */
-export interface Antwoord {
+/** A response that is not a JSON object (file, text) or needs a status other than 200. */
+export interface Reply {
   status?: number;
   contentType?: string;
   body: Buffer | string | unknown;
   headers?: Record<string, string>;
 }
 
-const ANTWOORD = Symbol.for("postwright.antwoord");
+const REPLY = Symbol.for("postwright.reply");
 
-/** Markeert een `Antwoord` zodat de server het onderscheidt van gewone JSON-data. */
-export function antwoord(a: Antwoord): Antwoord {
-  return Object.assign({}, a, { [ANTWOORD]: true }) as Antwoord;
+/** Marks a `Reply` so that the server can tell it apart from plain JSON data. */
+export function response(a: Reply): Reply {
+  return Object.assign({}, a, { [REPLY]: true }) as Reply;
 }
 
-function isAntwoord(x: unknown): x is Antwoord {
-  return typeof x === "object" && x !== null && (x as Record<symbol, unknown>)[ANTWOORD] === true;
+function isReply(x: unknown): x is Reply {
+  return typeof x === "object" && x !== null && (x as Record<symbol, unknown>)[REPLY] === true;
 }
 
-/** `ruweBody`: deze route ontvangt geen JSON, dus de content-type-eis (application/json) geldt niet. */
+/**
+ * `rawBody`: this route does not receive JSON, so the content-type requirement
+ * (application/json) does not apply.
+ */
 export interface Route {
-  methode: string;
-  pad: string;
-  patroon: RegExp;
+  method: string;
+  path: string;
+  pattern: RegExp;
   handler: (c: Ctx) => Promise<unknown> | unknown;
-  ruweBody?: boolean;
+  rawBody?: boolean;
 }
 
 export function route(
-  methode: string,
-  pad: string,
+  method: string,
+  path: string,
   handler: Route["handler"],
-  opties: { ruweBody?: boolean } = {},
+  options: { rawBody?: boolean } = {},
 ): Route {
-  const patroon = new RegExp("^" + pad.replace(/\./g, "\\.").replace(/:(\w+)/g, "(?<$1>[^/]+)") + "$");
-  return { methode, pad, patroon, handler, ruweBody: opties.ruweBody };
+  const pattern = new RegExp("^" + path.replace(/\./g, "\\.").replace(/:(\w+)/g, "(?<$1>[^/]+)") + "$");
+  return { method, path, pattern, handler, rawBody: options.rawBody };
 }
 
-export interface ServerOpties {
+export interface ServerOptions {
   dataDir: string;
-  poort?: number;
+  port?: number;
   webDir?: string;
   routes: Route[];
-  /** Een URL-voorvoegsel dat uit een andere map komt dan `webDir`; wordt eerst gecontroleerd. */
-  statisch?: { prefix: string; map: () => string }[];
+  /** A URL prefix that comes from a different folder than `webDir`; it is checked first. */
+  static?: { prefix: string; map: () => string }[];
 }
 
 const MAX_BODY = 1_000_000;
-/** Zoveel bytes boven de grens lezen we nog weg (zonder te bewaren) voordat de verbinding dichtgaat. */
-const AFVOER_BYTES = 8 * 1024 * 1024;
-const STANDAARD_WEBDIR = fileURLToPath(new URL("../web", import.meta.url));
+/**
+ * This many bytes above the limit are still read and discarded (without storing) before
+ * the connection is closed.
+ */
+const OUTPUT_BYTES = 8 * 1024 * 1024;
+const DEFAULT_WEBDIR = fileURLToPath(new URL("../web", import.meta.url));
 const CSP =
   "default-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self'; style-src 'self' 'unsafe-inline'; " +
   "frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'";
-/** Een SVG die rechtstreeks wordt geopend (en dus als pagina geldt) mag geen script draaien; als `<img>` of via `<use>` telt dit niet. */
+/**
+ * An SVG that is opened directly (and so counts as a page) must not run script; as an
+ * `<img>` or via `<use>` this does not apply.
+ */
 const SVG_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -95,7 +104,7 @@ const TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
 };
 
-function stuur(
+function send(
   res: ServerResponse,
   status: number,
   type: string,
@@ -111,172 +120,173 @@ function stuur(
   res.end(body);
 }
 
-function stuurJson(res: ServerResponse, status: number, data: unknown) {
-  stuur(res, status, "application/json; charset=utf-8", JSON.stringify(data ?? null), { "cache-control": "no-store" });
+function sendJson(res: ServerResponse, status: number, data: unknown) {
+  send(res, status, "application/json; charset=utf-8", JSON.stringify(data ?? null), { "cache-control": "no-store" });
 }
 
-function maakCtx(req: IncomingMessage, url: URL, params: Record<string, string>): Ctx {
-  const lees = (maxBytes = MAX_BODY) =>
-    new Promise<Buffer>((klaar, fout) => {
-      const blokken: Buffer[] = [];
-      let totaal = 0;
-      // Een aanvraag die in de kop al zegt te groot te zijn, wordt niet bewaard.
-      let afgewezen = Number(req.headers["content-length"]) > maxBytes;
-      if (afgewezen) fout(new ApiFout(413, "Verzoek te groot"));
-      req.on("data", (blok: Buffer) => {
-        totaal += blok.length;
-        if (!afgewezen && totaal <= maxBytes) return void blokken.push(blok);
-        if (!afgewezen) {
-          afgewezen = true;
-          blokken.length = 0;
-          fout(new ApiFout(413, "Verzoek te groot"));
+function createCtx(req: IncomingMessage, url: URL, params: Record<string, string>): Ctx {
+  const read = (maxBytes = MAX_BODY) =>
+    new Promise<Buffer>((resolve, error) => {
+      const blocks: Buffer[] = [];
+      let total = 0;
+      // A request that already declares in its header that it is too large is not stored.
+      let rejected = Number(req.headers["content-length"]) > maxBytes;
+      if (rejected) error(new ApiError(413, "Request too large"));
+      req.on("data", (block: Buffer) => {
+        total += block.length;
+        if (!rejected && total <= maxBytes) return void blocks.push(block);
+        if (!rejected) {
+          rejected = true;
+          blocks.length = 0;
+          error(new ApiError(413, "Request too large"));
         }
-        // Even doorlezen zonder te bewaren, zodat de 413 de client bereikt (die is nog aan het schrijven);
-        // wie daarna nog doorgaat, krijgt de verbinding dicht.
-        if (totaal > maxBytes + AFVOER_BYTES) req.destroy();
+        // Read on for a moment without storing, so that the 413 reaches the client (which is still
+        // writing); anyone who carries on after that has the connection closed on them.
+        if (total > maxBytes + OUTPUT_BYTES) req.destroy();
       });
-      req.on("end", () => klaar(Buffer.concat(blokken)));
-      req.on("error", fout);
+      req.on("end", () => resolve(Buffer.concat(blocks)));
+      req.on("error", error);
     });
   return {
     params,
     url,
-    lees,
-    async leesJson<T>() {
+    read,
+    async readJson<T>() {
       try {
-        return JSON.parse((await lees()).toString("utf8")) as T;
+        return JSON.parse((await read()).toString("utf8")) as T;
       } catch (e) {
-        if (e instanceof ApiFout) throw e;
-        throw new ApiFout(400, "Ongeldige JSON");
+        if (e instanceof ApiError) throw e;
+        throw new ApiError(400, "Invalid JSON");
       }
     },
-    header: (naam) => {
-      const h = req.headers[naam.toLowerCase()];
+    header: (name) => {
+      const h = req.headers[name.toLowerCase()];
       return Array.isArray(h) ? h.join(", ") : h;
     },
   };
 }
 
 async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: Route[]) {
-  let gekozen: Route | undefined;
+  let chosen: Route | undefined;
   let params: Record<string, string> = {};
   for (const r of routes) {
-    if (r.methode !== req.method) continue;
-    const m = r.patroon.exec(url.pathname);
+    if (r.method !== req.method) continue;
+    const m = r.pattern.exec(url.pathname);
     if (!m) continue;
     try {
       params = Object.fromEntries(Object.entries(m.groups ?? {}).map(([k, v]) => [k, decodeURIComponent(v)]));
     } catch {
-      return stuurJson(res, 400, { fout: "Ongeldig pad" });
+      return sendJson(res, 400, { error: "Invalid path" });
     }
-    gekozen = r;
+    chosen = r;
     break;
   }
-  if (!gekozen) return stuurJson(res, 404, { fout: "Niet gevonden" });
+  if (!chosen) return sendJson(res, 404, { error: "Not found" });
   try {
     if (
       (req.method === "POST" || req.method === "PUT") &&
-      !gekozen.ruweBody &&
+      !chosen.rawBody &&
       !/^application\/json\b/i.test(req.headers["content-type"] ?? "")
     ) {
-      throw new ApiFout(415, "Content-Type moet application/json zijn");
+      throw new ApiError(415, "Content-Type must be application/json");
     }
-    const uit = await gekozen.handler(maakCtx(req, url, params));
-    if (!isAntwoord(uit)) return stuurJson(res, 200, uit);
-    const status = uit.status ?? 200;
-    const { body } = uit;
+    const off = await chosen.handler(createCtx(req, url, params));
+    if (!isReply(off)) return sendJson(res, 200, off);
+    const status = off.status ?? 200;
+    const { body } = off;
     if (Buffer.isBuffer(body) || typeof body === "string")
-      return stuur(res, status, uit.contentType ?? "application/octet-stream", body, uit.headers);
-    return stuur(
+      return send(res, status, off.contentType ?? "application/octet-stream", body, off.headers);
+    return send(
       res,
       status,
-      uit.contentType ?? "application/json; charset=utf-8",
+      off.contentType ?? "application/json; charset=utf-8",
       JSON.stringify(body ?? null),
-      uit.headers,
+      off.headers,
     );
-  } catch (fout) {
-    if (fout instanceof ApiFout) return stuurJson(res, fout.status, { fout: fout.message });
-    // Het routepatroon, niet de ingevulde URL: die kan een id of querystring bevatten.
-    console.error(`${gekozen.methode} ${gekozen.pad}:`, fout);
-    return stuurJson(res, 500, { fout: "Interne fout" });
+  } catch (error) {
+    if (error instanceof ApiError) return sendJson(res, error.status, { error: error.message });
+    // The route pattern, not the filled-in URL: that can contain an id or query string.
+    console.error(`${chosen.method} ${chosen.path}:`, error);
+    return sendJson(res, 500, { error: "Internal error" });
   }
 }
 
-async function bestand(req: IncomingMessage, res: ServerResponse, naam: string, map: string, index = false) {
-  const nietGevonden = () => stuur(res, 404, "text/plain; charset=utf-8", "Niet gevonden");
-  if (req.method !== "GET" && req.method !== "HEAD") return nietGevonden();
+async function file(req: IncomingMessage, res: ServerResponse, name: string, map: string, index = false) {
+  const notFound = () => send(res, 404, "text/plain; charset=utf-8", "Not found");
+  if (req.method !== "GET" && req.method !== "HEAD") return notFound();
   try {
-    naam = decodeURIComponent(naam);
+    name = decodeURIComponent(name);
   } catch {
-    return nietGevonden();
+    return notFound();
   }
-  if (naam.includes("\0")) return nietGevonden();
-  const p = join(map, index && naam === "/" ? "index.html" : naam);
+  if (name.includes("\0")) return notFound();
+  const p = join(map, index && name === "/" ? "index.html" : name);
   const rel = relative(map, p);
-  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return nietGevonden();
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) return notFound();
   try {
-    stuur(res, 200, TYPES[extname(p).toLowerCase()] ?? "application/octet-stream", await readFile(p));
+    send(res, 200, TYPES[extname(p).toLowerCase()] ?? "application/octet-stream", await readFile(p));
   } catch {
-    nietGevonden();
+    notFound();
   }
 }
 
-function fouten(res: ServerResponse, fout: unknown) {
-  console.error(fout);
-  if (!res.headersSent) stuurJson(res, 500, { fout: "Interne fout" });
+function errors(res: ServerResponse, error: unknown) {
+  console.error(error);
+  if (!res.headersSent) sendJson(res, 500, { error: "Internal error" });
   else res.destroy();
 }
 
-export async function startServer(o: ServerOpties): Promise<{ url: string; sluit(): Promise<void> }> {
+export async function startServer(o: ServerOptions): Promise<{ url: string; close(): Promise<void> }> {
   await mkdir(o.dataDir, { recursive: true });
-  const webDir = o.webDir ?? STANDAARD_WEBDIR;
+  const webDir = o.webDir ?? DEFAULT_WEBDIR;
   const server = createServer((req, res) => {
-    // Geen enkele synchrone fout in de afhandeling mag het proces beëindigen.
+    // No synchronous error in the handling may end the process.
     try {
-      // Alleen verzoeken die vanaf de eigen pagina komen: dat houdt DNS-rebinding en
-      // cross-site verzoeken van een andere website buiten de deur.
+      // Only requests that come from the app's own page: this keeps DNS rebinding and
+      // cross-site requests from another website out.
       const { port } = server.address() as { port: number };
-      const toegestaan = [`127.0.0.1:${port}`, `localhost:${port}`];
+      const allowed = [`127.0.0.1:${port}`, `localhost:${port}`];
       const origin = req.headers.origin;
       if (
-        !toegestaan.includes(req.headers.host ?? "") ||
-        (origin !== undefined && !toegestaan.some((h) => origin === `http://${h}`))
+        !allowed.includes(req.headers.host ?? "") ||
+        (origin !== undefined && !allowed.some((h) => origin === `http://${h}`))
       ) {
-        return stuurJson(res, 403, { fout: "Verboden" });
+        return sendJson(res, 403, { error: "Forbidden" });
       }
-      // Alleen een pad: `//` en `//host/pad` zijn geen pad en worden niet stilletjes gelezen als URL met een andere host.
-      const doel = req.url ?? "/";
+      // Only a path: `//` and `//host/path` are not paths and are not silently read as a URL
+      // with a different host.
+      const goal = req.url ?? "/";
       let url: URL;
       try {
-        if (!doel.startsWith("/") || doel.startsWith("//")) throw new Error("geen pad");
-        url = new URL(doel, `http://127.0.0.1:${port}`);
+        if (!goal.startsWith("/") || goal.startsWith("//")) throw new Error("no path");
+        url = new URL(goal, `http://127.0.0.1:${port}`);
       } catch {
-        return stuurJson(res, 400, { fout: "Ongeldig verzoek" });
+        return sendJson(res, 400, { error: "Invalid request" });
       }
-      const eigen = o.statisch?.find((x) => url.pathname.startsWith(x.prefix));
-      const klaar = url.pathname.startsWith("/api/")
+      const custom = o.static?.find((x) => url.pathname.startsWith(x.prefix));
+      const resolve = url.pathname.startsWith("/api/")
         ? api(req, res, url, o.routes)
-        : eigen
-          ? bestand(req, res, url.pathname.slice(eigen.prefix.length), eigen.map())
-          : bestand(req, res, url.pathname, webDir, true);
-      klaar.catch((fout) => fouten(res, fout));
-    } catch (fout) {
-      fouten(res, fout);
+        : custom
+          ? file(req, res, url.pathname.slice(custom.prefix.length), custom.map())
+          : file(req, res, url.pathname, webDir, true);
+      resolve.catch((error) => errors(res, error));
+    } catch (error) {
+      errors(res, error);
     }
   });
-  await new Promise<void>((klaar, fout) => {
-    server.once("error", fout);
-    server.listen(o.poort ?? 0, "127.0.0.1", () => {
-      server.off("error", fout);
-      klaar();
+  await new Promise<void>((resolve, error) => {
+    server.once("error", error);
+    server.listen(o.port ?? 0, "127.0.0.1", () => {
+      server.off("error", error);
+      resolve();
     });
   });
   const { port } = server.address() as { port: number };
   return {
     url: `http://127.0.0.1:${port}`,
-    sluit: () =>
-      new Promise<void>((klaar) => {
-        server.close(() => klaar());
+    close: () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve());
         server.closeAllConnections();
       }),
   };

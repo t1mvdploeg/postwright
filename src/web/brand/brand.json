@@ -1,0 +1,51 @@
+{
+  "version": "postwright-1.0",
+  "name": "Postwright",
+  "url": "https://github.com/t1mvdploeg/postwright",
+  "font": { "family": "Inter", "files": ["fonts/inter-latin.woff2"] },
+  "css": {
+    "--ink": "#2B110B",
+    "--accent": "#D63E22",
+    "--accent-hover": "#B02D17",
+    "--accent-light": "#FF9B85",
+    "--accent-soft": "#FFF0EA",
+    "--accent-pale": "#FFD3C6",
+    "--background": "#FFF7F3",
+    "--white": "#FFFFFF",
+    "--muted": "#7A5548",
+    "--stroke": "#EBD8CF",
+    "--success": "#2E7D32",
+    "--warning": "#8A4D00",
+    "--soft-warning": "#FDF1DC",
+    "--error": "#B3261E"
+  },
+  "colors": [
+    { "name": "accent", "hex": "#D63E22", "usage": "Brand colour: logo, headline emphasis, buttons" },
+    { "name": "ink", "hex": "#2B110B", "usage": "Text and dark surfaces" },
+    { "name": "paper", "hex": "#FFF7F3", "usage": "Light background and text on ink or accent" },
+    { "name": "light accent", "hex": "#FF9B85", "usage": "Accent on ink" },
+    { "name": "soft accent", "hex": "#FFF0EA", "usage": "Selection and subtle surfaces" },
+    { "name": "pale accent", "hex": "#FFD3C6", "usage": "Circles, accent emphasis and soft text on ink" },
+    { "name": "deep accent", "hex": "#B02D17", "usage": "Action on hover" },
+    { "name": "muted", "hex": "#7A5548", "usage": "Secondary text on paper" },
+    { "name": "stroke", "hex": "#EBD8CF", "usage": "Borders and hairlines" },
+    { "name": "confirmed", "hex": "#2E7D32", "usage": "Status with text and icon" },
+    { "name": "warning", "hex": "#8A4D00", "usage": "Status with text and icon" },
+    { "name": "error", "hex": "#B3261E", "usage": "Status with text and icon" }
+  ],
+  "grounds": {
+    "light": { "background": "#FFF7F3", "text": "#2B110B" },
+    "ink": { "background": "#2B110B", "text": "#FFF7F3" },
+    "accent": { "background": "#D13C21", "text": "#FFF7F3" }
+  },
+  "logos": {
+    "defaultValue": "logo/default.svg",
+    "on-ink": "logo/on-ink.svg",
+    "on-accent": "logo/on-accent.svg",
+    "ink": "logo/ink.svg",
+    "white": "logo/white.svg",
+    "mark": "logo/mark.svg",
+    "mark-on-ink": "logo/mark-on-ink.svg",
+    "mark-on-accent": "logo/mark-on-accent.svg"
+  }
+}

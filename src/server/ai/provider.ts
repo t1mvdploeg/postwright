@@ -1,38 +1,39 @@
-// De AI van de studio: twee taken (schrijfhulp en ideeën) achter één kleine interface. Zonder
-// API-sleutel gebruikt de studio de voorbeeldgever (`voorbeeld.ts`), met een sleutel Claude (`anthropic.ts`).
-import type { MarketingOpdracht, MarketingVoorstel } from "../../model/marketing-schrijfhulp.js";
-import type { IdeeenOpdracht, IdeeenVoorstel } from "../../model/marketing-ideeen.js";
+// The studio's AI: two tasks (writing help and ideas) behind one small interface. Without
+// an API key the studio uses the sample provider (`sample.ts`), with a key Claude
+// (`anthropic.ts`).
+import type { WritingTask, WritingSuggestion } from "../writing-help.js";
+import type { IdeasPrompt, IdeasSuggestion } from "../ideas.js";
 
 export interface Usage {
   input: number;
   output: number;
-  cacheLezen: number;
-  cacheSchrijven: number;
+  cacheRead: number;
+  cacheWrite: number;
 }
 
-export interface AiResultaat<T> {
-  voorstel: T;
+export interface AiResult<T> {
+  suggestion: T;
   model: string;
   usage: Usage;
-  duurMs: number;
+  durationMs: number;
 }
 
 export interface AiProvider {
-  naam: "anthropic" | "voorbeeld";
-  /** Het model dat antwoordt; alleen bij `anthropic`. `aiStand` leest het hier. */
+  name: "anthropic" | "sample";
+  /** The model that answers; only for `anthropic`. `aiMode` reads it here. */
   model?: string;
-  marketingTekst(opdracht: MarketingOpdracht): Promise<AiResultaat<MarketingVoorstel>>;
-  marketingIdeeen(opdracht: IdeeenOpdracht): Promise<AiResultaat<IdeeenVoorstel>>;
+  writeText(prompt: WritingTask): Promise<AiResult<WritingSuggestion>>;
+  suggestIdeas(prompt: IdeasPrompt): Promise<AiResult<IdeasSuggestion>>;
 }
 
-/** Een mislukte aanroep. De tokens die al verbruikt zijn, gaan mee, zodat ze toch geboekt worden. */
-export class AiFout extends Error {
+/** A failed call. The tokens already spent come along, so they are still booked. */
+export class AiError extends Error {
   constructor(
-    bericht: string,
+    message: string,
     public usage?: Usage,
   ) {
-    super(bericht);
+    super(message);
   }
 }
 
-export const LEGE_USAGE: Usage = { input: 0, output: 0, cacheLezen: 0, cacheSchrijven: 0 };
+export const EMPTY_USAGE: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };

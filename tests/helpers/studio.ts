@@ -1,26 +1,26 @@
-// Een echte server met de studio-routes op een eigen, tijdelijke datamap. `sluit` stopt de server en
-// ruimt precies die map op.
+// A real server with the studio routes on its own, temporary data folder. `close` stops
+// the server and cleans up exactly that folder.
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { maakMarketingRoutes } from "../../src/server/api-marketing.js";
+import { createRoutes } from "../../src/server/routes.js";
 import { startServer } from "../../src/server/http.js";
-import { merkMap, merkRoutes } from "../../src/server/merk.js";
+import { brandFolder, brandRoutes } from "../../src/server/brand.js";
 import type { AiProvider } from "../../src/server/ai/provider.js";
 
-export async function startStudio(opties: { provider?: AiProvider } = {}) {
+export async function startStudio(options: { provider?: AiProvider } = {}) {
   const dataDir = mkdtempSync(join(tmpdir(), "pw-studio-"));
   const s = await startServer({
     dataDir,
-    poort: 0,
-    routes: [...merkRoutes({ dataDir }), ...maakMarketingRoutes({ dataDir, provider: opties.provider })],
-    statisch: [{ prefix: "/marketing/merk/", map: () => merkMap(dataDir) }],
+    port: 0,
+    routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir, provider: options.provider })],
+    static: [{ prefix: "/brand/", map: () => brandFolder(dataDir) }],
   });
   return {
     dataDir,
-    basis: s.url,
-    sluit: async () => {
-      await s.sluit();
+    base: s.url,
+    close: async () => {
+      await s.close();
       rmSync(dataDir, { recursive: true, force: true });
     },
   };

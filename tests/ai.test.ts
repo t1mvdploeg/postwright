@@ -1,329 +1,328 @@
-// De AI van de studio: de keuze tussen Claude en de voorbeeldgever, de kosten en het maandplafond, en
-// wat de routes ervan laten zien. Er gaat geen enkele aanroep naar het netwerk.
+// The studio's AI: the choice between Claude and the sample provider, the costs and the
+// monthly cap, and what the routes show of it. Not a single call goes to the network.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AnthropicProvider, STANDAARD_MODEL, type MaakClient } from "../src/server/ai/anthropic.js";
-import { aiStand, kiesProvider } from "../src/server/ai/kies.js";
-import { AiFout, LEGE_USAGE, type AiProvider } from "../src/server/ai/provider.js";
-import { boek, kostenUsd, maandtotaalUsd } from "../src/server/ai/verbruik.js";
-import { voorbeeldProvider } from "../src/server/ai/voorbeeld.js";
-import { MarketingVoorstelSchema, type MarketingOpdracht } from "../src/model/marketing-schrijfhulp.js";
-import { IdeeenVoorstelSchema, type IdeeenOpdracht } from "../src/model/marketing-ideeen.js";
-import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
-import { ongedekteGetallen } from "../src/web/marketing/getallen.js";
+import { AnthropicProvider, DEFAULT_MODEL, type ClientFactory } from "../src/server/ai/anthropic.js";
+import { aiMode, chooseProvider } from "../src/server/ai/choose.js";
+import { AiError, EMPTY_USAGE, type AiProvider } from "../src/server/ai/provider.js";
+import { book, costUsd, monthTotalUsd } from "../src/server/ai/usage.js";
+import { sampleProvider } from "../src/server/ai/sample.js";
+import { WritingSuggestionSchema, type WritingTask } from "../src/server/writing-help.js";
+import { IdeasSuggestionSchema, type IdeasPrompt } from "../src/server/ideas.js";
+import { DEFAULT_SETTINGS } from "../src/server/schema.js";
+import { uncoveredNumbers } from "../src/web/studio/numbers.js";
 import { startStudio } from "./helpers/studio.js";
 
-const MERK = { merknaam: "Testmerk", verbodenWoorden: ["gegarandeerd", "nr. 1"] };
-const FEIT = {
+const BRAND = { brandName: "Test brand", bannedWords: ["guaranteed", "nr. 1"] };
+const FACT = {
   id: "f-00000000-0000-4000-8000-000000000001",
-  tekst: "Orders over 12 units ship free.",
-  bron: "README.md",
+  text: "Orders over 12 units ship free.",
+  source: "README.md",
 };
-const opdracht = (taak: MarketingOpdracht["taak"], feiten = [FEIT]): MarketingOpdracht => ({
-  taak,
-  sjabloon: "Stelling",
-  kanaal: "linkedin",
-  toelichting: "",
-  huidig: { velden: {}, posttekst: "", altTekst: "" },
-  feiten,
-  merk: MERK,
-  velden: [
-    { id: "kop", label: "Kop", soort: "kop", max: 90, nadruk: true },
-    { id: "tekst", label: "Tekst", soort: "tekst", max: 160, nadruk: false },
+const prompt = (task: WritingTask["task"], facts = [FACT]): WritingTask => ({
+  task,
+  template: "Statement",
+  channel: "linkedin",
+  note: "",
+  current: { fields: {}, caption: "", altText: "" },
+  facts,
+  brand: BRAND,
+  fields: [
+    { id: "headline", label: "Headline", kind: "headline", max: 90, emphasis: true },
+    { id: "text", label: "Text", kind: "text", max: 160, emphasis: false },
   ],
 });
-const IDEEEN: IdeeenOpdracht = {
-  van: "2026-10-05",
-  tot: "2026-10-16",
-  aantal: 3,
-  kanaal: "linkedin",
-  toelichting: "",
-  sjablonen: [{ id: "stelling", naam: "Stelling", doel: "" }],
-  feiten: [{ id: FEIT.id, tekst: FEIT.tekst, soort: "product" }],
-  momenten: [{ sleutel: "dag", datum: "2026-10-08", titel: "Some day", zin: "Something happens." }],
-  bestaand: [],
-  campagne: null,
-  resultaten: [],
-  merk: MERK,
+const IDEAS: IdeasPrompt = {
+  from: "2026-10-05",
+  to: "2026-10-16",
+  count: 3,
+  channel: "linkedin",
+  note: "",
+  templates: [{ id: "statement", name: "Statement", goal: "" }],
+  facts: [{ id: FACT.id, text: FACT.text, kind: "product" }],
+  moments: [{ key: "day", date: "2026-10-08", title: "Some day", sentence: "Something happens." }],
+  existing: [],
+  campaign: null,
+  results: [],
+  brand: BRAND,
 };
 
-describe("kiesProvider en aiStand", () => {
-  it("kiest de voorbeeldgever zonder sleutel en Claude met een sleutel", () => {
-    expect(kiesProvider({}).naam).toBe("voorbeeld");
-    expect(kiesProvider({ ANTHROPIC_API_KEY: "  " }).naam).toBe("voorbeeld");
-    expect(kiesProvider({ ANTHROPIC_API_KEY: "x" }).naam).toBe("anthropic");
+describe("chooseProvider and aiMode", () => {
+  it("chooses the sample provider without a key and Claude with a key", () => {
+    expect(chooseProvider({}).name).toBe("sample");
+    expect(chooseProvider({ ANTHROPIC_API_KEY: "  " }).name).toBe("sample");
+    expect(chooseProvider({ ANTHROPIC_API_KEY: "x" }).name).toBe("anthropic");
   });
 
-  it("meldt de stand, en POSTWRIGHT_MODEL overschrijft het model", () => {
-    expect(aiStand(kiesProvider({}))).toEqual({ stand: "voorbeeld", model: null });
-    expect(aiStand(kiesProvider({ ANTHROPIC_API_KEY: "x" }))).toEqual({ stand: "live", model: STANDAARD_MODEL });
-    expect(aiStand(kiesProvider({ ANTHROPIC_API_KEY: "x", POSTWRIGHT_MODEL: "claude-haiku-4-5" }))).toEqual({
-      stand: "live",
+  it("reports the mode, and POSTWRIGHT_MODEL overrides the model", () => {
+    expect(aiMode(chooseProvider({}))).toEqual({ mode: "sample", model: null });
+    expect(aiMode(chooseProvider({ ANTHROPIC_API_KEY: "x" }))).toEqual({ mode: "live", model: DEFAULT_MODEL });
+    expect(aiMode(chooseProvider({ ANTHROPIC_API_KEY: "x", POSTWRIGHT_MODEL: "claude-haiku-4-5" }))).toEqual({
+      mode: "live",
       model: "claude-haiku-4-5",
     });
   });
 });
 
-describe("voorbeeldgever", () => {
-  it("geeft drie varianten die alleen tekst uit de feiten gebruiken, zonder kosten", async () => {
-    const r = await voorbeeldProvider.marketingTekst(opdracht("posttekst"));
-    expect(MarketingVoorstelSchema.safeParse(r.voorstel).success).toBe(true);
-    expect(r.voorstel.varianten).toHaveLength(3);
-    expect(r.usage).toEqual(LEGE_USAGE);
-    for (const v of r.voorstel.varianten) {
-      expect(v.posttekst).toMatch(/^Sample caption \d: Orders over 12 units ship free\.$/);
-      expect(ongedekteGetallen(v.posttekst, [FEIT])).toEqual([]);
-      expect(v.gebruikteFeiten).toEqual([FEIT.id]);
+describe("sample-provider", () => {
+  it("gives three variants that only use text from the facts, at no cost", async () => {
+    const r = await sampleProvider.writeText(prompt("caption"));
+    expect(WritingSuggestionSchema.safeParse(r.suggestion).success).toBe(true);
+    expect(r.suggestion.variants).toHaveLength(3);
+    expect(r.usage).toEqual(EMPTY_USAGE);
+    for (const v of r.suggestion.variants) {
+      expect(v.caption).toMatch(/^Sample caption \d: Orders over 12 units ship free\.$/);
+      expect(uncoveredNumbers(v.caption, [FACT])).toEqual([]);
+      expect(v.usedFacts).toEqual([FACT.id]);
     }
   });
 
-  it("zet in een kopveld met nadruk precies één frase tussen sterretjes, en vult de rest met het feit", async () => {
-    const r = await voorbeeldProvider.marketingTekst(opdracht("velden"));
-    for (const v of r.voorstel.varianten) {
-      expect(v.velden[0].tekst.match(/\*[^*]+\*/g)).toHaveLength(1);
-      expect(v.velden[1].tekst).toBe(FEIT.tekst);
+  it("puts exactly one phrase between asterisks in a headline field with emphasis, and fills the rest with the fact", async () => {
+    const r = await sampleProvider.writeText(prompt("fields"));
+    for (const v of r.suggestion.variants) {
+      expect(v.fields[0].text.match(/\*[^*]+\*/g)).toHaveLength(1);
+      expect(v.fields[1].text).toBe(FACT.text);
     }
-    const zonder = await voorbeeldProvider.marketingTekst(opdracht("velden", []));
-    expect(zonder.voorstel.varianten[0].velden[1].tekst).toBe("Sample text 1 for tekst.");
-    expect(zonder.voorstel.varianten[0].gebruikteFeiten).toEqual([]);
+    const without = await sampleProvider.writeText(prompt("fields", []));
+    expect(without.suggestion.variants[0].fields[1].text).toBe("Sample text 1 for text.");
+    expect(without.suggestion.variants[0].usedFacts).toEqual([]);
   });
 
-  it("geeft de gevraagde ideeën op werkdagen, met het eerste moment, en rekent niets", async () => {
-    const r = await voorbeeldProvider.marketingIdeeen(IDEEEN);
-    expect(IdeeenVoorstelSchema.safeParse(r.voorstel).success).toBe(true);
-    expect(r.voorstel.ideeen).toHaveLength(3);
-    expect(r.voorstel.ideeen[0]).toMatchObject({ titel: "Some day", moment: "dag", toelichting: "Something happens." });
-    expect(r.voorstel.ideeen[1].titel).toBe("Sample idea 2");
-    expect(r.usage).toEqual(LEGE_USAGE);
+  it("gives the requested ideas on workdays, with the first moment, and costs nothing", async () => {
+    const r = await sampleProvider.suggestIdeas(IDEAS);
+    expect(IdeasSuggestionSchema.safeParse(r.suggestion).success).toBe(true);
+    expect(r.suggestion.ideas).toHaveLength(3);
+    expect(r.suggestion.ideas[0]).toMatchObject({ title: "Some day", moment: "day", note: "Something happens." });
+    expect(r.suggestion.ideas[1].title).toBe("Sample idea 2");
+    expect(r.usage).toEqual(EMPTY_USAGE);
   });
 });
 
-describe("kosten en verbruik", () => {
-  it("rekent met de prijzen per miljoen tokens van het model", () => {
+describe("cost and usage", () => {
+  it("calculates with the model's prices per million tokens", () => {
     expect(
-      kostenUsd("claude-sonnet-5-5", { input: 1_000_000, output: 1_000_000, cacheLezen: 0, cacheSchrijven: 0 }),
+      costUsd("claude-sonnet-5-5", { input: 1_000_000, output: 1_000_000, cacheRead: 0, cacheWrite: 0 }),
     ).toBeCloseTo(12);
-    // Cache lezen 0,20; cache schrijven 1,25 keer de invoerprijs (2,50).
+    // Cache read 0.20; cache write 1.25 times the input price (2.50).
     expect(
-      kostenUsd("claude-sonnet-5-5", { input: 0, output: 0, cacheLezen: 1_000_000, cacheSchrijven: 1_000_000 }),
+      costUsd("claude-sonnet-5-5", { input: 0, output: 0, cacheRead: 1_000_000, cacheWrite: 1_000_000 }),
     ).toBeCloseTo(2.7);
-    expect(
-      kostenUsd("claude-haiku-4-5", { input: 1_000_000, output: 0, cacheLezen: 0, cacheSchrijven: 0 }),
-    ).toBeCloseTo(1);
-    expect(kostenUsd("voorbeeld", LEGE_USAGE)).toBe(0);
+    expect(costUsd("claude-haiku-4-5", { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 })).toBeCloseTo(1);
+    expect(costUsd("sample", EMPTY_USAGE)).toBe(0);
   });
 
-  it("rekent een onbekend model met de duurste prijs, zodat het plafond niet te laag telt", () => {
-    const u = { input: 1_000_000, output: 0, cacheLezen: 0, cacheSchrijven: 0 };
-    expect(kostenUsd("een-nieuw-model", u)).toBe(kostenUsd("claude-fable-5-1", u));
-    expect(kostenUsd("een-nieuw-model", u)).toBeGreaterThan(kostenUsd("claude-sonnet-5-5", u));
+  it("calculates an unknown model at the highest price, so the cap does not count too low", () => {
+    const u = { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 };
+    expect(costUsd("a-new-model", u)).toBe(costUsd("claude-fable-5-1", u));
+    expect(costUsd("a-new-model", u)).toBeGreaterThan(costUsd("claude-sonnet-5-5", u));
   });
 
-  describe("bestand", () => {
-    const mappen: string[] = [];
+  describe("file", () => {
+    const folders: string[] = [];
     afterEach(() => {
-      while (mappen.length) rmSync(mappen.pop()!, { recursive: true, force: true });
+      while (folders.length) rmSync(folders.pop()!, { recursive: true, force: true });
     });
-    const nieuw = () => {
+    const isNew = () => {
       const d = mkdtempSync(join(tmpdir(), "pw-ai-"));
-      mappen.push(d);
+      folders.push(d);
       return d;
     };
-    const regel = (tijdstip: string, usd: number, ok = true) => ({
-      tijdstip,
+    const line = (timestamp: string, usd: number, ok = true) => ({
+      timestamp,
       model: "m",
-      taak: "schrijfhulp:velden",
+      task: "writingHelp:fields",
       usd,
       ok,
     });
 
-    it("boekt naar ai-usage.jsonl en telt alleen de lopende maand", async () => {
-      const d = nieuw();
-      expect(await maandtotaalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBe(0);
-      await boek(d, regel("2026-09-30T23:59:59Z", 5));
-      await boek(d, regel("2026-10-01T00:00:00Z", 1.5));
-      await boek(d, regel("2026-10-04T10:00:00Z", 0.25, false));
-      await boek(d, regel("2026-11-01T00:00:00Z", 7));
+    it("writes to ai-usage.jsonl and counts only the current month", async () => {
+      const d = isNew();
+      expect(await monthTotalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBe(0);
+      await book(d, line("2026-09-30T23:59:59Z", 5));
+      await book(d, line("2026-10-01T00:00:00Z", 1.5));
+      await book(d, line("2026-10-04T10:00:00Z", 0.25, false));
+      await book(d, line("2026-11-01T00:00:00Z", 7));
       expect(readFileSync(join(d, "ai-usage.jsonl"), "utf8").trim().split("\n")).toHaveLength(4);
-      expect(await maandtotaalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBeCloseTo(1.75);
-      expect(await maandtotaalUsd(d, new Date("2026-09-01T00:00:00Z"))).toBeCloseTo(5);
+      expect(await monthTotalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBeCloseTo(1.75);
+      expect(await monthTotalUsd(d, new Date("2026-09-01T00:00:00Z"))).toBeCloseTo(5);
     });
 
-    const bestandPad = (d: string) => join(d, "ai-usage.jsonl");
-    const NU = new Date("2026-10-05T12:00:00Z");
+    const filePath = (d: string) => join(d, "ai-usage.jsonl");
+    const NOW = new Date("2026-10-05T12:00:00Z");
 
-    it("negeert alleen een laatste, onafgemaakte regel (een gecrasht proces)", async () => {
-      const d = nieuw();
-      await boek(d, regel("2026-10-01T00:00:00Z", 2));
-      appendFileSync(bestandPad(d), '{"tijdstip":"2026-10-0');
-      expect(await maandtotaalUsd(d, NU)).toBeCloseTo(2);
+    it("ignores only a last, unfinished line (a crashed process)", async () => {
+      const d = isNew();
+      await book(d, line("2026-10-01T00:00:00Z", 2));
+      appendFileSync(filePath(d), '{"timestamp":"2026-10-0');
+      expect(await monthTotalUsd(d, NOW)).toBeCloseTo(2);
     });
 
-    it("boek begint op een nieuwe regel als het bestand niet op een regeleinde eindigt", async () => {
-      const d = nieuw();
-      await boek(d, regel("2026-10-01T00:00:00Z", 2));
-      appendFileSync(bestandPad(d), '{"tijdstip":"2026-10-0');
-      await boek(d, regel("2026-10-02T00:00:00Z", 3));
-      const lijnen = readFileSync(bestandPad(d), "utf8").split("\n");
-      // De nieuwe boeking staat heel op een eigen regel, niet vastgeplakt aan de halve.
-      expect(JSON.parse(lijnen[2])).toMatchObject({ usd: 3 });
-      expect(lijnen[3]).toBe("");
+    it("record starts on a new line if the file does not end with a line break", async () => {
+      const d = isNew();
+      await book(d, line("2026-10-01T00:00:00Z", 2));
+      appendFileSync(filePath(d), '{"timestamp":"2026-10-0');
+      await book(d, line("2026-10-02T00:00:00Z", 3));
+      const rawLines = readFileSync(filePath(d), "utf8").split("\n");
+      // The new booking sits whole on a line of its own, not stuck onto the half one.
+      expect(JSON.parse(rawLines[2])).toMatchObject({ usd: 3 });
+      expect(rawLines[3]).toBe("");
     });
 
-    it("weigert (500) een onleesbare regel midden in het bestand, met bestand en regelnummer", async () => {
-      const d = nieuw();
-      await boek(d, regel("2026-10-01T00:00:00Z", 2));
-      appendFileSync(bestandPad(d), "{kapot\n");
-      await boek(d, regel("2026-10-02T00:00:00Z", 3));
-      await expect(maandtotaalUsd(d, NU)).rejects.toMatchObject({
+    it("refuses (500) an unreadable line in the middle of the file, with file and line number", async () => {
+      const d = isNew();
+      await book(d, line("2026-10-01T00:00:00Z", 2));
+      appendFileSync(filePath(d), "{broken\n");
+      await book(d, line("2026-10-02T00:00:00Z", 3));
+      await expect(monthTotalUsd(d, NOW)).rejects.toMatchObject({
         status: 500,
-        message: expect.stringMatching(/ai-usage\.jsonl.*regel 2\b/),
+        message: expect.stringMatching(/ai-usage\.jsonl.*line 2\b/),
       });
     });
 
     it.each([
-      ["usd als tekst", '{"tijdstip":"2026-10-01T00:00:00Z","usd":"99"}'],
-      ["usd ontbreekt", '{"tijdstip":"2026-10-01T00:00:00Z"}'],
-      ["usd is null", '{"tijdstip":"2026-10-01T00:00:00Z","usd":null}'],
-      ["geen tijdstip", '{"usd":1}'],
-      ["geen object", "[1]"],
-    ])("weigert (500) een regel met %s, ook als hij de laatste is", async (_naam, inhoud) => {
-      const d = nieuw();
-      writeFileSync(bestandPad(d), inhoud + "\n");
-      await expect(maandtotaalUsd(d, NU)).rejects.toMatchObject({
+      ["usd as text", '{"timestamp":"2026-10-01T00:00:00Z","usd":"99"}'],
+      ["usd missing", '{"timestamp":"2026-10-01T00:00:00Z"}'],
+      ["usd is null", '{"timestamp":"2026-10-01T00:00:00Z","usd":null}'],
+      ["no timestamp", '{"usd":1}'],
+      ["not an object", "[1]"],
+    ])("refuses (500) a line with %s, even if it is the last", async (_name, content) => {
+      const d = isNew();
+      writeFileSync(filePath(d), content + "\n");
+      await expect(monthTotalUsd(d, NOW)).rejects.toMatchObject({
         status: 500,
-        message: expect.stringMatching(/ai-usage\.jsonl.*regel 1\b/),
+        message: expect.stringMatching(/ai-usage\.jsonl.*line 1\b/),
       });
     });
   });
 });
 
-describe("AnthropicProvider (met een nepclient)", () => {
-  const antwoord = (o: Record<string, unknown>) => ({
+describe("AnthropicProvider (with a fake client)", () => {
+  const response = (o: Record<string, unknown>) => ({
     stop_reason: "end_turn",
-    content: [{ type: "text", text: JSON.stringify({ varianten: [] }) }],
+    content: [{ type: "text", text: JSON.stringify({ variants: [] }) }],
     usage: { input_tokens: 100, output_tokens: 40, cache_read_input_tokens: 10, cache_creation_input_tokens: null },
     ...o,
   });
-  const metClient = (create: (p: Record<string, any>) => unknown) => {
-    const gezien: Array<Record<string, any>> = [];
+  const withClient = (create: (p: Record<string, any>) => unknown) => {
+    const seen: Array<Record<string, any>> = [];
     const client = {
       create: async (p: Record<string, any>) => {
-        gezien.push(p);
+        seen.push(p);
         return create(p);
       },
-    } as unknown as MaakClient;
-    return { gezien, provider: new AnthropicProvider({ apiKey: "x", model: "claude-sonnet-5-5", client }) };
+    } as unknown as ClientFactory;
+    return { seen, provider: new AnthropicProvider({ apiKey: "x", model: "claude-sonnet-5-5", client }) };
   };
 
-  it("stuurt een gestructureerde aanvraag met de merknaam in de instructie en geeft usage terug", async () => {
-    const { gezien, provider } = metClient(() => antwoord({}));
-    const r = await provider.marketingTekst(opdracht("posttekst"));
+  it("sends a structured request with the brand name in the instruction and returns usage", async () => {
+    const { seen, provider } = withClient(() => response({}));
+    const r = await provider.writeText(prompt("caption"));
     expect(r).toMatchObject({
       model: "claude-sonnet-5-5",
-      voorstel: { varianten: [] },
-      usage: { input: 100, output: 40, cacheLezen: 10, cacheSchrijven: 0 },
+      suggestion: { variants: [] },
+      usage: { input: 100, output: 40, cacheRead: 10, cacheWrite: 0 },
     });
-    const p = gezien[0];
+    const p = seen[0];
     expect(p.model).toBe("claude-sonnet-5-5");
     expect(p.output_config.format.type).toBe("json_schema");
-    expect(p.system).toContain("Testmerk");
+    expect(p.system).toContain("Test brand");
     expect(p.system).toContain("Tone: plain and calm");
     expect(p.system).toContain("use only the facts provided");
-    // De opdracht bevat de feiten, maar niet het merk.
-    expect(p.messages[0].content).toContain(FEIT.tekst);
-    expect(p.messages[0].content).not.toContain("Testmerk");
+    // The task contains the facts, but not the brand.
+    expect(p.messages[0].content).toContain(FACT.text);
+    expect(p.messages[0].content).not.toContain("Test brand");
   });
 
-  it("gooit een AiFout met de verbruikte tokens bij een weigering, een afgebroken of een onleesbaar antwoord", async () => {
-    const gevallen: Array<[Record<string, unknown>, RegExp]> = [
+  it("throws an AiError with the tokens used on a refusal, a cut-off or an unreadable answer", async () => {
+    const cases: Array<[Record<string, unknown>, RegExp]> = [
       [{ stop_reason: "refusal" }, /declined/],
       [{ stop_reason: "max_tokens" }, /cut off/],
-      [{ content: [{ type: "text", text: "geen json" }] }, /valid JSON/],
-      [{ content: [{ type: "text", text: JSON.stringify({ varianten: [{ posttekst: 1 }] }) }] }, /schema/],
+      [{ content: [{ type: "text", text: "not json" }] }, /valid JSON/],
+      [{ content: [{ type: "text", text: JSON.stringify({ variants: [{ caption: 1 }] }) }] }, /schema/],
     ];
-    for (const [extra, melding] of gevallen) {
-      const { provider } = metClient(() => antwoord(extra));
-      const fout = await provider.marketingTekst(opdracht("posttekst")).catch((e) => e);
-      expect(fout).toBeInstanceOf(AiFout);
-      expect(fout.message).toMatch(melding);
-      expect(fout.usage).toMatchObject({ input: 100, output: 40 });
+    for (const [extra, notice] of cases) {
+      const { provider } = withClient(() => response(extra));
+      const error = await provider.writeText(prompt("caption")).catch((e) => e);
+      expect(error).toBeInstanceOf(AiError);
+      expect(error.message).toMatch(notice);
+      expect(error.usage).toMatchObject({ input: 100, output: 40 });
     }
   });
 
-  it("maakt van een fout van de API een AiFout zonder usage", async () => {
-    const { provider } = metClient(() => {
+  it("turns an API error into an AiError without usage", async () => {
+    const { provider } = withClient(() => {
       throw new Error("401 invalid x-api-key");
     });
-    const fout = await provider.marketingIdeeen(IDEEEN).catch((e) => e);
-    expect(fout).toBeInstanceOf(AiFout);
-    expect(fout.usage).toBeUndefined();
+    const error = await provider.suggestIdeas(IDEAS).catch((e) => e);
+    expect(error).toBeInstanceOf(AiError);
+    expect(error.usage).toBeUndefined();
   });
 });
 
 describe("routes", () => {
-  const studios: Array<{ sluit: () => Promise<void> }> = [];
+  const studios: Array<{ close: () => Promise<void> }> = [];
   afterEach(async () => {
-    while (studios.length) await studios.pop()!.sluit();
+    while (studios.length) await studios.pop()!.close();
   });
   async function start(provider?: AiProvider) {
     const s = await startStudio({ provider });
     studios.push(s);
-    const vraag = async (pad: string, body?: unknown, methode = body === undefined ? "GET" : "POST") => {
-      const r = await fetch(s.basis + pad, {
-        method: methode,
+    const ask = async (path: string, body?: unknown, method = body === undefined ? "GET" : "POST") => {
+      const r = await fetch(s.base + path, {
+        method: method,
         headers: body !== undefined ? { "content-type": "application/json" } : {},
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
-      const tekst = await r.text();
-      return { status: r.status, tekst, body: JSON.parse(tekst) as any };
+      const text = await r.text();
+      return { status: r.status, text, body: JSON.parse(text) as any };
     };
-    return { ...s, vraag };
+    return { ...s, ask };
   }
-  const verzoek = {
-    taak: "posttekst",
-    sjabloon: "Stelling",
-    kanaal: "linkedin",
-    toelichting: "",
-    velden: [],
-    feiten: [],
+  const request = {
+    task: "caption",
+    template: "Statement",
+    channel: "linkedin",
+    note: "",
+    fields: [],
+    facts: [],
   };
-  const live = (gedrag: (o: any) => Promise<any>): AiProvider => ({
-    naam: "anthropic",
+  const live = (behavior: (o: any) => Promise<any>): AiProvider => ({
+    name: "anthropic",
     model: "claude-sonnet-5-5",
-    marketingTekst: gedrag,
-    marketingIdeeen: gedrag,
+    writeText: behavior,
+    suggestIdeas: behavior,
   });
-  const regels = (dataDir: string) =>
+  const lines = (dataDir: string) =>
     readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")
       .trim()
       .split("\n")
       .map((l) => JSON.parse(l));
 
-  it("GET /api/ai geeft de stand zonder de sleutel", async () => {
-    const zonder = await start();
-    expect((await zonder.vraag("/api/ai")).body).toEqual({ stand: "voorbeeld", model: null });
-    const geheim = await start(kiesProvider({ ANTHROPIC_API_KEY: "sk-test-geheim" }));
-    const ai = await geheim.vraag("/api/ai");
-    expect(ai.body).toEqual({ stand: "live", model: STANDAARD_MODEL });
-    expect(ai.tekst).not.toContain("sk-test-geheim");
+  it("GET /api/ai gives the mode without the key", async () => {
+    const without = await start();
+    expect((await without.ask("/api/ai")).body).toEqual({ mode: "sample", model: null });
+    const secret = await start(chooseProvider({ ANTHROPIC_API_KEY: "sk-test-secret" }));
+    const ai = await secret.ask("/api/ai");
+    expect(ai.body).toEqual({ mode: "live", model: DEFAULT_MODEL });
+    expect(ai.text).not.toContain("sk-test-secret");
   });
 
-  it("een mislukte aanroep met een echte client lekt de sleutel nergens: niet in het antwoord, het verbruiksbestand of de log", async () => {
-    const SLEUTEL = "sk-ant-test-0123456789-geheim";
-    // De SDK krijgt de sleutel echt mee; het "netwerk" geeft een fout terug die de sleutel in zijn tekst heeft
-    // (de ergste soort: een client die de kop terugspeelt). Wat de studio doorgeeft, mag hem niet bevatten.
+  it("a failed call with a real client leaks the key nowhere: not in the response, the usage file or the log", async () => {
+    const KEY = "sk-ant-test-0123456789-secret";
+    // The SDK really does receive the key; the "network" returns an error that has the key in
+    // its text (the worst kind: a client that echoes the header back). What the studio passes
+    // on must not contain it.
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
-    const waarschuw = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const gezienKoppen: Array<Record<string, string>> = [];
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const seenHeadlines: Array<Record<string, string>> = [];
     try {
-      const origineel = globalThis.fetch;
+      const original = globalThis.fetch;
       globalThis.fetch = (async (input: any, init?: any) => {
-        const adres = String(input?.url ?? input);
-        if (!adres.includes("api.anthropic.com")) return origineel(input, init);
-        gezienKoppen.push(Object.fromEntries(new Headers(init?.headers ?? input?.headers).entries()));
+        const address = String(input?.url ?? input);
+        if (!address.includes("api.anthropic.com")) return original(input, init);
+        seenHeadlines.push(Object.fromEntries(new Headers(init?.headers ?? input?.headers).entries()));
         return new Response(
           JSON.stringify({ type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }),
           {
@@ -333,184 +332,169 @@ describe("routes", () => {
         );
       }) as typeof fetch;
       try {
-        // Na de omleiding gemaakt: de SDK onthoudt de `fetch` van het moment dat de client wordt gebouwd.
-        const provider = kiesProvider({ ANTHROPIC_API_KEY: SLEUTEL });
-        expect(provider.naam).toBe("anthropic");
-        const { vraag, dataDir } = await start(provider);
-        const r = await vraag("/api/schrijfhulp", verzoek);
+        // Created after the redirect: the SDK remembers the `fetch` from the moment the client is
+        // built.
+        const provider = chooseProvider({ ANTHROPIC_API_KEY: KEY });
+        expect(provider.name).toBe("anthropic");
+        const { ask, dataDir } = await start(provider);
+        const r = await ask("/api/writing-help", request);
         expect(r.status).toBe(502);
-        // De aanroep ging echt met de sleutel de deur uit (dus de test toetst iets) ...
-        expect(gezienKoppen.length).toBeGreaterThan(0);
-        expect(JSON.stringify(gezienKoppen)).toContain(SLEUTEL);
-        // ... en hij staat nergens waar de gebruiker of een logbestand hem ziet.
-        expect(r.tekst).not.toContain(SLEUTEL);
-        expect(readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")).not.toContain(SLEUTEL);
-        const uitvoer = JSON.stringify([...log.mock.calls, ...waarschuw.mock.calls], (_k, v) =>
-          v instanceof Error ? { naam: v.name, bericht: v.message, stack: v.stack } : v,
+        // The call really did leave with the key (so the test checks something) ...
+        expect(seenHeadlines.length).toBeGreaterThan(0);
+        expect(JSON.stringify(seenHeadlines)).toContain(KEY);
+        // ... and it appears nowhere the user or a log file can see it.
+        expect(r.text).not.toContain(KEY);
+        expect(readFileSync(join(dataDir, "ai-usage.jsonl"), "utf8")).not.toContain(KEY);
+        const output = JSON.stringify([...log.mock.calls, ...warn.mock.calls], (_k, v) =>
+          v instanceof Error ? { name: v.name, message: v.message, stack: v.stack } : v,
         );
-        expect(uitvoer).not.toContain(SLEUTEL);
+        expect(output).not.toContain(KEY);
       } finally {
-        globalThis.fetch = origineel;
+        globalThis.fetch = original;
       }
     } finally {
       log.mockRestore();
-      waarschuw.mockRestore();
+      warn.mockRestore();
     }
   });
 
-  it("een beschadigd verbruiksbestand weigert een live aanroep met een 500, zonder de provider aan te roepen", async () => {
-    const aanroepen: number[] = [];
-    const { vraag, dataDir } = await start(
+  it("a damaged usage file refuses a live call with a 500, without calling the provider", async () => {
+    const calls: number[] = [];
+    const { ask, dataDir } = await start(
       live(async () => {
-        aanroepen.push(1);
-        return { voorstel: { varianten: [] }, model: "claude-sonnet-5-5", usage: LEGE_USAGE, duurMs: 1 };
+        calls.push(1);
+        return { suggestion: { variants: [] }, model: "claude-sonnet-5-5", usage: EMPTY_USAGE, durationMs: 1 };
       }),
     );
     writeFileSync(
       join(dataDir, "ai-usage.jsonl"),
-      `{"tijdstip":"${new Date().toISOString()}","usd":"99"}\n{"tijdstip":"x"}{"tijdstip"\n`,
+      `{"timestamp":"${new Date().toISOString()}","usd":"99"}\n{"tijdstip":"x"}{"tijdstip"\n`,
     );
-    const r = await vraag("/api/schrijfhulp", verzoek);
+    const r = await ask("/api/writing-help", request);
     expect(r.status).toBe(500);
-    expect(r.body.fout).toContain("ai-usage.jsonl");
-    expect(aanroepen).toHaveLength(0);
+    expect(r.body.error).toContain("ai-usage.jsonl");
+    expect(calls).toHaveLength(0);
   });
 
-  it("de verboden woorden uit de instellingen gaan als verbod naar het model, in beide opdrachten", async () => {
-    const gezien: Array<{ taak: string; verboden: string[] }> = [];
+  it("the banned words from the settings go to the model as a prohibition, in both requests", async () => {
+    const seen: Array<{ task: string; banned: string[] }> = [];
     const spy = live(async (o: any) => {
-      gezien.push({ taak: o.van ? "ideeen" : "schrijfhulp", verboden: o.merk.verbodenWoorden });
+      seen.push({ task: o.from ? "ideas" : "writingHelp", banned: o.brand.bannedWords });
       return {
-        voorstel: o.van ? { ideeen: [] } : { varianten: [] },
+        suggestion: o.from ? { ideas: [] } : { variants: [] },
         model: "claude-sonnet-5-5",
-        usage: LEGE_USAGE,
-        duurMs: 1,
+        usage: EMPTY_USAGE,
+        durationMs: 1,
       };
     });
-    const { vraag } = await start(spy);
-    await vraag(
-      "/api/instellingen",
-      { ...STANDAARD_MARKETING_INSTELLINGEN, verbodenWoorden: ["wonderbaarlijk", "nr. 1"] },
-      "PUT",
-    );
-    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    const { ask } = await start(spy);
+    await ask("/api/settings", { ...DEFAULT_SETTINGS, bannedWords: ["wonderbaarlijk", "nr. 1"] }, "PUT");
+    expect((await ask("/api/writing-help", request)).status).toBe(200);
     expect(
-      (await vraag("/api/ideeen/voorstellen", { van: "2099-01-01", tot: "2099-01-05", aantal: 1, kanaal: "linkedin" }))
-        .status,
+      (await ask("/api/ideas/suggest", { from: "2099-01-01", to: "2099-01-05", count: 1, channel: "linkedin" })).status,
     ).toBe(200);
-    expect(gezien).toEqual([
-      { taak: "schrijfhulp", verboden: ["wonderbaarlijk", "nr. 1"] },
-      { taak: "ideeen", verboden: ["wonderbaarlijk", "nr. 1"] },
+    expect(seen).toEqual([
+      { task: "writingHelp", banned: ["wonderbaarlijk", "nr. 1"] },
+      { task: "ideas", banned: ["wonderbaarlijk", "nr. 1"] },
     ]);
   });
 
-  it("de voorbeeldgever antwoordt met voorbeeld: true, zonder plafond, en boekt $ 0", async () => {
-    const { vraag, dataDir } = await start();
-    await vraag(
-      "/api/instellingen",
-      { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan: true, plafondUsdPerMaand: 0 } },
-      "PUT",
-    );
-    const r = await vraag("/api/schrijfhulp", verzoek);
+  it("the sample provider answers with sample: true, without a cap, and records $ 0", async () => {
+    const { ask, dataDir } = await start();
+    await ask("/api/settings", { ...DEFAULT_SETTINGS, writingHelp: { enabled: true, capUsdPerMonth: 0 } }, "PUT");
+    const r = await ask("/api/writing-help", request);
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ voorbeeld: true, model: "voorbeeld" });
-    expect(r.body.varianten).toHaveLength(3);
-    expect(regels(dataDir)).toMatchObject([{ taak: "schrijfhulp:posttekst", usd: 0, ok: true }]);
+    expect(r.body).toMatchObject({ sample: true, model: "sample" });
+    expect(r.body.variants).toHaveLength(3);
+    expect(lines(dataDir)).toMatchObject([{ task: "writingHelp:caption", usd: 0, ok: true }]);
   });
 
-  it("een live-provider die een AiFout gooit geeft 502 zonder voorbeeld, en de aanroep is geboekt als mislukt", async () => {
-    const { vraag, dataDir } = await start(
+  it("a live provider that throws an AiError gives 502 without sample, and the call is recorded as failed", async () => {
+    const { ask, dataDir } = await start(
       live(async () => {
-        throw new AiFout("401 invalid x-api-key");
+        throw new AiError("401 invalid x-api-key");
       }),
     );
-    const r = await vraag("/api/schrijfhulp", verzoek);
+    const r = await ask("/api/writing-help", request);
     expect(r.status).toBe(502);
-    expect(r.body.fout).toContain("401 invalid x-api-key");
-    expect(r.body).not.toHaveProperty("voorbeeld");
-    expect(regels(dataDir)).toMatchObject([
-      { taak: "schrijfhulp:posttekst", usd: 0, ok: false, model: "claude-sonnet-5-5" },
+    expect(r.body.error).toContain("401 invalid x-api-key");
+    expect(r.body).not.toHaveProperty("sample");
+    expect(lines(dataDir)).toMatchObject([
+      { task: "writingHelp:caption", usd: 0, ok: false, model: "claude-sonnet-5-5" },
     ]);
   });
 
-  it("boekt bij een mislukking de tokens die al verbruikt waren", async () => {
-    const usage = { input: 1_000_000, output: 0, cacheLezen: 0, cacheSchrijven: 0 };
-    const { vraag, dataDir } = await start(
+  it("records the tokens already used on a failure", async () => {
+    const usage = { input: 1_000_000, output: 0, cacheRead: 0, cacheWrite: 0 };
+    const { ask, dataDir } = await start(
       live(async () => {
-        throw new AiFout("cut off", usage);
+        throw new AiError("cut off", usage);
       }),
     );
-    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(502);
-    expect(regels(dataDir)[0]).toMatchObject({ ok: false, usd: 2 });
+    expect((await ask("/api/writing-help", request)).status).toBe(502);
+    expect(lines(dataDir)[0]).toMatchObject({ ok: false, usd: 2 });
   });
 
-  it("het merk van de gebruiker (data/brand/merk.json) geeft de merknaam aan de schrijfhulp en wordt zo geserveerd", async () => {
-    const gezien: string[] = [];
-    const spy = live(async (o: MarketingOpdracht) => {
-      gezien.push(o.merk.merknaam);
-      return { voorstel: { varianten: [] }, model: "claude-sonnet-5-5", usage: LEGE_USAGE, duurMs: 1 };
+  it("the user's brand (data/brand/brand.json) gives the brand name to the writing help and is served that way", async () => {
+    const seen: string[] = [];
+    const spy = live(async (o: WritingTask) => {
+      seen.push(o.brand.brandName);
+      return { suggestion: { variants: [] }, model: "claude-sonnet-5-5", usage: EMPTY_USAGE, durationMs: 1 };
     });
-    const { vraag, dataDir, basis } = await start(spy);
-    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
-    expect(gezien).toEqual(["Postwright"]); // het ingebouwde merk
-    const ingebouwd = JSON.parse(readFileSync(new URL("../src/web/marketing/merk/merk.json", import.meta.url), "utf8"));
-    const eigen = JSON.stringify({ ...ingebouwd, naam: "Eigenmerk", versie: "eigen-9" });
+    const { ask, dataDir, base } = await start(spy);
+    expect((await ask("/api/writing-help", request)).status).toBe(200);
+    expect(seen).toEqual(["Postwright"]); // the built-in brand
+    const builtIn = JSON.parse(readFileSync(new URL("../src/web/brand/brand.json", import.meta.url), "utf8"));
+    const custom = JSON.stringify({ ...builtIn, name: "Own brand", version: "custom-9" });
     mkdirSync(join(dataDir, "brand"), { recursive: true });
-    writeFileSync(join(dataDir, "brand", "merk.json"), eigen);
-    expect((await vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
-    expect(gezien).toEqual(["Postwright", "Eigenmerk"]);
-    const geserveerd = await fetch(`${basis}/marketing/merk/merk.json`);
-    expect(geserveerd.status).toBe(200);
-    expect(await geserveerd.text()).toBe(eigen);
+    writeFileSync(join(dataDir, "brand", "brand.json"), custom);
+    expect((await ask("/api/writing-help", request)).status).toBe(200);
+    expect(seen).toEqual(["Postwright", "Own brand"]);
+    const served = await fetch(`${base}/brand/brand.json`);
+    expect(served.status).toBe(200);
+    expect(await served.text()).toBe(custom);
   });
 
   it.each([
-    ["een fout type", '{"schrijfhulp":{"aan":"nee"}}'],
-    ["geen JSON", "{dit is geen json"],
-  ])(
-    "weigert een AI-aanroep bij onleesbare instellingen (%s) zonder de provider aan te roepen",
-    async (_naam, inhoud) => {
-      const spy = vi.fn(async () => {
-        throw new Error("mag niet worden aangeroepen");
-      });
-      const { vraag, dataDir } = await start(live(spy));
-      mkdirSync(join(dataDir, "marketing"), { recursive: true });
-      writeFileSync(join(dataDir, "marketing", "instellingen.json"), inhoud);
-      for (const [pad, body] of [
-        ["/api/schrijfhulp", verzoek],
-        ["/api/ideeen/voorstellen", { van: "2099-01-01", tot: "2099-01-05", aantal: 1, kanaal: "linkedin" }],
-      ] as const) {
-        const r = await vraag(pad, body);
-        expect(r.status).toBe(500);
-        expect(r.body.fout).toContain("marketing/instellingen.json");
-      }
-      expect(spy).not.toHaveBeenCalled();
-      expect(existsSync(join(dataDir, "ai-usage.jsonl"))).toBe(false);
-    },
-  );
+    ["a wrong type", '{"writingHelp":{"enabled":"no"}}'],
+    ["not JSON", "{this is not json"],
+  ])("refuses an AI call on unreadable settings (%s) without calling the provider", async (_name, content) => {
+    const spy = vi.fn(async () => {
+      throw new Error("must not be called");
+    });
+    const { ask, dataDir } = await start(live(spy));
+    mkdirSync(join(dataDir, "marketing"), { recursive: true });
+    writeFileSync(join(dataDir, "marketing", "settings.json"), content);
+    for (const [path, body] of [
+      ["/api/writing-help", request],
+      ["/api/ideas/suggest", { from: "2099-01-01", to: "2099-01-05", count: 1, channel: "linkedin" }],
+    ] as const) {
+      const r = await ask(path, body);
+      expect(r.status).toBe(500);
+      expect(r.body.error).toContain("marketing/settings.json");
+    }
+    expect(spy).not.toHaveBeenCalled();
+    expect(existsSync(join(dataDir, "ai-usage.jsonl"))).toBe(false);
+  });
 
-  it("stopt een live-provider bij het maandplafond; de voorbeeldgever blijft werken", async () => {
-    const aanroepen: number[] = [];
-    const gedrag = async () => {
-      aanroepen.push(1);
-      return { voorstel: { varianten: [] }, model: "claude-sonnet-5-5", usage: LEGE_USAGE, duurMs: 1 };
+  it("stops a live provider at the monthly cap; the sample provider keeps working", async () => {
+    const calls: number[] = [];
+    const behavior = async () => {
+      calls.push(1);
+      return { suggestion: { variants: [] }, model: "claude-sonnet-5-5", usage: EMPTY_USAGE, durationMs: 1 };
     };
-    const l = await start(live(gedrag));
-    await boek(l.dataDir, { tijdstip: new Date().toISOString(), model: "m", taak: "x", usd: 10, ok: true });
-    const geblokkeerd = await l.vraag("/api/schrijfhulp", verzoek);
-    expect(geblokkeerd.status).toBe(429);
-    expect(geblokkeerd.body.fout).toMatch(/maandplafond/);
-    expect(aanroepen).toHaveLength(0);
-    // Een iets hoger plafond laat hem weer door.
-    await l.vraag(
-      "/api/instellingen",
-      { ...STANDAARD_MARKETING_INSTELLINGEN, schrijfhulp: { aan: true, plafondUsdPerMaand: 10.01 } },
-      "PUT",
-    );
-    expect((await l.vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    const l = await start(live(behavior));
+    await book(l.dataDir, { timestamp: new Date().toISOString(), model: "m", task: "x", usd: 10, ok: true });
+    const blocked = await l.ask("/api/writing-help", request);
+    expect(blocked.status).toBe(429);
+    expect(blocked.body.error).toMatch(/monthly cap/);
+    expect(calls).toHaveLength(0);
+    // A slightly higher cap lets it through again.
+    await l.ask("/api/settings", { ...DEFAULT_SETTINGS, writingHelp: { enabled: true, capUsdPerMonth: 10.01 } }, "PUT");
+    expect((await l.ask("/api/writing-help", request)).status).toBe(200);
 
     const v = await start();
-    await boek(v.dataDir, { tijdstip: new Date().toISOString(), model: "m", taak: "x", usd: 99, ok: true });
-    expect((await v.vraag("/api/schrijfhulp", verzoek)).status).toBe(200);
+    await book(v.dataDir, { timestamp: new Date().toISOString(), model: "m", task: "x", usd: 99, ok: true });
+    expect((await v.ask("/api/writing-help", request)).status).toBe(200);
   });
 });

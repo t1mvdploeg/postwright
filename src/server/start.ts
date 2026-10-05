@@ -1,11 +1,11 @@
-import { maakMarketingRoutes } from "./api-marketing.js";
+import { createRoutes } from "./routes.js";
 import { startServer } from "./http.js";
-import { merkMap, merkRoutes } from "./merk.js";
+import { brandFolder, brandRoutes } from "./brand.js";
 
-const poortTekst = process.env.PORT ?? "4173";
-const poort = Number(poortTekst);
-if (!/^\d+$/.test(poortTekst) || poort > 65535) {
-  console.error(`PORT must be a whole number between 0 and 65535, not "${poortTekst}".`);
+const portText = process.env.PORT ?? "4173";
+const port = Number(portText);
+if (!/^\d+$/.test(portText) || port > 65535) {
+  console.error(`PORT must be a whole number between 0 and 65535, not "${portText}".`);
   process.exit(1);
 }
 const dataDir = process.env.POSTWRIGHT_DATA_DIR ?? "./data";
@@ -13,16 +13,16 @@ const dataDir = process.env.POSTWRIGHT_DATA_DIR ?? "./data";
 try {
   const { url } = await startServer({
     dataDir,
-    poort,
-    routes: [...merkRoutes({ dataDir }), ...maakMarketingRoutes({ dataDir })],
-    // De bestanden van het merk (logo's, lettertypen) komen uit `data/brand` als daar een merk staat.
-    statisch: [{ prefix: "/marketing/merk/", map: () => merkMap(dataDir) }],
+    port,
+    routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir })],
+    // The brand's files (logos, fonts) come from `data/brand` if a brand is there.
+    static: [{ prefix: "/brand/", map: () => brandFolder(dataDir) }],
   });
   console.log(`Postwright is running at ${url}`);
-} catch (fout) {
-  if ((fout as NodeJS.ErrnoException).code === "EADDRINUSE") {
-    console.error(`Port ${poort} is in use. Start with PORT=<other> npm start.`);
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+    console.error(`Port ${port} is in use. Start with PORT=<other> npm start.`);
     process.exit(1);
   }
-  throw fout;
+  throw error;
 }

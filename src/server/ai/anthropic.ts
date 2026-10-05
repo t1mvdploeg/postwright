@@ -1,85 +1,83 @@
-// De Claude-aanroep voor de twee marketingtaken: één bericht met gestructureerde uitvoer (zod-schema),
-// daarna zelf nagelezen, zodat een mislukking toch met haar tokens terugkomt (`AiFout.usage`).
+// The Claude call for the two marketing tasks: one message with structured output (zod
+// schema), then validated separately afterwards, so that a failure still comes back with
+// its tokens (`AiError.usage`).
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import { MarketingVoorstelSchema, marketingInstructie, marketingOpdracht } from "../../model/marketing-schrijfhulp.js";
-import { IdeeenVoorstelSchema, ideeenInstructie, ideeenOpdracht } from "../../model/marketing-ideeen.js";
-import { AiFout, type AiProvider, type AiResultaat, type Usage } from "./provider.js";
+import { WritingSuggestionSchema, writingInstruction, writingPrompt } from "../writing-help.js";
+import { IdeasSuggestionSchema, ideasInstruction, ideasPrompt } from "../ideas.js";
+import { AiError, type AiProvider, type AiResult, type Usage } from "./provider.js";
 
-/** Het huidige Sonnet, uit de modellentabel van Anthropic (per 2026-09-25). */
-export const STANDAARD_MODEL = "claude-sonnet-5-5";
+/** The current Sonnet, from Anthropic's model table (as of 2026-09-25). */
+export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
-// Ruim: bij adaptief denken tellen de denktokens mee in max_tokens, en een afgebroken antwoord is onbruikbaar.
+// Generous: with adaptive thinking the thinking tokens count towards max_tokens, and a
+// truncated response is unusable.
 const MAX_TOKENS = 16_000;
 const TIMEOUT_MS = 240_000;
 
-/** Het deel van `client.messages` dat we gebruiken; zo kan een test een nepclient meegeven. */
-export type MaakClient = Pick<Anthropic["messages"], "create">;
+/** The part of `client.messages` that is used here; this lets a test pass in a fake client. */
+export type ClientFactory = Pick<Anthropic["messages"], "create">;
 
 export class AnthropicProvider implements AiProvider {
-  readonly naam = "anthropic" as const;
+  readonly name = "anthropic" as const;
   readonly model: string;
-  private readonly client: MaakClient;
+  private readonly client: ClientFactory;
 
-  constructor(o: { apiKey: string; model: string; client?: MaakClient }) {
+  constructor(o: { apiKey: string; model: string; client?: ClientFactory }) {
     this.model = o.model;
     this.client = o.client ?? new Anthropic({ apiKey: o.apiKey, timeout: TIMEOUT_MS, maxRetries: 1 }).messages;
   }
 
-  private async vraag<S extends z.ZodType>(
-    system: string,
-    opdracht: string,
-    schema: S,
-  ): Promise<AiResultaat<z.infer<S>>> {
+  private async ask<S extends z.ZodType>(system: string, prompt: string, schema: S): Promise<AiResult<z.infer<S>>> {
     const begin = Date.now();
-    let antwoord: Anthropic.Message;
+    let response: Anthropic.Message;
     try {
-      antwoord = await this.client.create({
+      response = await this.client.create({
         model: this.model,
         max_tokens: MAX_TOKENS,
         system,
         output_config: { format: zodOutputFormat(schema), effort: "medium" },
-        messages: [{ role: "user", content: opdracht }],
+        messages: [{ role: "user", content: prompt }],
       });
-    } catch (fout) {
-      throw new AiFout(fout instanceof Error ? fout.message : String(fout));
+    } catch (error) {
+      throw new AiError(error instanceof Error ? error.message : String(error));
     }
-    // Eerst de usage vastleggen: alles hierna kan gooien, maar de tokens zijn dan al verbruikt.
+    // Record the usage first: everything after this can throw, but the tokens are already spent.
     const usage: Usage = {
-      input: antwoord.usage.input_tokens,
-      output: antwoord.usage.output_tokens,
-      cacheLezen: antwoord.usage.cache_read_input_tokens ?? 0,
-      cacheSchrijven: antwoord.usage.cache_creation_input_tokens ?? 0,
+      input: response.usage.input_tokens,
+      output: response.usage.output_tokens,
+      cacheRead: response.usage.cache_read_input_tokens ?? 0,
+      cacheWrite: response.usage.cache_creation_input_tokens ?? 0,
     };
-    if (antwoord.stop_reason === "refusal") throw new AiFout("The model declined the request", usage);
-    if (antwoord.stop_reason === "max_tokens") throw new AiFout("The answer was cut off (too long); try again", usage);
-    const tekst = antwoord.content
+    if (response.stop_reason === "refusal") throw new AiError("The model declined the request", usage);
+    if (response.stop_reason === "max_tokens") throw new AiError("The answer was cut off (too long); try again", usage);
+    const text = response.content
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("")
       .trim();
-    let ruw: unknown;
+    let raw: unknown;
     try {
-      ruw = JSON.parse(tekst);
+      raw = JSON.parse(text);
     } catch {
-      throw new AiFout("The model did not return valid JSON; try again", usage);
+      throw new AiError("The model did not return valid JSON; try again", usage);
     }
-    const r = schema.safeParse(ruw);
+    const r = schema.safeParse(raw);
     if (!r.success) {
-      const eerste = r.error.issues[0];
-      throw new AiFout(
-        `The answer does not fit the schema (${eerste?.path.join(".") || "unknown field"}: ${eerste?.message})`,
+      const first = r.error.issues[0];
+      throw new AiError(
+        `The answer does not fit the schema (${first?.path.join(".") || "unknown field"}: ${first?.message})`,
         usage,
       );
     }
-    return { voorstel: r.data, model: this.model, usage, duurMs: Date.now() - begin };
+    return { suggestion: r.data, model: this.model, usage, durationMs: Date.now() - begin };
   }
 
-  marketingTekst(o: Parameters<AiProvider["marketingTekst"]>[0]) {
-    return this.vraag(marketingInstructie(o.merk), marketingOpdracht(o), MarketingVoorstelSchema);
+  writeText(o: Parameters<AiProvider["writeText"]>[0]) {
+    return this.ask(writingInstruction(o.brand), writingPrompt(o), WritingSuggestionSchema);
   }
 
-  marketingIdeeen(o: Parameters<AiProvider["marketingIdeeen"]>[0]) {
-    return this.vraag(ideeenInstructie(o.merk), ideeenOpdracht(o), IdeeenVoorstelSchema);
+  suggestIdeas(o: Parameters<AiProvider["suggestIdeas"]>[0]) {
+    return this.ask(ideasInstruction(o.brand), ideasPrompt(o), IdeasSuggestionSchema);
   }
 }

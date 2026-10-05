@@ -8,43 +8,43 @@
     <link rel="stylesheet" href="/studio.css" />
   </head>
   <body>
-    <a class="skip-link" href="#studio-hoofd">Ga naar inhoud</a>
+    <a class="skip-link" href="#studio-main">Ga naar inhoud</a>
     <div id="studio-app" class="app-shell studio">
-      <aside id="studio-zijbalk" class="app-zijbalk">
-        <div class="app-merk">
-          <div class="app-merk-tekst">
-            <a class="logo" href="/#overzicht">
+      <aside id="studio-sidebar" class="app-sidebar">
+        <div class="app-brand">
+          <div class="app-brand-text">
+            <a class="logo" href="/#overview">
               <img src="/favicon.svg" alt="" />
               <span>Postwright</span>
             </a>
             <small>Marketingstudio</small>
           </div>
         </div>
-        <nav id="studio-nav" class="app-navigatie" aria-label="Postwright"></nav>
+        <nav id="studio-nav" class="app-navigation" aria-label="Postwright"></nav>
       </aside>
       <div id="studio-overlay" class="app-overlay" hidden></div>
-      <div class="app-werkvlak">
-        <header class="app-werkbalk">
+      <div class="app-workspace">
+        <header class="app-toolbar">
           <button
             id="studio-menu"
-            class="secundair app-menu"
+            class="secondary app-menu"
             type="button"
             aria-label="Menu openen"
             aria-expanded="false"
           >
             Menu
           </button>
-          <div class="app-paginakop">
+          <div class="app-page-headline">
             <span>Marketingstudio</span>
-            <h1 id="studio-titel">Overzicht</h1>
+            <h1 id="studio-title">Overzicht</h1>
           </div>
-          <a id="studio-nieuw" class="knop" href="#maken">Nieuwe post</a>
+          <a id="studio-new" class="button" href="#editor">Nieuwe post</a>
         </header>
-        <main id="studio-hoofd" class="app-inhoud" tabindex="-1">
-          <div id="studio-inhoud"></div>
+        <main id="studio-main" class="app-content" tabindex="-1">
+          <div id="studio-content"></div>
         </main>
       </div>
     </div>
-    <script type="module" src="/marketing.js"></script>
+    <script type="module" src="/studio.js"></script>
   </body>
 </html>
