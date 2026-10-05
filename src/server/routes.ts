@@ -122,11 +122,24 @@ function summary(p: Post): PostSummary {
  * has to come with it.
  */
 function contentDiffers(
-  a: Pick<Post, "template" | "content" | "slides" | "formats" | "caption" | "altText" | "link" | "facts">,
+  a: Pick<
+    Post,
+    "template" | "content" | "slides" | "moreSlides" | "formats" | "caption" | "altText" | "link" | "facts"
+  >,
   b: typeof a,
 ): boolean {
   const key = (x: typeof a) =>
-    JSON.stringify([x.template, x.content, x.slides, x.formats, x.caption, x.altText, x.link, x.facts]);
+    JSON.stringify([
+      x.template,
+      x.content,
+      x.slides ?? [],
+      x.moreSlides ?? [],
+      x.formats,
+      x.caption,
+      x.altText,
+      x.link,
+      x.facts,
+    ]);
   return key(a) !== key(b);
 }
 
@@ -314,6 +327,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         formats: [tpl.formats[0]],
         content: sample.content,
         slides: [],
+        moreSlides: [],
         caption: { linkedin: sample.caption },
         altText: sample.altText,
         link: "",

@@ -111,6 +111,14 @@ const SlideSchema = z
   })
   .strict();
 
+/** An extra slide of an image post: slides 2..n, each with its own template. */
+const MoreSlideSchema = z
+  .object({
+    template: z.string().regex(TEMPLATE_ID, "invalid template"),
+    content: Content,
+  })
+  .strict();
+
 /**
  * The outcome of the brand check over exactly the content that comes along in the same
  * request. The server does not re-check it (one administrator; the overflow measurement is
@@ -140,6 +148,7 @@ export const PostInputSchema = z
       .refine((f) => new Set(f).size === f.length, "a format appears twice"),
     content: Content,
     slides: z.array(SlideSchema).max(20).default([]),
+    moreSlides: z.array(MoreSlideSchema).max(19).default([]),
     caption: z.partialRecord(z.enum(CHANNELS), z.string().max(5000)).default({}),
     altText: z.string().max(1500).default(""),
     link: HttpsOrEmpty.default(""),
@@ -148,7 +157,11 @@ export const PostInputSchema = z
     brandVersion: z.string().trim().min(1).max(40),
     check: CheckSchema.nullable().optional(),
   })
-  .strict();
+  .strict()
+  .refine((p) => p.kind !== "carousel" || p.moreSlides.length === 0, {
+    message: "a carousel has no extra slides",
+    path: ["moreSlides"],
+  });
 export type PostInput = z.infer<typeof PostInputSchema>;
 
 export interface HistoryEntry {

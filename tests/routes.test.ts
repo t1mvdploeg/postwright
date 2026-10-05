@@ -147,6 +147,43 @@ describe("posts", () => {
     expect((await ask(`${API}/posts/${copy.body.id}`, { method: "DELETE" })).status).toBe(200);
     expect((await ask(`${API}/posts/${copy.body.id}`)).status).toBe(404);
   });
+
+  it("stores extra slides with their own template, at most nineteen, and none on a carousel", async () => {
+    const more = [{ template: "statistic", content: { headline: "Two *slides*" } }];
+    const p = await newPost({ moreSlides: more });
+    expect(p.moreSlides).toEqual(more);
+    expect((await newPost()).moreSlides).toEqual([]);
+    const twenty = Array.from({ length: 20 }, () => more[0]);
+    expect((await ask(`${API}/posts`, { body: recipe({ moreSlides: twenty }) })).status).toBe(400);
+    const carousel = await ask(`${API}/posts`, {
+      body: recipe({ kind: "carousel", template: "carousel", formats: ["li-carousel"], content: {}, moreSlides: more }),
+    });
+    expect(carousel.status).toBe(400);
+    expect(JSON.stringify(carousel.body)).toMatch(/extra slides/);
+  });
+
+  it("clears the check when only an extra slide changes", async () => {
+    const more = [{ template: "statistic", content: { headline: "Two *slides*" } }];
+    const p = await newPost({ moreSlides: more });
+    const { check: _c, ...withoutCheck } = recipe({ moreSlides: more });
+    const same = await ask(`${API}/posts/${p.id}`, { method: "PUT", body: { ...withoutCheck, version: 1 } });
+    expect(same.body.check).not.toBeNull();
+    const changed = await ask(`${API}/posts/${p.id}`, {
+      method: "PUT",
+      body: { ...withoutCheck, moreSlides: [{ template: "question", content: {} }], version: 2 },
+    });
+    expect(changed.body.check).toBeNull();
+  });
+
+  it("reads a post file from before moreSlides (and without slides) in the list and the media count", async () => {
+    const p = await newPost();
+    const file = join(projectDir, "marketing", "posts", `${p.id}.json`);
+    const { moreSlides: _m, slides: _s, ...old } = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(file, JSON.stringify(old));
+    expect((await ask(`${API}/posts`)).status).toBe(200);
+    expect((await ask(`${API}/media`)).status).toBe(200);
+    expect((await ask(`${API}/posts/${p.id}`)).status).toBe(200);
+  });
 });
 
 describe("utm_content points to the post itself", () => {

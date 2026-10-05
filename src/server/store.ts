@@ -396,7 +396,7 @@ export function mediaUsage(posts: Post[]): Map<string, number> {
   const count = new Map<string, number>();
   for (const p of posts) {
     const ids = new Set(
-      [p.content, ...p.slides.map((d) => d.content)]
+      [p.content, ...(p.slides ?? []).map((d) => d.content), ...(p.moreSlides ?? []).map((d) => d.content)]
         .flatMap((i) => Object.values(i ?? {}))
         .filter((v) => MEDIA_ID.test(v)),
     );
