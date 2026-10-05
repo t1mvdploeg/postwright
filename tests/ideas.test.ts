@@ -31,7 +31,7 @@ const PROMPT: IdeasPrompt = {
     { id: "question", name: "Question", goal: "" },
   ],
   facts: [
-    { id: "f-00000000-0000-4000-8000-000000000001", text: "The minimum hourly rate is € 14,99.", kind: "external" },
+    { id: "f-00000000-0000-4000-8000-000000000001", text: "The minimum hourly rate is € 14.99.", kind: "external" },
   ],
   moments: [
     {
@@ -108,13 +108,13 @@ describe("tidyIdeas", () => {
     expect(i).toMatchObject({ template: null, facts: [PROMPT.facts[0].id], moment: null });
   });
   it("reports numbers without a source; a linked fact or moment covers them", () => {
-    const [without] = tidyIdeas({ ideas: [idea({ note: "The rate is € 14,99 and the fine € 50.000." })] }, PROMPT);
-    expect(without.uncovered).toEqual(["€ 14,99", "€ 50.000"]);
+    const [without] = tidyIdeas({ ideas: [idea({ note: "The rate is € 14.99 and the fine € 50,000." })] }, PROMPT);
+    expect(without.uncovered).toEqual(["€ 14.99", "€ 50,000"]);
     const [withValue] = tidyIdeas(
       {
         ideas: [
           idea({
-            note: "The rate is € 14,99; register before 31 December.",
+            note: "The rate is € 14.99; register before 31 December.",
             facts: [PROMPT.facts[0].id],
             moment: "signup-transition",
           }),

@@ -5,21 +5,23 @@
 // recognised. The check helps, but does not replace proofreading.
 
 /**
- * A number in Dutch notation to a number: "1.250" → 1250, "62,75" → 62.75, "8,33" → 8.33.
- * A dot followed by exactly three digits is a thousands separator; a comma is the decimal.
+ * A number in English notation to a number: "1,250" → 1250, "62.75" → 62.75.
+ * A comma followed by exactly three digits is a thousands separator; the point is the decimal.
  */
 function toNumber(text) {
-  let t = text.replace(/\s/g, "");
-  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, "");
-  t = t.replace(",-", "").replace(",", ".");
-  const n = Number(t);
+  const n = Number(text.replace(/[\s,]/g, ""));
   return Number.isFinite(n) ? n : null;
 }
 
-const AMOUNT =
-  /€\s?(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}|-))?|(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\s?(?:euro|EUR)\b/gi;
-const PERCENT = /(\d+(?:,\d+)?)\s?(?:%|percent\b)/gi;
-const NUMBER = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?)(?![\p{L}\p{N}]|[.,]\d)/gu;
+// Digits that end cleanly: "12,50" (comma decimals) is not read as "12" or "50".
+const DIGITS = String.raw`(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(?!\d|,\d)`;
+const START = String.raw`(?<![\d.,])`;
+const AMOUNT = new RegExp(
+  String.raw`[€$£]\s?${DIGITS}|${START}${DIGITS}\s?(?:EUR|USD|GBP|euros?|dollars?|pounds?)\b`,
+  "gi",
+);
+const PERCENT = /(?<![\d.,])(\d+(?:\.\d+)?)\s?(?:%|percent\b)/gi;
+const NUMBER = /(?<![\p{L}\p{N}.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![\p{L}\p{N}]|[.,]\d)/gu;
 
 /**
  * The numbers in a text, normalised: `{ kind, value, text }`. Amounts and percentages always;
@@ -37,7 +39,7 @@ export function getNumbers(text) {
   for (const m of t.matchAll(AMOUNT)) {
     const integer = m[1] ?? m[3];
     const dec = m[2] ?? m[4];
-    const value = toNumber(dec && dec !== "-" ? `${integer},${dec}` : integer);
+    const value = toNumber(dec ? `${integer}.${dec}` : integer);
     if (value === null) continue;
     off.push({ kind: "amount", value, text: m[0].trim() });
     occupied.push([m.index, m.index + m[0].length]);
@@ -54,7 +56,7 @@ export function getNumbers(text) {
     const raw = m[1];
     const value = toNumber(raw);
     if (value === null) continue;
-    const decimal = raw.includes(",");
+    const decimal = raw.includes(".");
     if (!decimal && value < 10) continue;
     if (!decimal && Number.isInteger(value) && value >= 1900 && value <= 2100) continue;
     off.push({ kind: "number", value, text: raw });
@@ -64,7 +66,7 @@ export function getNumbers(text) {
 
 /**
  * The numbers from `text` that are in none of the `facts`. Compares by value, not by
- * notation: "€ 62,75" in the fact covers "62,75 per hour" in the post.
+ * notation: "€ 62.75" in the fact covers "62.75 per hour" in the post.
  */
 export function uncoveredNumbers(text, facts) {
   const covered = new Set(facts.flatMap((f) => getNumbers(f.text).map((g) => g.value)));

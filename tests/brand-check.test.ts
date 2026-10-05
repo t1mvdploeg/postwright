@@ -100,15 +100,20 @@ describe("numbers", () => {
 
   it("recognises amounts, percentages and numbers", () => {
     const cases: Array<[string, Array<[string, number]>]> = [
-      ["€ 12,50 per hour", [["amount", 12.5]]],
-      ["€12,50", [["amount", 12.5]]],
-      ["12,50 euro", [["amount", 12.5]]],
-      ["€ 1.250,- per month", [["amount", 1250]]],
-      ["€ 1.250", [["amount", 1250]]],
+      ["€ 12.50 per hour", [["amount", 12.5]]],
+      ["€12.50", [["amount", 12.5]]],
+      ["$9.99", [["amount", 9.99]]],
+      ["£ 7", [["amount", 7]]],
+      ["12.50 euro", [["amount", 12.5]]],
+      ["12.50 EUR", [["amount", 12.5]]],
+      ["30 dollars", [["amount", 30]]],
+      ["1,250 pounds", [["amount", 1250]]],
+      ["€ 1,250.75 per month", [["amount", 1250.75]]],
+      ["€ 1,250", [["amount", 1250]]],
       ["€ 5", [["amount", 5]]],
       ["8%", [["percent", 8]]],
-      ["8,33 %", [["percent", 8.33]]],
-      ["8,4 percent", [["percent", 8.4]]],
+      ["8.33 %", [["percent", 8.33]]],
+      ["8.4 percent", [["percent", 8.4]]],
       ["a working week of 40 hours", [["number", 40]]],
       [
         "27 + 13 days",
@@ -117,8 +122,8 @@ describe("numbers", () => {
           ["number", 13],
         ],
       ],
-      ["1.250 employees", [["number", 1250]]],
-      ["factor 1,5", [["number", 1.5]]],
+      ["1,250 employees", [["number", 1250]]],
+      ["factor 1.5", [["number", 1.5]]],
     ];
     for (const [text, expected] of cases) expect(values(text), text).toEqual(expected);
   });
@@ -139,10 +144,21 @@ describe("numbers", () => {
     expect(values("eight percent")).toEqual([]);
   });
 
+  it("does not read other notations as a number", () => {
+    // Comma decimals and dots as thousands separators are not English notation.
+    expect(values("€ 12,50 per hour")).toEqual([]);
+    expect(values("12,50 euro")).toEqual([]);
+    expect(values("8,33 %")).toEqual([]);
+    // A version number is not a claim.
+    expect(values("version 1.2.3")).toEqual([]);
+    // Thousands that are not groups of three digits.
+    expect(values("code 1,23,456")).toEqual([]);
+  });
+
   it("compares by value, not by notation", () => {
-    const facts = [{ text: "Example: subscription € 12,50" }];
-    expect(uncoveredNumbers("12,50 per hour", facts)).toEqual([]);
-    expect(uncoveredNumbers("€ 12,50 and 8,4%", facts).map((g) => g.value)).toEqual([8.4]);
+    const facts = [{ text: "Example: subscription € 12.50" }];
+    expect(uncoveredNumbers("12.50 per hour", facts)).toEqual([]);
+    expect(uncoveredNumbers("€ 12.50 and 8.4%", facts).map((g) => g.value)).toEqual([8.4]);
   });
 });
 
@@ -256,20 +272,20 @@ describe("brand-check", () => {
   it("requires every number to be in a linked, active and unexpired fact", () => {
     const fact = {
       id: "f-1",
-      text: "Example: subscription € 12,50",
+      text: "Example: subscription € 12.50",
       status: "active",
       validFrom: null,
       validUntil: "2026-12-31",
     };
     const post = {
       ...base,
-      content: { ...base.content, text: "A price of € 12,50 per month, 8,4% discount." },
+      content: { ...base.content, text: "A price of € 12.50 per month, 8.4% discount." },
       facts: ["f-1"],
     };
     const r = runCheck({ post, template: statement, settings, facts: [fact], today: "2026-10-01" });
     const numbers = r.findings.filter((b) => b.code === "number-without-fact");
     expect(numbers).toHaveLength(1);
-    expect(numbers[0].text).toContain("8,4%");
+    expect(numbers[0].text).toContain("8.4%");
     const expired = runCheck({ post, template: statement, settings, facts: [fact], today: "2027-01-01" });
     expect(codes(expired)).toContain("fact-unusable");
     expect(codes(runCheck({ post, template: statement, settings, facts: [], today: "2026-10-01" }))).toContain(

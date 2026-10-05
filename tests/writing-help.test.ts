@@ -85,7 +85,7 @@ beforeEach(async () => {
       variants: [0, 1, 2, 3].map((i) => ({
         fields: [
           { id: "headline", text: `Suggestion ${i} *headline*` },
-          { id: "text", text: "A unit price of € 62,75." },
+          { id: "text", text: "A unit price of € 62.75." },
           { id: "secret", text: "x" },
         ],
         caption: "",
@@ -129,16 +129,16 @@ describe("writingHelp", () => {
   });
 
   it("sends the model only the facts that the server loads itself, and checks numbers", async () => {
-    const id = await fact("Cost price is € 52,75 per hour");
+    const id = await fact("Cost price is € 52.75 per hour");
     const r = await ask(`${API}/writing-help`, request([id]));
     expect(r.status).toBe(200);
     expect(r.body.sample).toBe(false);
-    expect(fake.seen!.facts).toEqual([{ id, text: "Cost price is € 52,75 per hour", source: "README.md" }]);
+    expect(fake.seen!.facts).toEqual([{ id, text: "Cost price is € 52.75 per hour", source: "README.md" }]);
     expect(fake.seen!.brand.brandName).toBe("Postwright");
     expect(r.body.variants).toHaveLength(3);
     const v = r.body.variants[0];
     expect(Object.keys(v.fields)).toEqual(["headline", "text"]);
-    expect(v.uncovered).toEqual(["€ 62,75"]);
+    expect(v.uncovered).toEqual(["€ 62.75"]);
     expect(v.usedFacts).toEqual([id]);
   });
 
