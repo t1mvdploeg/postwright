@@ -67,7 +67,7 @@ You can also write a brand by hand: a `brand.json` with the files next to it in 
 
 ## AI writing help
 
-Writing help suggests captions and headlines, and the planner suggests post ideas for a period. Without an API key you get sample answers, clearly marked, so you can try everything for free. To use Claude, start with your key in the environment:
+Writing help suggests captions and headlines, and the planner suggests post ideas for a period. Both use the company profile in **Settings** (what you do, sector, offer, audience, region) to stay on topic; numbers still come only from your facts. Without an API key you get sample answers, clearly marked, so you can try everything for free. To use Claude, start with your key in the environment:
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-... npm start
@@ -80,12 +80,12 @@ The key is read from the environment only: never written to a file, sent to the 
 The browser does the drawing. A template is a small module that turns fields into HTML and CSS; the preview shows it in a sandboxed iframe, and the export draws the same HTML onto a canvas, so preview equals export. The server is a small Node http server on `127.0.0.1` only, which stores everything as JSON files and talks to the Claude API. There is no build step: plain ES modules in the browser, TypeScript on the server through `tsx`.
 
 ```bash
-npm test            # 681 tests, among them a leak check on every tracked file
+npm test            # 726 tests, among them a leak check on every tracked file and a phone-width check in Chrome
 npm run typecheck
 npm run format:check
 ```
 
-The studio's look, warm paper with clay as the one accent, is described in [DESIGN.md](DESIGN.md).
+The studio's look, warm paper with clay as the one accent, is described in [DESIGN.md](DESIGN.md). It follows the system's dark mode and works on a phone. In the editor, Ctrl+S or ⌘S saves.
 
 ## What it does not do
 
