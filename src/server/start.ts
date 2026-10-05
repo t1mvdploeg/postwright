@@ -1,6 +1,6 @@
-import { createRoutes } from "./routes.js";
+import { createApp } from "./app.js";
 import { startServer } from "./http.js";
-import { brandFolder, brandRoutes } from "./brand.js";
+import { prepareData } from "./projects.js";
 
 const portText = process.env.PORT ?? "4173";
 const port = Number(portText);
@@ -11,13 +11,14 @@ if (!/^\d+$/.test(portText) || port > 65535) {
 const dataDir = process.env.POSTWRIGHT_DATA_DIR ?? "./data";
 
 try {
-  const { url } = await startServer({
-    dataDir,
-    port,
-    routes: [...brandRoutes({ dataDir }), ...createRoutes({ dataDir })],
-    // The brand's files (logos, fonts) come from `data/brand` if a brand is there.
-    static: [{ prefix: "/brand/", dir: () => brandFolder(dataDir) }],
-  });
+  await prepareData(dataDir);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}
+
+try {
+  const { url } = await startServer({ dataDir, port, ...createApp({ dataDir }) });
   console.log(`Postwright is running at ${url}`);
 } catch (error) {
   if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {

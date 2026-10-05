@@ -12,6 +12,13 @@ export class ApiError extends Error {
   }
 }
 
+/** A project as the routes see it: `dir` is `data/projects/<slug>`. */
+export interface Project {
+  slug: string;
+  name: string;
+  dir: string;
+}
+
 /**
  * What a route may know about the request. Deliberately NOT `IncomingMessage`/
  * `ServerResponse`: a route reads the body via `read`/`readJson` and returns a response
@@ -24,6 +31,8 @@ export interface Ctx {
   read(maxBytes?: number): Promise<Buffer>;
   readJson<T>(): Promise<T>;
   header(name: string): string | undefined;
+  /** The project this request is about (the header, or the first project). Resolved on first use. */
+  project(): Promise<Project>;
 }
 
 /** A response that is not a JSON object (file, text) or needs a status other than 200. */
@@ -72,8 +81,20 @@ export interface ServerOptions {
   port?: number;
   webDir?: string;
   routes: Route[];
-  /** A URL prefix that comes from a different folder than `webDir`; it is checked first. */
-  static?: { prefix: string; dir: () => string }[];
+  /** Finds the project for the header value. Without it, `ctx.project()` fails with a 500. */
+  projects?: { resolve(header: string | undefined): Promise<Project> };
+  /**
+   * A URL prefix that comes from a different folder than `webDir`; it is checked first.
+   * `dir` may depend on the project of the request.
+   */
+  static?: { prefix: string; dir: (project: () => Promise<Project>) => string | Promise<string> }[];
+}
+
+const PROJECT_HEADER = "x-postwright-project";
+/** The one place where the project header is read. */
+function projectHeader(req: IncomingMessage): string | undefined {
+  const h = req.headers[PROJECT_HEADER];
+  return Array.isArray(h) ? h.join(", ") : h;
 }
 
 const MAX_BODY = 1_000_000;
@@ -101,6 +122,9 @@ const TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".webp": "image/webp",
   ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
   ".ico": "image/x-icon",
 };
 
@@ -124,7 +148,13 @@ function sendJson(res: ServerResponse, status: number, data: unknown) {
   send(res, status, "application/json; charset=utf-8", JSON.stringify(data ?? null), { "cache-control": "no-store" });
 }
 
-function createCtx(req: IncomingMessage, url: URL, params: Record<string, string>): Ctx {
+function createCtx(
+  req: IncomingMessage,
+  url: URL,
+  params: Record<string, string>,
+  projects: ServerOptions["projects"],
+): Ctx {
+  let project: Promise<Project> | undefined;
   const read = (maxBytes = MAX_BODY) =>
     new Promise<Buffer>((resolve, error) => {
       const blocks: Buffer[] = [];
@@ -163,10 +193,20 @@ function createCtx(req: IncomingMessage, url: URL, params: Record<string, string
       const h = req.headers[name.toLowerCase()];
       return Array.isArray(h) ? h.join(", ") : h;
     },
+    project: () =>
+      (project ??= projects
+        ? projects.resolve(projectHeader(req))
+        : Promise.reject(new ApiError(500, "No projects are set up"))),
   };
 }
 
-async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: Route[]) {
+async function api(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  routes: Route[],
+  projects: ServerOptions["projects"],
+) {
   let chosen: Route | undefined;
   let params: Record<string, string> = {};
   for (const r of routes) {
@@ -190,7 +230,7 @@ async function api(req: IncomingMessage, res: ServerResponse, url: URL, routes: 
     ) {
       throw new ApiError(415, "Content-Type must be application/json");
     }
-    const reply = await chosen.handler(createCtx(req, url, params));
+    const reply = await chosen.handler(createCtx(req, url, params, projects));
     if (!isReply(reply)) return sendJson(res, 200, reply);
     const status = reply.status ?? 200;
     const { body } = reply;
@@ -230,6 +270,25 @@ async function file(req: IncomingMessage, res: ServerResponse, name: string, dir
   }
 }
 
+async function staticFolder(
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  entry: NonNullable<ServerOptions["static"]>[number],
+  projects: ServerOptions["projects"],
+) {
+  let dir: string;
+  try {
+    dir = await entry.dir(() =>
+      projects ? projects.resolve(projectHeader(req)) : Promise.reject(new ApiError(500, "No projects are set up")),
+    );
+  } catch (e) {
+    if (e instanceof ApiError) return sendJson(res, e.status, { error: e.message });
+    throw e;
+  }
+  return file(req, res, url.pathname.slice(entry.prefix.length), dir);
+}
+
 function errors(res: ServerResponse, error: unknown) {
   console.error(error);
   if (!res.headersSent) sendJson(res, 500, { error: "Internal error" });
@@ -265,9 +324,9 @@ export async function startServer(o: ServerOptions): Promise<{ url: string; clos
       }
       const custom = o.static?.find((x) => url.pathname.startsWith(x.prefix));
       const resolve = url.pathname.startsWith("/api/")
-        ? api(req, res, url, o.routes)
+        ? api(req, res, url, o.routes, o.projects)
         : custom
-          ? file(req, res, url.pathname.slice(custom.prefix.length), custom.dir())
+          ? staticFolder(req, res, url, custom, o.projects)
           : file(req, res, url.pathname, webDir, true);
       resolve.catch((error) => errors(res, error));
     } catch (error) {

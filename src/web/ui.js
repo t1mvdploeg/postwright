@@ -4,14 +4,59 @@
 // environment (tests), so everything that touches the DOM sits in a function or behind a
 // `typeof document` check.
 
+const PROJECT_KEY = "postwright-project";
+
+/** The project the studio works in (a slug), as remembered in this browser; null if none was chosen yet. */
+export function activeProject() {
+  try {
+    return localStorage.getItem(PROJECT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+// The project this page was opened for. `activeProject()` is what the browser remembers for
+// the next load and can change under us (another tab, a cancelled switch), so the calls of
+// one page keep to the project it showed from the start.
+let pinned = null;
+
+/** Fixes the project of this page: from now on its calls carry this slug, whatever is remembered. */
+export function pinProject(slug) {
+  pinned = slug;
+}
+
+/** Remembers the project. A browser that blocks storage just forgets it; that is not an error. */
+export function setActiveProject(slug) {
+  try {
+    localStorage.setItem(PROJECT_KEY, slug);
+  } catch {
+    // The first project is used next time.
+  }
+}
+
+/**
+ * The header that tells the server which project a call is about. Every call carries it:
+ * `api()` does so itself, and a plain `fetch` has to add it.
+ */
+export function projectHeaders() {
+  const slug = pinned ?? activeProject();
+  return slug ? { "x-postwright-project": slug } : {};
+}
+
 /**
  * Every screen talks to the server through this one function. An error comes back as an
  * `Error` with the server's message (`error`), the HTTP status in `.status` and the raw
  * content in `.data`.
  */
 export async function api(path, options = {}) {
-  const init = { method: options.method ?? "GET", headers: { "content-type": "application/json" } };
-  if (options.body !== undefined) init.body = JSON.stringify(options.body);
+  const init = {
+    method: options.method ?? "GET",
+    headers: { "content-type": "application/json", ...projectHeaders() },
+  };
+  if (options.raw) {
+    init.body = options.raw;
+    init.headers["content-type"] = options.raw.type || "application/octet-stream";
+  } else if (options.body !== undefined) init.body = JSON.stringify(options.body);
   if (options.signal) init.signal = options.signal;
   // A network error (TypeError; an AbortError stays as it is) or a gateway error without a
   // JSON response gets a readable message instead of the bare "Failed to fetch"/"Error 502".
@@ -257,6 +302,22 @@ export async function confirmDialog(question, options = {}) {
   });
   return confirmed === true;
 }
+
+/** Asks for one line of text. Returns the trimmed text, or `null` on cancel or Escape. */
+export async function textDialog(title, label, options = {}) {
+  return dialog({
+    title,
+    confirmText: options.confirmText ?? "Create",
+    buildContent: (form) => {
+      const input = el("input", { type: "text", id: "dialog-text", maxlength: String(options.maxLength ?? 60) });
+      form.prepend(el("div", { class: "field" }, [el("label", { for: "dialog-text", text: label }), input]));
+      queueMicrotask(() => input.focus());
+      // An empty name keeps the dialog open.
+      return () => input.value.trim() || false;
+    },
+  });
+}
+
 export function debounce(fn, ms) {
   let t;
   return (...a) => {

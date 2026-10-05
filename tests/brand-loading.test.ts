@@ -35,6 +35,21 @@ describe("brand loading", () => {
     expect(attempts).toBe(2);
   });
 
+  it("embeds a logo with the type of its extension, so a PNG logo is not shown as an SVG", async () => {
+    vi.resetModules();
+    const { loadBrand } = await import("../src/web/studio/brand.js");
+    const manifest = {
+      logos: { light: "logo-light.png", dark: "logo-dark.SVG" },
+      font: { family: "Acme", files: ["acme.woff2"] },
+    };
+    vi.stubGlobal("fetch", async (url: string) =>
+      url === "/api/brand" ? Response.json(manifest) : new Response(new Uint8Array([1, 2, 3])),
+    );
+    const brand = await loadBrand();
+    expect(brand.logos.light).toMatch(/^data:image\/png;base64,/);
+    expect(brand.logos.dark).toMatch(/^data:image\/svg\+xml;base64,/);
+  });
+
   it("ignores ids that are not media ids", async () => {
     vi.stubGlobal("fetch", async () => {
       throw new Error("must not");

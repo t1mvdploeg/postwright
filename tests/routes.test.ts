@@ -9,7 +9,7 @@ import { startStudio } from "./helpers/studio.js";
 import type { Post } from "../src/server/schema.js";
 
 let base = "";
-let dataDir = "";
+let projectDir = "";
 let close: () => Promise<void>;
 
 const API = "/api";
@@ -63,7 +63,7 @@ async function newPost(extra: Record<string, unknown> = {}): Promise<Post> {
 }
 
 beforeAll(async () => {
-  ({ dataDir, base, close } = await startStudio());
+  ({ projectDir, base, close } = await startStudio());
 });
 
 afterAll(async () => {
@@ -76,7 +76,7 @@ describe("posts", () => {
     expect(p.id).toMatch(/^p-[0-9a-f-]{36}$/);
     expect(p).toMatchObject({ version: 1, status: "draft", scheduled: null, published: null });
     expect(p.history).toHaveLength(1);
-    expect(existsSync(join(dataDir, "marketing", "posts", `${p.id}.json`))).toBe(true);
+    expect(existsSync(join(projectDir, "marketing", "posts", `${p.id}.json`))).toBe(true);
   });
 
   it("reads, lists without history and filters by status", async () => {
@@ -377,7 +377,7 @@ describe("settings and overview", () => {
     // past), so it is written directly.
     const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     await createPost(
-      { dir: dataDir },
+      { dir: projectDir },
       {
         ...(await ask(`${API}/posts/${p.id}`)).body,
         id: "p-11111111-1111-4111-8111-111111111111",
@@ -519,7 +519,7 @@ describe("media", () => {
     expect(Buffer.from(await r.arrayBuffer()).equals(png(20, 20))).toBe(true);
     expect((await ask(`${API}/media/..%2Fpackage.json`)).status).toBe(400);
     expect((await ask(`${API}/media/${"0".repeat(32)}.png`)).status).toBe(404);
-    expect(readFileSync(join(dataDir, "marketing", "media", a.body.id)).length).toBe(40);
+    expect(readFileSync(join(projectDir, "marketing", "media", a.body.id)).length).toBe(40);
   });
 
   it("deletes an unused image and refuses an image that a post uses, even an archived one", async () => {
@@ -669,8 +669,8 @@ describe("stored settings that do not look right", () => {
   async function withFile(content: string | null) {
     const studio = await startStudio();
     if (content !== null) {
-      mkdirSync(join(studio.dataDir, "marketing"), { recursive: true });
-      writeFileSync(join(studio.dataDir, "marketing", "settings.json"), content);
+      mkdirSync(join(studio.projectDir, "marketing"), { recursive: true });
+      writeFileSync(join(studio.projectDir, "marketing", "settings.json"), content);
     }
     const r = await fetch(`${studio.base}${API}/settings`);
     const text = await r.text();
@@ -711,7 +711,7 @@ describe("stored settings that do not look right", () => {
 });
 
 describe("brand and saved posts", () => {
-  it("returns a post with an old brandVersion unchanged after the brand in data/brand got another version", async () => {
+  it("returns a post with an old brandVersion unchanged after the brand of the project got another version", async () => {
     const studio = await startStudio();
     try {
       const create = await fetch(`${studio.base}${API}/posts`, {
@@ -722,8 +722,8 @@ describe("brand and saved posts", () => {
       expect(create.status).toBe(201);
       const post = await create.json();
       const builtIn = JSON.parse(readFileSync(new URL("../src/web/brand/brand.json", import.meta.url), "utf8"));
-      mkdirSync(join(studio.dataDir, "brand"), { recursive: true });
-      writeFileSync(join(studio.dataDir, "brand", "brand.json"), JSON.stringify({ ...builtIn, version: "new-2.0" }));
+      mkdirSync(join(studio.projectDir, "brand"), { recursive: true });
+      writeFileSync(join(studio.projectDir, "brand", "brand.json"), JSON.stringify({ ...builtIn, version: "new-2.0" }));
       expect((await (await fetch(`${studio.base}/api/brand`)).json()).version).toBe("new-2.0");
       const r = await fetch(`${studio.base}${API}/posts/${post.id}`);
       expect(r.status).toBe(200);

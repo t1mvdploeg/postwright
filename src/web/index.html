@@ -12,12 +12,16 @@
     <div id="studio-app" class="app-shell studio">
       <aside id="studio-sidebar" class="app-sidebar">
         <div class="app-brand">
-          <div class="app-brand-text">
-            <a class="logo" href="/#overview">
-              <img src="/favicon.svg" alt="" />
-              <span>Postwright</span>
-            </a>
-            <small>Marketing studio</small>
+          <a class="logo" href="/#overview">
+            <img src="/favicon.svg" alt="" />
+            <span>Postwright</span>
+          </a>
+        </div>
+        <div class="project-picker">
+          <img src="/favicon.svg" alt="" />
+          <div>
+            <label for="studio-project">Project</label>
+            <select id="studio-project"></select>
           </div>
         </div>
         <nav id="studio-nav" class="app-navigation" aria-label="Postwright"></nav>
@@ -34,13 +38,20 @@
           >
             Menu
           </button>
-          <div class="app-page-headline">
-            <span>Marketing studio</span>
-            <h1 id="studio-title">Overview</h1>
-          </div>
-          <a id="studio-new" class="button" href="#editor">New post</a>
+          <nav class="app-breadcrumb" aria-label="Where you are">
+            <span id="studio-crumb-project">Postwright</span>
+            <span aria-hidden="true">/</span>
+            <strong id="studio-crumb">Overview</strong>
+          </nav>
+          <a id="studio-new" class="button" href="#editor"
+            ><svg class="icon" aria-hidden="true"><use href="/icons.svg#plus" /></svg>New post</a
+          >
         </header>
         <main id="studio-main" class="app-content" tabindex="-1">
+          <header class="page-heading">
+            <h1 id="studio-title">Overview</h1>
+            <p id="studio-lede"></p>
+          </header>
           <div id="studio-content"></div>
         </main>
       </div>

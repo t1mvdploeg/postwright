@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { ApiError, route, type Route } from "./http.js";
@@ -22,21 +22,21 @@ export type Brand = z.infer<typeof BrandSchema>;
 const BUILT_IN = fileURLToPath(new URL("../web/brand", import.meta.url));
 
 /**
- * The folder of the active brand: `data/brand` if it contains a `brand.json`, otherwise
- * the built-in folder.
+ * The folder of the brand of a project: `data/projects/<slug>/brand/` if it contains a
+ * `brand.json`, otherwise the built-in folder.
  */
-export function brandFolder(dataDir: string, builtIn: string = BUILT_IN): string {
-  const custom = join(dataDir, "brand");
+export function brandFolder(projectDir: string, builtIn: string = BUILT_IN): string {
+  const custom = join(projectDir, "brand");
   return existsSync(join(custom, "brand.json")) ? custom : builtIn;
 }
 
 /**
- * The active brand, validated. An error names the file and the field, without the path on
+ * The brand of a project, validated. An error names the file and the field, without the path on
  * disk.
  */
-export async function loadBrand(dataDir: string, builtIn: string = BUILT_IN): Promise<Brand> {
-  const folder = brandFolder(dataDir, builtIn);
-  const label = folder === builtIn ? "brand/brand.json" : "data/brand/brand.json";
+export async function loadBrand(projectDir: string, builtIn: string = BUILT_IN): Promise<Brand> {
+  const folder = brandFolder(projectDir, builtIn);
+  const label = folder === builtIn ? "brand/brand.json" : `data/projects/${basename(projectDir)}/brand/brand.json`;
   let raw: unknown;
   try {
     raw = JSON.parse(await readFile(join(folder, "brand.json"), "utf8"));
@@ -51,7 +51,7 @@ export async function loadBrand(dataDir: string, builtIn: string = BUILT_IN): Pr
   return r.data;
 }
 
-/** `GET /api/brand`: the active brand. Its files are under `/brand/`, see `brandFolder`. */
-export function brandRoutes(o: { dataDir: string }): Route[] {
-  return [route("GET", "/api/brand", () => loadBrand(o.dataDir))];
+/** `GET /api/brand`: the brand of the project. Its files are under `/brand/`, see `brandFolder`. */
+export function brandRoutes(): Route[] {
+  return [route("GET", "/api/brand", async (c) => loadBrand((await c.project()).dir))];
 }

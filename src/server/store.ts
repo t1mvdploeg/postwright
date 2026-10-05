@@ -1,14 +1,15 @@
-// Storage for the marketing studio: plain files under `data/marketing/`.
+// Storage for the marketing studio: plain files under `data/projects/<slug>/marketing/`.
 //
-//   data/marketing/posts/<id>.json   one recipe per post
-//   data/marketing/campaigns.json    list
-//   data/marketing/snippets.json     list
-//   data/marketing/facts.json        list (the fact bank)
-//   data/marketing/ideas.json        list (the idea planner)
-//   data/marketing/settings.json
-//   data/marketing/media/<hash>.<ext>
+//   data/projects/<slug>/marketing/posts/<id>.json   one recipe per post
+//   data/projects/<slug>/marketing/campaigns.json    list
+//   data/projects/<slug>/marketing/snippets.json     list
+//   data/projects/<slug>/marketing/facts.json        list (the fact bank)
+//   data/projects/<slug>/marketing/ideas.json        list (the idea planner)
+//   data/projects/<slug>/marketing/settings.json
+//   data/projects/<slug>/marketing/media/<hash>.<ext>
 import { open, readFile, stat } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   listFolder,
   readJson,
@@ -237,7 +238,30 @@ export async function loadSettingsFile(o: Storage): Promise<Settings> {
 }
 
 export async function saveSettingsFile(o: Storage, i: Settings): Promise<void> {
-  await writeJsonAtomic(path(o, FOLDER, "settings.json"), i);
+  // The cap is not per project; it lives in `data/settings.json` (see `saveGlobalCap`).
+  const { capUsdPerMonth: _cap, ...writingHelp } = i.writingHelp;
+  await writeJsonAtomic(path(o, FOLDER, "settings.json"), { ...i, writingHelp });
+}
+
+const GlobalSettingsSchema = z.object({ capUsdPerMonth: z.number().finite().min(0).max(1000) }).strict();
+
+/** The monthly cap in dollars: one for all projects, in `data/settings.json`. No file: the default. */
+export async function readGlobalCap(dataDir: string): Promise<number> {
+  const unreadable = (why: string) => new StorageError(500, `settings.json cannot be read: ${why}`);
+  let saved: unknown;
+  try {
+    saved = await readJson<unknown>(path({ dir: dataDir }, "settings.json"));
+  } catch (e) {
+    throw unreadable(reason(e));
+  }
+  if (saved === null) return DEFAULT_SETTINGS.writingHelp.capUsdPerMonth;
+  const r = GlobalSettingsSchema.safeParse(saved);
+  if (!r.success) throw unreadable(`${r.error.issues[0].path.join(".") || "input"}: ${r.error.issues[0].message}`);
+  return r.data.capUsdPerMonth;
+}
+
+export async function saveGlobalCap(dataDir: string, cap: number): Promise<void> {
+  await writeJsonAtomic(path({ dir: dataDir }, "settings.json"), { capUsdPerMonth: cap });
 }
 
 // ---------------------------------------------------------------------------------------------
