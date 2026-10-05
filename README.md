@@ -1,13 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-    <img src="assets/logo-light.svg" alt="Postwright" width="280">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/mark-dark.svg">
+    <img src="assets/mark-light.svg" alt="Postwright" width="120">
   </picture>
 </p>
 
+<h1 align="center">Postwright</h1>
+
 <p align="center">
-  On-brand social posts from templates. Every number checked against a source, every post planned.<br>
-  A quiet studio that runs on your own computer.
+  On-brand social posts from templates, with every number checked against a source.
 </p>
 
 <p align="center">
@@ -16,7 +17,7 @@
   <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence">
 </p>
 
-![The overview: the posts on the desk and a look at the week](assets/demo.png)
+![Three posts made with Postwright, in a story, a portrait and a square format, each passing the brand check](assets/demo.png)
 
 Postwright turns a brand into templates. You fill in the words; layout, colours, fonts and logo follow. Before a post can be scheduled, a brand check reads it, down to whether every number in it is backed by a fact with a source. No account, nothing to host.
 
@@ -35,11 +36,11 @@ Open `http://127.0.0.1:4173` and choose **Add sample content** on the overview f
 
 <table>
   <tr>
-    <td width="50%"><img src="assets/screen-editor.png" alt="The editor: fields, a live preview and the brand check"><br><b>Editor.</b> Fields on the left, the post as it will be exported in the middle, the brand check and the caption on the right.</td>
-    <td width="50%"><img src="assets/screen-library.png" alt="All posts as cards, with the status as tabs"><br><b>All posts.</b> Every post as artwork, filtered by status, campaign, channel or template.</td>
+    <td width="50%"><img src="assets/screen-overview.png" alt="The overview: the posts on the desk and a look at the week"><br><b>Overview.</b> The posts on your desk, the week ahead, and what needs attention.</td>
+    <td width="50%"><img src="assets/screen-editor.png" alt="The editor: fields, a live preview and the brand check"><br><b>Editor.</b> Fields on the left, the post exactly as it will be exported, and the brand check with the caption.</td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screen-planner.png" alt="The planner with weeks, moments and ideas"><br><b>Planner.</b> A week list and a month view with ideas, scheduled posts and recurring moments.</td>
+    <td width="50%"><img src="assets/screen-library.png" alt="All posts as cards, with the status as tabs"><br><b>All posts.</b> Every post as artwork, filtered by status, campaign, channel or template.</td>
     <td width="50%"><img src="assets/screen-brand-kit.png" alt="The brand kit: identity, colours, typography and tone"><br><b>Brand kit.</b> Identity, colours with contrast, typography and tone, and the place to make a new kit.</td>
   </tr>
 </table>
