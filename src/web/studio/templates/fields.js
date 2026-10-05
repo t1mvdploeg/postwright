@@ -15,7 +15,7 @@ export function ground(defaultValue = "light", allowed = ["light", "ink", "accen
 
 /** The logo that belongs with a ground: on ink and accent the light version. */
 export function logoMode(ground) {
-  return ground === "ink" ? "on-ink" : ground === "accent" ? "on-accent" : "defaultValue";
+  return ground === "ink" ? "on-ink" : ground === "accent" ? "on-accent" : "default";
 }
 
 /** The class of a ground on `.image`; light is the default and has no class. */

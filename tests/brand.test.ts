@@ -42,7 +42,7 @@ async function start(brand?: Record<string, string>) {
   return s;
 }
 
-const customBrand = { ...builtIn, name: "Test brand", logos: { defaultValue: "logo/x.svg" } };
+const customBrand = { ...builtIn, name: "Test brand", logos: { default: "logo/x.svg" } };
 
 describe("the built-in brand", () => {
   it("satisfies the schema and only names files that exist", () => {
@@ -60,7 +60,7 @@ describe("the built-in brand", () => {
   });
 
   it("has the logo modes the templates ask for", () => {
-    for (const mode of ["defaultValue", "on-ink", "on-accent", "mark", "mark-on-ink"]) {
+    for (const mode of ["default", "on-ink", "on-accent", "mark", "mark-on-ink"]) {
       expect(builtIn.logos, mode).toHaveProperty(mode);
     }
   });
@@ -72,7 +72,7 @@ describe("GET /api/brand", () => {
     const r = await fetch(`${url}/api/brand`);
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual(builtIn);
-    const logo = await fetch(`${url}/brand/${builtIn.logos.defaultValue}`);
+    const logo = await fetch(`${url}/brand/${builtIn.logos.default}`);
     expect(logo.status).toBe(200);
     expect(logo.headers.get("content-type")).toBe("image/svg+xml");
     const font = await fetch(`${url}/brand/${builtIn.font.files[0]}`);
@@ -83,12 +83,12 @@ describe("GET /api/brand", () => {
     const { url } = await start({ "brand.json": JSON.stringify(customBrand), "logo/x.svg": "<svg>custom</svg>" });
     expect(await (await fetch(`${url}/api/brand`)).json()).toMatchObject({
       name: "Test brand",
-      logos: { defaultValue: "logo/x.svg" },
+      logos: { default: "logo/x.svg" },
     });
     const logo = await fetch(`${url}/brand/logo/x.svg`);
     expect(await logo.text()).toBe("<svg>custom</svg>");
     // A file that is only in the built-in brand does not silently come along.
-    expect((await fetch(`${url}/brand/${builtIn.logos.defaultValue}`)).status).toBe(404);
+    expect((await fetch(`${url}/brand/${builtIn.logos.default}`)).status).toBe(404);
   });
 
   it("gives 500 with file and field for a brand with an invalid url, and the server keeps running", async () => {

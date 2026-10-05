@@ -15,7 +15,7 @@ export default {
   html(v, c) {
     return `<div class="image">
   ${c.route()}
-  ${c.logo("defaultValue")}
+  ${c.logo("default")}
   <main>
     <h1 class="headline" data-field="headline">${c.t("headline")}</h1>
     ${c.empty("text") ? "" : `<p class="text" data-field="text">${c.t("text")}</p>`}

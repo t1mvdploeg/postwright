@@ -205,14 +205,14 @@ export async function updateList<T extends { id: string }, U>(
  * on): that gives a 500 naming the file and the first invalid field.
  */
 export async function loadSettingsFile(o: Storage): Promise<Settings> {
-  const defaultValue = structuredClone(DEFAULT_SETTINGS);
+  const defaults = structuredClone(DEFAULT_SETTINGS);
   const name = `${FOLDER}/settings.json`;
   const unreadable = (reason: string) => new StorageError(500, `${name} cannot be read: ${reason}`);
   let text: string;
   try {
     text = await readFile(path(o, FOLDER, "settings.json"), "utf8");
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") return defaultValue;
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return defaults;
     throw unreadable(e instanceof Error ? e.message : String(e));
   }
   let saved: unknown;
@@ -223,9 +223,9 @@ export async function loadSettingsFile(o: Storage): Promise<Settings> {
   }
   if (typeof saved !== "object" || saved === null || Array.isArray(saved)) throw unreadable("expected an object");
   const custom = saved as Record<string, unknown>;
-  const together: Record<string, unknown> = { ...defaultValue, ...custom };
+  const together: Record<string, unknown> = { ...defaults, ...custom };
   if (typeof custom.writingHelp === "object" && custom.writingHelp !== null && !Array.isArray(custom.writingHelp)) {
-    together.writingHelp = { ...defaultValue.writingHelp, ...custom.writingHelp };
+    together.writingHelp = { ...defaults.writingHelp, ...custom.writingHelp };
   }
   const r = SettingsSchema.safeParse(together);
   if (!r.success) {

@@ -206,7 +206,7 @@ describe("buildImage", () => {
   it("puts the logo that belongs to the ground", () => {
     const light = buildImage({ template: "statement", content: { ground: "light" }, format: "li-square", brand });
     const ink = buildImage({ template: "statement", content: { ground: "ink" }, format: "li-square", brand });
-    expect(light.html).toContain(brand.logos.defaultValue);
+    expect(light.html).toContain(brand.logos.default);
     expect(ink.html).toContain(brand.logos["on-ink"]);
     expect(ink.html).toContain("ground-ink");
   });

@@ -358,10 +358,10 @@ describe("campaigns, snippets and facts", () => {
 
 describe("settings and overview", () => {
   it("gives default settings, saves valid ones and refuses invalid ones", async () => {
-    const defaultValue = await ask(`${API}/settings`);
-    expect(defaultValue.body.channels).toEqual(["linkedin"]);
-    expect(defaultValue.body.writingHelp).toEqual({ enabled: true, capUsdPerMonth: 10 });
-    const isNew = { ...defaultValue.body, channels: ["linkedin", "instagram"], bannedWords: ["gratis"] };
+    const initial = await ask(`${API}/settings`);
+    expect(initial.body.channels).toEqual(["linkedin"]);
+    expect(initial.body.writingHelp).toEqual({ enabled: true, capUsdPerMonth: 10 });
+    const isNew = { ...initial.body, channels: ["linkedin", "instagram"], bannedWords: ["gratis"] };
     expect((await ask(`${API}/settings`, { method: "PUT", body: isNew })).status).toBe(200);
     expect((await ask(`${API}/settings`)).body.channels).toEqual(["linkedin", "instagram"]);
     expect((await ask(`${API}/settings`, { method: "PUT", body: { ...isNew, channels: ["tiktok"] } })).status).toBe(

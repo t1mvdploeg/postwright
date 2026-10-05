@@ -39,7 +39,7 @@
     "accent": { "background": "#D13C21", "text": "#FFF7F3" }
   },
   "logos": {
-    "defaultValue": "logo/default.svg",
+    "default": "logo/default.svg",
     "on-ink": "logo/on-ink.svg",
     "on-accent": "logo/on-accent.svg",
     "ink": "logo/ink.svg",
