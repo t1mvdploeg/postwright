@@ -1,7 +1,7 @@
 // "Create a brand kit": the material for a brand kit, and the two ways to turn it into a
 // proposal: Generate with Claude (needs ANTHROPIC_API_KEY on the server), or a prompt to
 // download for Claude Code or Codex.
-import { el, notice, projectHeaders } from "/ui.js";
+import { el, icon, notice, projectHeaders } from "/ui.js";
 import { download } from "/studio/render.js";
 
 const ROLES = [
@@ -81,8 +81,10 @@ export function createBlock(ctx, { onProposal }) {
         accept: r.accept,
         ...(r.multiple ? { multiple: "" } : {}),
       });
+      const chosen = el("span", { class: "upload-name", text: r.multiple ? "Choose files" : "Choose a file" });
       input.addEventListener("change", async () => {
         const files = [...input.files];
+        if (files.length) chosen.textContent = files.map((f) => f.name).join(", ");
         await run("Uploading…", async () => {
           for (const file of files) {
             try {
@@ -120,8 +122,10 @@ export function createBlock(ctx, { onProposal }) {
           ),
       );
       return el("div", { class: "field" }, [
-        el("label", { for: input.id, text: r.label }),
-        input,
+        el("label", { class: "upload" }, [
+          r.label,
+          el("span", { class: "upload-tile" }, [input, icon("plus"), chosen]),
+        ]),
         r.help ? el("p", { class: "help-text", text: r.help }) : null,
         list,
       ]);

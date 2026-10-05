@@ -178,7 +178,7 @@ export async function show(container, ctx) {
     }
     listHolder.replaceChildren(
       el("div", { class: "table-scroll" }, [
-        el("table", { class: "list" }, [
+        el("table", { class: "list cards" }, [
           el("thead", {}, [
             el(
               "tr",
@@ -204,17 +204,17 @@ export async function show(container, ctx) {
                     })
                   : f.source.reference;
               return el("tr", {}, [
-                el("td", { text: f.text }),
-                el("td", { text: KINDS[f.kind] }),
-                el("td", {}, [source]),
-                el("td", { text: f.validUntil ?? "–" }),
-                el("td", {}, [
+                el("td", { class: "card-title", text: f.text }),
+                el("td", { text: KINDS[f.kind], "data-label": "Kind" }),
+                el("td", { "data-label": "Source" }, [source]),
+                el("td", { text: f.validUntil ?? "–", "data-label": "Valid until" }),
+                el("td", { "data-label": "Status" }, [
                   el("span", {
                     class: `badge ${usable ? "badge-approved" : "badge-warning"}`,
                     text: expired && f.status === "active" ? "Expired" : STATUSES[f.status],
                   }),
                 ]),
-                el("td", { text: String(usage(f.id)) }),
+                el("td", { text: String(usage(f.id)), "data-label": "In posts" }),
                 el("td", {}, [
                   el("div", { class: "row-actions" }, [
                     el("button", {

@@ -337,14 +337,16 @@ export async function show(container, ctx) {
 
   function row(p) {
     return el("tr", {}, [
-      el("td", { text: readableMoment(moment(p)) }),
-      el("td", {}, [
+      el("td", { text: readableMoment(moment(p)), "data-label": "Moment" }),
+      el("td", { class: "card-title" }, [
         el("a", { href: `#editor/${p.id}`, text: p.title }),
         p.campaign
           ? el("span", { class: "table-subtext", text: campaigns.find((c) => c.id === p.campaign)?.name ?? "" })
           : null,
       ]),
-      el("td", {}, [el("span", { class: `badge studio-badge-${p.status}`, text: STATUS[p.status] })]),
+      el("td", { "data-label": "Status" }, [
+        el("span", { class: `badge studio-badge-${p.status}`, text: STATUS[p.status] }),
+      ]),
       el("td", {}, [
         p.status === "scheduled"
           ? rescheduleField(p)
@@ -370,7 +372,7 @@ export async function show(container, ctx) {
       sub ? el("p", { class: "help-text studio-plan-block-sub", text: sub }) : null,
       rows.length
         ? el("div", { class: "table-scroll" }, [
-            el("table", { class: "list" }, [
+            el("table", { class: "list cards" }, [
               el("thead", {}, [
                 el(
                   "tr",
@@ -396,13 +398,13 @@ export async function show(container, ctx) {
     });
     button.addEventListener("click", () => panel.open(i, button));
     return el("tr", {}, [
-      el("td", { text: shortDay(i.date) }),
-      el("td", {}, [
+      el("td", { text: shortDay(i.date), "data-label": "Moment" }),
+      el("td", { class: "card-title" }, [
         el("span", { text: i.title }),
         " ",
         el("span", { class: "badge studio-badge-idea", text: "Idea" }),
       ]),
-      el("td", { text: used(i) ? "Idea, post made" : "Idea" }),
+      el("td", { text: used(i) ? "Idea, post made" : "Idea", "data-label": "Status" }),
       el("td", {}, [button]),
     ]);
   }
@@ -424,12 +426,12 @@ export async function show(container, ctx) {
     factButton.addEventListener("click", () => createFact(m));
     ideaButton.addEventListener("click", () => ideaForMoment(m, day, ideaButton));
     return el("tr", {}, [
-      el("td", { text: shortDay(day) }),
-      el("td", {}, [
+      el("td", { text: shortDay(day), "data-label": "Moment" }),
+      el("td", { class: "card-title" }, [
         el("span", { text: `Moment: ${m.title}` }),
         el("span", { class: "table-subtext", text: m.sentence }),
       ]),
-      el("td", { text: "Moment" }),
+      el("td", { text: "Moment", "data-label": "Status" }),
       el("td", {}, [el("div", { class: "row-actions" }, [factButton, ideaButton])]),
     ]);
   }
@@ -748,10 +750,13 @@ export async function show(container, ctx) {
     });
     const rows = campaigns.map((c) =>
       el("tr", {}, [
-        el("td", {}, [el("b", { text: c.name }), c.goal ? el("span", { class: "table-subtext", text: c.goal }) : null]),
-        el("td", { text: c.utmCampaign }),
-        el("td", { text: [c.from, c.to].filter(Boolean).join(" – ") || "–" }),
-        el("td", { text: String(posts.filter((p) => p.campaign === c.id).length) }),
+        el("td", { class: "card-title" }, [
+          el("b", { text: c.name }),
+          c.goal ? el("span", { class: "table-subtext", text: c.goal }) : null,
+        ]),
+        el("td", { text: c.utmCampaign, "data-label": "UTM name" }),
+        el("td", { text: [c.from, c.to].filter(Boolean).join(" – ") || "–", "data-label": "Period" }),
+        el("td", { text: String(posts.filter((p) => p.campaign === c.id).length), "data-label": "Posts" }),
         el("td", {}, [
           el("div", { class: "row-actions" }, [
             el("button", {
@@ -823,7 +828,7 @@ export async function show(container, ctx) {
       }),
       campaigns.length
         ? el("div", { class: "table-scroll" }, [
-            el("table", { class: "list" }, [
+            el("table", { class: "list cards" }, [
               el("thead", {}, [
                 el(
                   "tr",
@@ -848,17 +853,20 @@ export async function show(container, ctx) {
     renderPeriod();
   }
 
+  // On a phone the week comes first and the period form after it (CSS `order`).
   container.replaceChildren(
-    periodCard,
-    panel.element,
-    el("div", { class: "card" }, [
-      el("div", { class: "studio-bar" }, [
-        el("div", { class: "button-row", role: "group", "aria-label": "View" }, [listButton, monthButton]),
-        icsButton,
+    el("div", { class: "studio-planner" }, [
+      periodCard,
+      panel.element,
+      el("div", { class: "card studio-plan-card" }, [
+        el("div", { class: "studio-bar" }, [
+          el("div", { class: "button-row", role: "group", "aria-label": "View" }, [listButton, monthButton]),
+          icsButton,
+        ]),
+        calendarHolder,
       ]),
-      calendarHolder,
+      el("div", { class: "card studio-campaigns-card" }, [campaignHolder]),
     ]),
-    el("div", { class: "card" }, [campaignHolder]),
   );
   render();
   renderCampaigns();

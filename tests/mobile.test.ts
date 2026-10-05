@@ -109,6 +109,32 @@ describe.skipIf(!browser)("studio on a phone (375 x 812)", () => {
   });
 });
 
+describe.skipIf(!browser)("post actions on a phone", () => {
+  it("sit in a menu that Escape and a click elsewhere close", async () => {
+    const page = await open(375, 812, "library");
+    try {
+      const summary = page.locator(".post-menu summary").first();
+      const menu = page.locator(".post-menu").first();
+      await summary.click();
+      expect(await menu.evaluate((m) => (m as HTMLDetailsElement).open)).toBe(true);
+      expect(
+        await page
+          .getByRole("button", { name: /^Delete/ })
+          .first()
+          .isVisible(),
+      ).toBe(true);
+      await page.keyboard.press("Escape");
+      expect(await menu.evaluate((m) => (m as HTMLDetailsElement).open)).toBe(false);
+      expect(await summary.evaluate((e) => e === document.activeElement)).toBe(true);
+      await summary.click();
+      await page.click("h1");
+      expect(await menu.evaluate((m) => (m as HTMLDetailsElement).open)).toBe(false);
+    } finally {
+      await page.close();
+    }
+  });
+});
+
 describe.skipIf(!browser)("studio on a tablet (820 x 1180)", () => {
   for (const [name, route] of SCREENS()) {
     it(`${name}: no sideways scrolling`, async () => {

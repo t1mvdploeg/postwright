@@ -2908,3 +2908,211 @@ button.studio-filter-tab[aria-pressed="true"] {
   margin-top: 24px;
   border-top: 0;
 }
+
+/* Upload tiles: a file input made to look like part of the form. The real input covers the tile
+   (transparent), so a click, the keyboard and a phone's camera or library all still work. */
+.upload-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border: 1px dashed var(--edge-field);
+  border-radius: var(--round-s);
+  background: var(--card);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.upload-tile:hover,
+.upload-tile:focus-within {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.upload-tile:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.upload-tile input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-tile .icon {
+  flex: 0 0 auto;
+}
+
+.upload-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The actions of a post card sit in a native <details> menu ("⋯"). Where the browser lets us,
+   a wide screen shows the buttons in a row as before. */
+.post-menu {
+  position: relative;
+}
+
+.post-menu summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 36px;
+  border: 1px solid var(--edge-field);
+  border-radius: var(--round-s);
+  background: var(--card);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+}
+
+.post-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.post-menu[open] summary {
+  border-color: var(--accent);
+}
+
+.post-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+  min-width: 140px;
+  padding: 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--round-s);
+  background: var(--card);
+  box-shadow: var(--shadow-notice);
+}
+
+.post-menu-list .button,
+.post-menu-list button {
+  justify-content: flex-start;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+@supports selector(::details-content) {
+  @media (min-width: 701px) {
+    .post-menu::details-content {
+      content-visibility: visible;
+    }
+    .post-menu summary {
+      display: none;
+    }
+    .post-menu-list {
+      position: static;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      box-shadow: none;
+    }
+    .post-menu-list button {
+      min-height: 29px;
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  /* The planner: the week first, then the period and ideas form. */
+  .studio-planner {
+    display: flex;
+    flex-direction: column;
+  }
+  .studio-plan-card {
+    order: 0;
+  }
+  .studio-period,
+  .studio-planner > :not(.studio-plan-card):not(.studio-campaigns-card):not(.studio-period) {
+    order: 1;
+  }
+  .studio-campaigns-card {
+    order: 2;
+  }
+
+  /* Breadcrumb: only the screen name. */
+  .app-breadcrumb span {
+    display: none;
+  }
+
+  /* Tables that become cards: the text on top, then the details with their labels, then the actions. */
+  table.cards,
+  table.cards tbody,
+  table.cards tr,
+  table.cards td {
+    display: block;
+  }
+  table.cards thead {
+    display: none;
+  }
+  table.cards tbody tr {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--edge);
+  }
+  table.cards tbody tr:last-child {
+    border-bottom: 0;
+  }
+  table.cards tbody td {
+    padding: 0;
+    border: 0;
+  }
+  table.cards td:empty {
+    display: none;
+  }
+  table.cards td.card-title {
+    order: -1;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  table.cards td[data-label] {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 12px;
+  }
+  table.cards td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 6.5em;
+    color: var(--text-muted);
+  }
+  table.cards td .row-actions {
+    margin-top: 4px;
+  }
+  .studio-reschedule {
+    display: flex;
+    width: 100%;
+    margin-top: 4px;
+  }
+  .studio .studio-reschedule input[type="datetime-local"] {
+    flex: 1 1 11em;
+    min-width: 0;
+    width: auto;
+  }
+}

@@ -168,27 +168,37 @@ export async function show(container, ctx) {
             ? el("span", { class: "badge badge-warning", text: "Fact not usable" })
             : null,
         extra: el("div", { class: "studio-post-actions" }, [
-          el("button", { type: "button", class: "secondary small", text: "Duplicate", onclick: () => duplicate(p) }),
-          p.status === "archived"
-            ? el("button", {
+          el("details", { class: "post-menu" }, [
+            el("summary", { "aria-label": `More actions for ${p.title}`, text: "⋯" }),
+            el("div", { class: "post-menu-list" }, [
+              el("button", {
                 type: "button",
                 class: "secondary small",
-                text: "Restore",
-                onclick: () => setStatus(p, "draft"),
-              })
-            : el("button", {
-                type: "button",
-                class: "secondary small",
-                text: "Archive",
-                onclick: () => setStatus(p, "archived"),
+                text: "Duplicate",
+                onclick: () => duplicate(p),
               }),
-          el("button", {
-            type: "button",
-            class: "secondary small danger",
-            text: "Delete",
-            "aria-label": `Delete ${p.title}`,
-            onclick: () => erase(p),
-          }),
+              p.status === "archived"
+                ? el("button", {
+                    type: "button",
+                    class: "secondary small",
+                    text: "Restore",
+                    onclick: () => setStatus(p, "draft"),
+                  })
+                : el("button", {
+                    type: "button",
+                    class: "secondary small",
+                    text: "Archive",
+                    onclick: () => setStatus(p, "archived"),
+                  }),
+              el("button", {
+                type: "button",
+                class: "secondary small danger",
+                text: "Delete",
+                "aria-label": `Delete ${p.title}`,
+                onclick: () => erase(p),
+              }),
+            ]),
+          ]),
         ]),
       });
     });
@@ -225,5 +235,27 @@ export async function show(container, ctx) {
     el("div", { class: "button-row studio-more" }, [more]),
   );
   render();
-  return { leave: () => observer?.disconnect() };
+
+  // The "more actions" menus (a native <details> on a phone): a click elsewhere closes them, and
+  // Escape closes the open one and puts focus back on its button.
+  const openMenus = () => container.querySelectorAll(".post-menu[open]");
+  const onClick = (e) => {
+    for (const menu of openMenus()) if (!menu.contains(e.target) || e.target.closest("button")) menu.open = false;
+  };
+  const onKey = (e) => {
+    if (e.key !== "Escape") return;
+    for (const menu of openMenus()) {
+      menu.open = false;
+      menu.querySelector("summary").focus();
+    }
+  };
+  document.addEventListener("click", onClick);
+  document.addEventListener("keydown", onKey);
+  return {
+    leave: () => {
+      observer?.disconnect();
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKey);
+    },
+  };
 }
