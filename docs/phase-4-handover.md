@@ -14,7 +14,7 @@ Task 13 is done, apart from the steps that need the owner:
 Left for the owner:
 
 1. **The real-key trial** (section 5, step 3.7): one generation with `ANTHROPIC_API_KEY`, which costs money. It also settles the live-API unknowns in section 6.
-2. **Merging `fase-4` into `main`**: nothing has been merged.
+2. ~~Merging `fase-4` into `main`~~: done through pull request #1. Phase 5 continues in `docs/phase-5-handover.md`.
 
 The sections below are kept for reference.
 
