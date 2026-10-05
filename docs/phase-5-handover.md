@@ -1,6 +1,6 @@
 # Postwright phase 5: handover
 
-Branch `fase-5`, based on `main` after phase 4. Nothing is pushed or merged.
+Branch `fase-5`, merged into `main` and pushed on 5 October 2026.
 
 ## What is in it
 
