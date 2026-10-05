@@ -180,8 +180,8 @@ let base = "";
 let dataDir = "";
 let close: () => Promise<void>;
 const API = "/api";
-/** The same Amsterdam date as the server. */
-const today = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam" }).format(new Date());
+/** The same local date as the server. */
+const today = () => new Intl.DateTimeFormat("sv-SE").format(new Date());
 
 async function ask(path: string, body?: unknown, method = body === undefined ? "GET" : "POST") {
   const r = await fetch(base + path, {

@@ -23,7 +23,7 @@ function readableDate(d) {
 
 /**
  * "today", "yesterday" or "N days ago", for the Last publication stat card. In calendar
- * days in the Netherlands: yesterday 23:00 is called "yesterday" at 08:00, not "today".
+ * days: yesterday 23:00 is called "yesterday" at 08:00, not "today".
  */
 function agoText(iso) {
   if (!iso) return { value: "–", help: "Nothing published yet" };

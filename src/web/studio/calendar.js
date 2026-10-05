@@ -44,13 +44,13 @@ export function isoWeek(date) {
   return { year: t.getUTCFullYear(), week: Math.ceil(((t - yearStart) / 86400000 + 1) / 7) };
 }
 
-/** The calendar day in the Netherlands of a moment. */
+/** The local calendar day of a moment. */
 export function dayOf(iso) {
   return localToday(new Date(iso));
 }
 
 /**
- * How many calendar days in the Netherlands the moment `iso` lies before `now`: yesterday
+ * How many calendar days the moment `iso` lies before `now`: yesterday
  * at 23:00 is one day ago at 08:00, not zero. Computed on dates via UTC noon, so daylight
  * saving changes shift nothing.
  */

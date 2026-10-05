@@ -37,7 +37,7 @@ export const CHANNEL_RULES = {
 };
 
 const segmenter =
-  typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter("nl", { granularity: "grapheme" }) : null;
+  typeof Intl !== "undefined" && Intl.Segmenter ? new Intl.Segmenter("en", { granularity: "grapheme" }) : null;
 
 /** Characters as a reader counts them: an emoji or a letter with an accent is one character. */
 export function countCharacters(text) {
@@ -107,7 +107,7 @@ export function hashtags(text) {
   const seen = new Set();
   const duplicate = [];
   for (const h of list) {
-    const k = h.toLocaleLowerCase("nl");
+    const k = h.toLocaleLowerCase("en");
     if (seen.has(k) && !duplicate.includes(h)) duplicate.push(h);
     seen.add(k);
   }

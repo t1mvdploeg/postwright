@@ -26,17 +26,16 @@ export function plusDays(date, n) {
   return d.toISOString().slice(0, 10);
 }
 
-const AMSTERDAM_DAY = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Europe/Amsterdam",
+const LOCAL_DAY = new Intl.DateTimeFormat("en-CA", {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
 });
 
 /**
- * FT-26: the Amsterdam calendar day (YYYY-MM-DD) of an ISO timestamp; the list shows that
- * day, so filters use it too.
+ * The local calendar day (YYYY-MM-DD) of an ISO timestamp; the list shows that day, so
+ * filters use it too.
  */
-export function amsterdamDay(iso) {
-  return AMSTERDAM_DAY.format(new Date(iso));
+export function localDay(iso) {
+  return LOCAL_DAY.format(new Date(iso));
 }

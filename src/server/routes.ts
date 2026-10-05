@@ -79,14 +79,13 @@ const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 /** How many lines `history` keeps; the oldest drop off. */
 const MAX_HISTORY = 100;
 
-const AMSTERDAM_DATE = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam" });
+const LOCAL_DATE = new Intl.DateTimeFormat("sv-SE");
 /**
- * The calendar date (YYYY-MM-DD) in the Netherlands; same approach as
- * `kalenderdatumAmsterdam` in api.ts (not imported: api.ts imports this module, which
- * would create a cycle).
+ * The calendar date (YYYY-MM-DD) on this computer; same approach as `localToday` in
+ * `src/web/studio/recipe.js` (copied here rather than importing the whole recipe module).
  */
 function localToday(now: Date): string {
-  return AMSTERDAM_DATE.format(now);
+  return LOCAL_DATE.format(now);
 }
 
 /** Whether a fact may no longer be used: withdrawn, still a draft, or past `validUntil`. */

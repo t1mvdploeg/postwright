@@ -15,38 +15,30 @@ import { template, type Slide } from "../src/web/studio/templates.js";
 import { PostInputSchema } from "../src/server/schema.js";
 
 describe("time", () => {
-  it("gives the Dutch calendar date, also around midnight UTC", () => {
-    expect(localToday(new Date("2026-10-01T22:30:00Z"))).toBe("2026-10-02");
-    expect(localToday(new Date("2026-12-31T23:30:00Z"))).toBe("2027-01-01");
+  it("gives the local calendar date, also around midnight", () => {
+    expect(localToday(new Date("2026-10-01T23:30:00Z"))).toBe("2026-10-01");
+    expect(localToday(new Date("2026-12-31T23:59:59Z"))).toBe("2026-12-31");
+    expect(localToday(new Date("2027-01-01T00:00:00Z"))).toBe("2027-01-01");
   });
 
   it("converts a datetime-local value to a timestamp with offset and back", () => {
     const iso = withOffset("2026-10-06T08:30")!;
-    expect(iso).toMatch(/^2026-10-06T08:30:00[+-]\d{2}:\d{2}$/);
+    expect(iso).toBe("2026-10-06T08:30:00+00:00");
     expect(new Date(iso).getTime()).toBe(new Date("2026-10-06T08:30").getTime());
     expect(toLocal(iso)).toBe("2026-10-06T08:30");
     expect(withOffset("not a date")).toBeNull();
     expect(toLocal("x")).toBe("");
   });
 
-  it("reads the input as Amsterdam clock time, regardless of the time zone of the browser", () => {
-    const tz = process.env.TZ;
-    try {
-      for (const zone of ["Europe/London", "America/New_York", "Europe/Amsterdam"]) {
-        process.env.TZ = zone;
-        expect(withOffset("2026-10-06T08:30")).toBe("2026-10-06T08:30:00+02:00");
-        expect(withOffset("2026-12-01T09:00")).toBe("2026-12-01T09:00:00+01:00");
-        expect(toLocal("2026-10-06T08:30:00+02:00")).toBe("2026-10-06T08:30");
-        expect(toLocal("2026-12-01T08:00:00Z")).toBe("2026-12-01T09:00");
-      }
-    } finally {
-      if (tz === undefined) delete process.env.TZ;
-      else process.env.TZ = tz;
-    }
+  it("reads the input as the clock time of this computer", () => {
+    expect(withOffset("2026-12-01T09:00")).toBe("2026-12-01T09:00:00+00:00");
+    expect(toLocal("2026-12-01T09:00:00Z")).toBe("2026-12-01T09:00");
+    // A timestamp with another offset is shown on the local clock.
+    expect(toLocal("2026-10-06T08:30:00+02:00")).toBe("2026-10-06T06:30");
   });
 
-  it("shows a moment readably in Dutch time", () => {
-    expect(readableMoment("2026-10-06T06:30:00Z")).toMatch(/6 Oct 2026.*08:30/);
+  it("shows a moment readably in local time", () => {
+    expect(readableMoment("2026-10-06T06:30:00Z")).toMatch(/6 Oct 2026.*06:30/);
     expect(readableMoment("x")).toBe("–");
   });
 });

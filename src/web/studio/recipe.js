@@ -4,15 +4,14 @@
 import { template as templateOf, defaultContent, fieldsOf } from "./templates.js";
 import { titleFrom } from "./brand-check.js";
 
-const AMSTERDAM_DATE = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam" });
+const LOCAL_DATE = new Intl.DateTimeFormat("sv-SE");
 
-/** The calendar date (YYYY-MM-DD) in the Netherlands. */
+/** The calendar date (YYYY-MM-DD) on this computer. */
 export function localToday(now = new Date()) {
-  return AMSTERDAM_DATE.format(now);
+  return LOCAL_DATE.format(now);
 }
 
-const AMSTERDAM_CLOCK = new Intl.DateTimeFormat("sv-SE", {
-  timeZone: "Europe/Amsterdam",
+const LOCAL_CLOCK = new Intl.DateTimeFormat("sv-SE", {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -22,23 +21,23 @@ const AMSTERDAM_CLOCK = new Intl.DateTimeFormat("sv-SE", {
   hourCycle: "h23",
 });
 
-/** The Amsterdam clock time of a timestamp as "YYYY-MM-DDTHH:MM:SS". */
-function amsterdamClock(ms) {
-  return AMSTERDAM_CLOCK.format(ms).replace(" ", "T");
+/** The local clock time of a timestamp as "YYYY-MM-DDTHH:MM:SS". */
+function localClock(ms) {
+  return LOCAL_CLOCK.format(ms).replace(" ", "T");
 }
 
 /**
  * A clock time from a `datetime-local` field ("2026-10-06T08:30") as an ISO timestamp with
- * the Amsterdam offset ("2026-10-06T08:30:00+02:00"), regardless of the browser's time
- * zone. That way the server stores both the intended clock time and the correct moment,
- * even across the switch from summer to winter time.
+ * the local offset ("2026-10-06T08:30:00+02:00" in a zone two hours ahead of UTC). That way
+ * the server stores both the intended clock time and the correct moment, even across a
+ * daylight saving change.
  */
 export function withOffset(local) {
   const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/.exec(local ?? "");
   if (!m) return null;
   const wall = Date.parse(`${m[1]}T${m[2]}:${m[3]}:00Z`);
   if (Number.isNaN(wall)) return null;
-  const offsetAt = (ms) => Math.round((Date.parse(`${amsterdamClock(ms)}Z`) - ms) / 60000);
+  const offsetAt = (ms) => Math.round((Date.parse(`${localClock(ms)}Z`) - ms) / 60000);
   let min = offsetAt(wall);
   min = offsetAt(wall - min * 60000);
   const render = min >= 0 ? "+" : "-";
@@ -46,19 +45,18 @@ export function withOffset(local) {
   return `${m[1]}T${m[2]}:${m[3]}:00${render}${p(Math.trunc(min / 60))}:${p(min % 60)}`;
 }
 
-/** An ISO timestamp back to the value of a `datetime-local` field, in Amsterdam time. */
+/** An ISO timestamp back to the value of a `datetime-local` field, in local time. */
 export function toLocal(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return amsterdamClock(d.getTime()).slice(0, 16);
+  return localClock(d.getTime()).slice(0, 16);
 }
 
-/** Date and time readable, in Amsterdam time: "Tue 6 Oct 2026, 08:30". */
+/** Date and time readable, in local time: "Tue 6 Oct 2026, 08:30". */
 export function readableMoment(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "–";
   return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Amsterdam",
     weekday: "short",
     day: "numeric",
     month: "short",

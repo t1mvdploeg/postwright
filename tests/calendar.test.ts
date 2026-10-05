@@ -32,18 +32,19 @@ describe("calendar", () => {
     expect(isoWeek("2027-01-04")).toEqual({ year: 2027, week: 1 });
   });
 
-  it("is rescheduled to another day with the same clock time, also across the change to winter time", () => {
-    const summer = "2026-10-23T08:30:00+02:00";
-    const winter = rescheduleToDay(summer, "2026-10-27")!;
-    expect(winter).toBe("2026-10-27T08:30:00+01:00");
-    expect(dayOf(winter)).toBe("2026-10-27");
+  it("is rescheduled to another day with the same clock time, also across midnight and a month boundary", () => {
+    const evening = "2026-10-30T23:30:00+00:00";
+    const moved = rescheduleToDay(evening, "2026-11-02")!;
+    expect(moved).toBe("2026-11-02T23:30:00+00:00");
+    expect(dayOf(evening)).toBe("2026-10-30");
+    expect(dayOf(moved)).toBe("2026-11-02");
     expect(nextMonth(2026, 11, 1)).toEqual({ year: 2027, month: 0 });
     expect(nextMonth(2026, 0, -1)).toEqual({ year: 2025, month: 11 });
   });
 });
 
 describe("upcomingWeeks", () => {
-  it("starts at the Monday of this week and runs across winter time", () => {
+  it("starts at the Monday of this week and runs across a month boundary", () => {
     expect(upcomingWeeks("2026-10-21", 2)).toEqual([
       { year: 2026, week: 43, monday: "2026-10-19", sunday: "2026-10-25" },
       { year: 2026, week: 44, monday: "2026-10-26", sunday: "2026-11-01" },
@@ -86,7 +87,7 @@ describe("defaultCount", () => {
 });
 
 describe("workdayCount", () => {
-  it("counts Monday to Friday, also across winter time and the new year", () => {
+  it("counts Monday to Friday, also across a month boundary and the new year", () => {
     expect(workdayCount("2026-10-05", "2026-10-11")).toBe(5);
     expect(workdayCount("2026-10-10", "2026-10-11")).toBe(0);
     expect(workdayCount("2026-10-14", "2026-10-14")).toBe(1);
@@ -107,16 +108,15 @@ describe("realDate and plusDays", () => {
     expect(realDate("2026-10-00")).toBe(false);
     expect(realDate("6-10-2026")).toBe(false);
   });
-  it("adds days to dates, across winter time and the year boundary", () => {
+  it("adds days to dates, across a month boundary and the year boundary", () => {
     expect(plusDays("2026-10-24", 2)).toBe("2026-10-26");
     expect(plusDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(plusDays("2026-03-01", -1)).toBe("2026-02-28");
   });
 
-  // Final review B3, round 2, fix 8: `calendar.js` now re-exports these two from the new,
-  // DOM-free `web/date.js` (split off so that the Invoicing screens and `company.js` do not
-  // have to load the whole marketing studio module graph) — literally the same function, no
-  // second implementation.
+  // `calendar.js` re-exports these two from the DOM-free `web/date.js` (split off so that
+  // other screens do not have to load the whole studio module graph): literally the same
+  // function, no second implementation.
   it("are literally the functions from web/date.js", async () => {
     const date = await import("../src/web/date.js");
     expect(realDate).toBe(date.realDate);
@@ -124,18 +124,18 @@ describe("realDate and plusDays", () => {
   });
 });
 
-// "Last publication" on the Overview counts in calendar days in the Netherlands (final
-// review, A8).
+// "Last publication" on the Overview counts in local calendar days.
 describe("daysAgo", () => {
   it("yesterday 23.00 counts as yesterday at 08.00, not as today", () => {
-    // 23 September 23:00 summer time is 21:00 UTC; 24 September 08:00 is 06:00 UTC.
-    expect(daysAgo("2026-09-23T21:00:00Z", new Date("2026-09-24T06:00:00Z"))).toBe(1);
+    expect(daysAgo("2026-09-23T23:00:00Z", new Date("2026-09-24T08:00:00Z"))).toBe(1);
     expect(daysAgo("2026-09-24T06:30:00Z", new Date("2026-09-24T21:00:00Z"))).toBe(0);
-    // Midnight in the Netherlands is 22:00 UTC: 23:30 UTC on the 23rd is already the 24th.
-    expect(daysAgo("2026-09-23T22:30:00Z", new Date("2026-09-24T06:00:00Z"))).toBe(0);
+    // A day boundary: 23:59 and 00:01 are different days, 00:00 and 23:59 are the same day.
+    expect(daysAgo("2026-09-23T23:59:00Z", new Date("2026-09-24T00:01:00Z"))).toBe(1);
+    expect(daysAgo("2026-09-24T00:00:00Z", new Date("2026-09-24T23:59:00Z"))).toBe(0);
   });
-  it("counts across the change to winter time in whole days", () => {
+  it("counts in whole days across a month boundary", () => {
     expect(daysAgo("2026-10-24T10:00:00Z", new Date("2026-10-26T10:00:00Z"))).toBe(2);
     expect(daysAgo("2026-09-01T10:00:00Z", new Date("2026-09-24T10:00:00Z"))).toBe(23);
+    expect(daysAgo("2026-09-28T10:00:00Z", new Date("2026-10-02T10:00:00Z"))).toBe(4);
   });
 });

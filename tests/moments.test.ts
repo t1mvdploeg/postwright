@@ -67,7 +67,7 @@ describe("allMoments", () => {
     }
   });
 
-  it("counts days on calendar dates, also across winter time and the year boundary", () => {
+  it("counts days on calendar dates, also across a month and the year boundary", () => {
     expect(plusDays("2026-10-24", 2)).toBe("2026-10-26");
     expect(plusDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(plusDays("2026-03-01", -1)).toBe("2026-02-28");
