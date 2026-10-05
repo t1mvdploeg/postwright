@@ -156,6 +156,7 @@ export async function show(container, ctx) {
     el("div", { class: "field" }, [el("label", { for: "period-wish", text: "Wish (optional)" }), wishField]),
     el("div", { class: "button-row" }, [help.ask, help.cancel]),
     help.off,
+    help.hint,
   ]);
 
   const periodCard = el("section", { class: "card studio-period", "aria-labelledby": "period-headline" }, [

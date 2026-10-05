@@ -412,7 +412,7 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
  * renders the planning.
  *
  * Returns the buttons (`question`, `cancel`), the help line when the AI help is off
- * (`off`) and the block with the outcome (`element`) separately, so that the planning puts
+ * (`off`), the hint to add a company profile when it is empty (`hint`) and the block with the outcome (`element`) separately, so that the planning puts
  * them in the period panel.
  */
 export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
@@ -426,6 +426,14 @@ export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
         el("a", { href: "#settings", text: "Turn it on under Settings" }),
         ".",
       ]);
+  const hasProfile = Object.values(ctx.settings.profile ?? {}).some((v) => String(v).trim());
+  const hint =
+    enabled && !hasProfile
+      ? el("p", { class: "help-text" }, [
+          el("a", { href: "#settings", text: "Add a company profile in Settings" }),
+          " for ideas that fit your sector.",
+        ])
+      : null;
   const mode = el("p", { class: "help-text", role: "status", "aria-live": "polite" });
   const list = el("div", { class: "studio-variants" });
   const bar = el("div");
@@ -580,5 +588,5 @@ export function suggestionsPanel({ ctx, request, momentTitle, afterSave }) {
     ask.focus();
   });
 
-  return { ask, cancel, off, element: el("div", { class: "studio-suggestions" }, [mode, bar, list, actions]) };
+  return { ask, cancel, off, hint, element: el("div", { class: "studio-suggestions" }, [mode, bar, list, actions]) };
 }
