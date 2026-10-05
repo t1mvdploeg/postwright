@@ -361,10 +361,10 @@ describe("settings and overview", () => {
     const initial = await ask(`${API}/settings`);
     expect(initial.body.channels).toEqual(["linkedin"]);
     expect(initial.body.writingHelp).toEqual({ enabled: true, capUsdPerMonth: 10 });
-    const isNew = { ...initial.body, channels: ["linkedin", "instagram"], bannedWords: ["free"] };
-    expect((await ask(`${API}/settings`, { method: "PUT", body: isNew })).status).toBe(200);
+    const changed = { ...initial.body, channels: ["linkedin", "instagram"], bannedWords: ["free"] };
+    expect((await ask(`${API}/settings`, { method: "PUT", body: changed })).status).toBe(200);
     expect((await ask(`${API}/settings`)).body.channels).toEqual(["linkedin", "instagram"]);
-    expect((await ask(`${API}/settings`, { method: "PUT", body: { ...isNew, channels: ["tiktok"] } })).status).toBe(
+    expect((await ask(`${API}/settings`, { method: "PUT", body: { ...changed, channels: ["tiktok"] } })).status).toBe(
       400,
     );
   });

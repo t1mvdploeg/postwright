@@ -75,7 +75,7 @@ function showGallery(container, ctx) {
       el("a", {
         class: "button",
         href: `#editor/new/${s.id}`,
-        text: `${s.name} – use`,
+        text: `Use ${s.name}`,
         "aria-label": `New post with template ${s.name}`,
       }),
     ]);
@@ -933,7 +933,7 @@ async function showEditor(container, ctx, begin) {
     button.addEventListener("click", async () => {
       try {
         const goal = templateOf(choice.value);
-        const isNew = await ctx.api("/api/posts", {
+        const created = await ctx.api("/api/posts", {
           method: "POST",
           body: toInput(
             convert(state.post, goal.id, { enabledFormats: ctx.settings.formats, brandVersion: ctx.brand.version }),
@@ -942,7 +942,7 @@ async function showEditor(container, ctx, begin) {
           ),
         });
         notice(`New post as ${goal.name} created; the original is unchanged`);
-        ctx.navigate(`#editor/${isNew.id}`);
+        ctx.navigate(`#editor/${created.id}`);
       } catch (e) {
         notice(e.message, "error");
       }
@@ -1024,8 +1024,8 @@ async function showEditor(container, ctx, begin) {
       const x = statusHolder.querySelector(`#${CSS.escape(id)}`);
       if (x) x.value = value;
     }
-    const resolve = statusHolder.querySelector("details.studio-done");
-    if (doneOpen && resolve) resolve.open = true;
+    const doneSection = statusHolder.querySelector("details.studio-done");
+    if (doneOpen && doneSection) doneSection.open = true;
   }
 
   function buildStatus() {

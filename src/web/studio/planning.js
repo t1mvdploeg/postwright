@@ -227,8 +227,8 @@ export async function show(container, ctx) {
    * A period from outside the fields (click in the month, an empty week, Clear selection): an
    * old field error no longer applies then.
    */
-  function setPeriod(isNew) {
-    period = isNew;
+  function setPeriod(updated) {
+    period = updated;
     fieldError(fromField, "");
     fieldError(toField, "");
     render();
@@ -257,9 +257,9 @@ export async function show(container, ctx) {
   async function rescheduleIdea(i, date) {
     try {
       const { id, created: _a, updated: _g, ...rest } = i;
-      const isNew = await ctx.api(`/api/ideas/${id}`, { method: "PUT", body: { ...rest, date } });
-      ideas = ideas.map((x) => (x.id === id ? isNew : x));
-      panel.updated(isNew);
+      const updated = await ctx.api(`/api/ideas/${id}`, { method: "PUT", body: { ...rest, date } });
+      ideas = ideas.map((x) => (x.id === id ? updated : x));
+      panel.updated(updated);
       notice(`Idea rescheduled to ${shortDay(date)}`);
       render();
     } catch (e) {
@@ -302,11 +302,11 @@ export async function show(container, ctx) {
 
   async function reschedule(p, iso) {
     try {
-      const isNew = await ctx.api(`/api/posts/${p.id}/status`, {
+      const updated = await ctx.api(`/api/posts/${p.id}/status`, {
         method: "POST",
         body: { target: "scheduled", scheduled: iso },
       });
-      Object.assign(p, isNew);
+      Object.assign(p, updated);
       notice(`Rescheduled to ${readableMoment(iso)}`);
       render();
     } catch (e) {
@@ -538,7 +538,7 @@ export async function show(container, ctx) {
         class: "studio-day-number studio-day-picker",
         "data-date": date,
         "aria-pressed": String(inPeriod),
-        "aria-label": `${longDay(date)} ${inPeriod ? "belongs to" : "add to"} the period`,
+        "aria-label": `${longDay(date)}, ${inPeriod ? "in the period" : "add to the period"}`,
         text: String(Number(date.slice(8))),
       });
       // Shift-click would otherwise select text in the table; chooseDay sets the focus itself.
@@ -777,11 +777,11 @@ export async function show(container, ctx) {
               onclick: async () => {
                 try {
                   const { id: _i, created: _a, updated: _g, ...rest } = c;
-                  const isNew = await ctx.api(`/api/campaigns/${c.id}`, {
+                  const updated = await ctx.api(`/api/campaigns/${c.id}`, {
                     method: "PUT",
                     body: { ...rest, archived: !c.archived },
                   });
-                  campaigns = campaigns.map((x) => (x.id === c.id ? isNew : x));
+                  campaigns = campaigns.map((x) => (x.id === c.id ? updated : x));
                   renderCampaigns();
                 } catch (e) {
                   notice(e.message, "error");

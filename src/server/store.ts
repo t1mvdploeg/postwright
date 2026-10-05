@@ -133,9 +133,9 @@ export async function updatePost(
         "This post was changed in another window in the meantime. Reload it before you save.",
       );
     }
-    const isNew = { ...change(structuredClone(current)), id, version: current.version + 1 };
-    await writeJsonAtomic(postPath(o, id), isNew);
-    return isNew;
+    const next = { ...change(structuredClone(current)), id, version: current.version + 1 };
+    await writeJsonAtomic(postPath(o, id), next);
+    return next;
   });
 }
 

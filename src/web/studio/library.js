@@ -70,8 +70,8 @@ export async function show(container, ctx) {
 
   async function setStatus(p, target) {
     try {
-      const isNew = await ctx.api(`/api/posts/${p.id}/status`, { method: "POST", body: { target } });
-      Object.assign(p, isNew);
+      const updated = await ctx.api(`/api/posts/${p.id}/status`, { method: "POST", body: { target } });
+      Object.assign(p, updated);
       render();
     } catch (e) {
       notice(e.message, "error");

@@ -164,11 +164,11 @@ describe("writingHelp", () => {
     const error = await ask(`${API}/writing-help`, request([]));
     expect(error.status).toBe(502);
     expect(error.body).not.toHaveProperty("sample");
-    const isNew = bookings().slice(before);
-    expect(isNew).toHaveLength(2);
-    expect(isNew[0]).toMatchObject({ task: "writingHelp:fields", model: "claude-sonnet-5-5", ok: true });
-    expect(isNew[0].usd).toBeCloseTo(0.0007, 8); // 100 in and 50 out at $ 2 and $ 10 per million
-    expect(isNew[1]).toMatchObject({ ok: false });
+    const added = bookings().slice(before);
+    expect(added).toHaveLength(2);
+    expect(added[0]).toMatchObject({ task: "writingHelp:fields", model: "claude-sonnet-5-5", ok: true });
+    expect(added[0].usd).toBeCloseTo(0.0007, 8); // 100 in and 50 out at $ 2 and $ 10 per million
+    expect(added[1]).toMatchObject({ ok: false });
   });
 
   it("stops at the monthly cap", async () => {

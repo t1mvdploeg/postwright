@@ -173,13 +173,13 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
   async function save() {
     if (!runCheck()) return null;
     const body = input();
-    const isNew = idea.id
+    const response = idea.id
       ? await ctx.api(`/api/ideas/${idea.id}`, { method: "PUT", body })
       : await ctx.api("/api/ideas", { method: "POST", body });
-    idea = { ...isNew };
+    idea = { ...response };
     begin = form();
-    saved(isNew);
-    return isNew;
+    saved(response);
+    return response;
   }
 
   /**
@@ -387,12 +387,12 @@ export function ideaPanel({ ctx, state, saved, deleted, fallback }) {
      * An idea was rescheduled outside the panel (drag): adopt the new date, leave the rest of
      * the form alone.
      */
-    updated(isNew) {
-      if (!idea || idea.id !== isNew.id) return;
-      idea = { ...isNew };
-      date.value = isNew.date;
+    updated(response) {
+      if (!idea || idea.id !== response.id) return;
+      idea = { ...response };
+      date.value = response.date;
       // The new date is saved; the rest of what was typed remains unsaved.
-      if (begin) begin.date = isNew.date;
+      if (begin) begin.date = response.date;
       fieldError(date, "");
     },
     /**

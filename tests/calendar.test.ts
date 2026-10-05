@@ -68,11 +68,11 @@ describe("choosePeriod", () => {
     expect(choosePeriod(first, "2026-10-02")).toEqual({ from: "2026-10-02", to: "2026-10-14" });
   });
   it("a click on a whole period starts over; shift extends, also across a month boundary", () => {
-    const integer = { from: "2026-10-14", to: "2026-10-20" };
-    expect(choosePeriod(integer, "2026-10-16")).toEqual({ from: "2026-10-16", to: null });
-    expect(choosePeriod(integer, "2026-11-03", { extend: true })).toEqual({ from: "2026-10-14", to: "2026-11-03" });
-    expect(choosePeriod(integer, "2026-10-01", { extend: true })).toEqual({ from: "2026-10-01", to: "2026-10-20" });
-    expect(choosePeriod(integer, "2026-10-16", { extend: true })).toEqual(integer);
+    const whole = { from: "2026-10-14", to: "2026-10-20" };
+    expect(choosePeriod(whole, "2026-10-16")).toEqual({ from: "2026-10-16", to: null });
+    expect(choosePeriod(whole, "2026-11-03", { extend: true })).toEqual({ from: "2026-10-14", to: "2026-11-03" });
+    expect(choosePeriod(whole, "2026-10-01", { extend: true })).toEqual({ from: "2026-10-01", to: "2026-10-20" });
+    expect(choosePeriod(whole, "2026-10-16", { extend: true })).toEqual(whole);
     expect(choosePeriod(empty, "2026-10-16", { extend: true })).toEqual({ from: "2026-10-16", to: null });
   });
 });

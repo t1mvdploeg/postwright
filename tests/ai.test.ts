@@ -124,7 +124,7 @@ describe("cost and usage", () => {
     afterEach(() => {
       while (folders.length) rmSync(folders.pop()!, { recursive: true, force: true });
     });
-    const isNew = () => {
+    const tempFolder = () => {
       const d = mkdtempSync(join(tmpdir(), "pw-ai-"));
       folders.push(d);
       return d;
@@ -138,7 +138,7 @@ describe("cost and usage", () => {
     });
 
     it("writes to ai-usage.jsonl and counts only the current month", async () => {
-      const d = isNew();
+      const d = tempFolder();
       expect(await monthTotalUsd(d, new Date("2026-10-05T12:00:00Z"))).toBe(0);
       await book(d, line("2026-09-30T23:59:59Z", 5));
       await book(d, line("2026-10-01T00:00:00Z", 1.5));
@@ -153,14 +153,14 @@ describe("cost and usage", () => {
     const NOW = new Date("2026-10-05T12:00:00Z");
 
     it("ignores only a last, unfinished line (a crashed process)", async () => {
-      const d = isNew();
+      const d = tempFolder();
       await book(d, line("2026-10-01T00:00:00Z", 2));
       appendFileSync(filePath(d), '{"timestamp":"2026-10-0');
       expect(await monthTotalUsd(d, NOW)).toBeCloseTo(2);
     });
 
     it("record starts on a new line if the file does not end with a line break", async () => {
-      const d = isNew();
+      const d = tempFolder();
       await book(d, line("2026-10-01T00:00:00Z", 2));
       appendFileSync(filePath(d), '{"timestamp":"2026-10-0');
       await book(d, line("2026-10-02T00:00:00Z", 3));
@@ -171,7 +171,7 @@ describe("cost and usage", () => {
     });
 
     it("refuses (500) an unreadable line in the middle of the file, with file and line number", async () => {
-      const d = isNew();
+      const d = tempFolder();
       await book(d, line("2026-10-01T00:00:00Z", 2));
       appendFileSync(filePath(d), "{broken\n");
       await book(d, line("2026-10-02T00:00:00Z", 3));
@@ -188,7 +188,7 @@ describe("cost and usage", () => {
       ["no timestamp", '{"usd":1}'],
       ["not an object", "[1]"],
     ])("refuses (500) a line with %s, even if it is the last", async (_name, content) => {
-      const d = isNew();
+      const d = tempFolder();
       writeFileSync(filePath(d), content + "\n");
       await expect(monthTotalUsd(d, NOW)).rejects.toMatchObject({
         status: 500,

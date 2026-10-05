@@ -105,8 +105,8 @@ describe("PUT /api/settings", () => {
 
   it("just saves if the file is missing or in order", async () => {
     const { ask } = await start();
-    const isNew = { ...DEFAULT_SETTINGS, defaultHashtags: "#other" };
-    expect((await ask("/api/settings", "PUT", isNew)).status).toBe(200);
+    const changed = { ...DEFAULT_SETTINGS, defaultHashtags: "#other" };
+    expect((await ask("/api/settings", "PUT", changed)).status).toBe(200);
     expect((await ask("/api/settings", "PUT", DEFAULT_SETTINGS)).status).toBe(200);
   });
 });

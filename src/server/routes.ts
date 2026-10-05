@@ -219,8 +219,8 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
         const line = await updateList<T, T>(shared, list, (lines) => {
           options.runCheck?.(input, lines, null);
           if (lines.length >= 500) throw new ApiError(409, `There are already 500 ${list}; clear some out first`);
-          const isNew = { ...input, id: newListId(list), created: now, updated: now } as unknown as T;
-          return { lines: [...lines, isNew], outcome: isNew };
+          const item = { ...input, id: newListId(list), created: now, updated: now } as unknown as T;
+          return { lines: [...lines, item], outcome: item };
         });
         return response({ status: 201, body: line });
       }),
@@ -231,10 +231,10 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
           const i = lines.findIndex((r) => r.id === id);
           if (i < 0) throw new ApiError(404, `${options.name[0].toUpperCase()}${options.name.slice(1)} not found`);
           options.runCheck?.(input, lines, id);
-          const isNew = { ...lines[i], ...input, id, updated: new Date().toISOString() } as T;
+          const item = { ...lines[i], ...input, id, updated: new Date().toISOString() } as T;
           const copy = [...lines];
-          copy[i] = isNew;
-          return { lines: copy, outcome: isNew };
+          copy[i] = item;
+          return { lines: copy, outcome: item };
         });
         return line;
       }),
@@ -270,7 +270,7 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
    */
   async function fillPosts(settings: Settings, brand: Brand): Promise<number> {
     const [existing, facts] = await Promise.all([listPosts(shared), readList<Fact>(shared, "facts")]);
-    let isNew = 0;
+    let added = 0;
     for (const s of SAMPLE_POSTS) {
       const tpl = templateOf(s.template);
       if (!tpl || existing.some((p) => p.title === s.title)) continue;
@@ -327,9 +327,9 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       } catch (e) {
         toApiError(e);
       }
-      isNew++;
+      added++;
     }
-    return isNew;
+    return added;
   }
 
   /**
@@ -693,10 +693,10 @@ export function createRoutes(o: { dataDir: string; provider?: AiProvider }): Rou
       ) =>
         updateList<T, number>(shared, list, (lines) => {
           const existing = new Set(lines.map((r) => r.text));
-          const isNew = source.filter((b) => !existing.has(b.text)).map(create);
-          if (lines.length + isNew.length > 500)
+          const added = source.filter((b) => !existing.has(b.text)).map(create);
+          if (lines.length + added.length > 500)
             throw new ApiError(409, `No more than 500 ${list} fit in the studio; clear some out first`);
-          return { lines: [...lines, ...isNew], outcome: isNew.length };
+          return { lines: [...lines, ...added], outcome: added.length };
         });
       const facts = await fill<SampleFact, Fact>("facts", SAMPLE_FACTS, (f) => ({
         ...f,

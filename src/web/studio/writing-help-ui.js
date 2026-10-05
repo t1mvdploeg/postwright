@@ -160,7 +160,7 @@ export function writingHelpPanel({
   });
   cancel.addEventListener("click", () => abort?.abort());
 
-  const element = el("details", { class: "block studio-writingHelp" }, [
+  const element = el("details", { class: "block studio-writing-help" }, [
     el("summary", { text: "Writing help" }),
     el("div", { class: "block-content" }, [
       el("p", {
