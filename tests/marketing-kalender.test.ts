@@ -14,7 +14,6 @@ import {
   verzetNaarDag,
   volgendeMaand,
 } from "../src/web/marketing/kalender.js";
-import { plusDagen as plusDagenModel } from "../src/model/marketing-momenten.js";
 
 describe("kalender", () => {
   it("bouwt een maand van maandag tot zondag met aangevulde dagen", () => {
@@ -112,9 +111,6 @@ describe("echteDatum en plusDagen", () => {
     expect(plusDagen("2026-10-24", 2)).toBe("2026-10-26");
     expect(plusDagen("2026-12-31", 1)).toBe("2027-01-01");
     expect(plusDagen("2026-03-01", -1)).toBe("2026-02-28");
-  });
-  it("is dezelfde functie als die de server en de tests uit marketing-momenten halen", () => {
-    expect(plusDagenModel).toBe(plusDagen);
   });
 
   // Eindreview B3, ronde 2, fix 8: `kalender.js` re-exporteert deze twee nu vanuit het nieuwe,

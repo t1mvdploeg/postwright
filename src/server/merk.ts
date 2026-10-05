@@ -48,6 +48,6 @@ export async function laadMerk(dataDir: string, ingebouwd: string = INGEBOUWD): 
 }
 
 /** `GET /api/merk`: het actieve merk. De bestanden erbij staan onder `/marketing/merk/`, zie `merkMap`. */
-export function merkRoutes(o: { dataDir: string; ingebouwd?: string }): Route[] {
-  return [route("GET", "/api/merk", () => laadMerk(o.dataDir, o.ingebouwd))];
+export function merkRoutes(o: { dataDir: string }): Route[] {
+  return [route("GET", "/api/merk", () => laadMerk(o.dataDir))];
 }

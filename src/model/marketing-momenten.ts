@@ -38,6 +38,3 @@ export function alleMomenten(van: string, tot: string, eigen: Moment[] = []): Mo
     .filter((m) => m.datum >= van && m.datum <= tot)
     .sort((a, b) => a.datum.localeCompare(b.datum) || a.sleutel.localeCompare(b.sleutel));
 }
-
-// Eén versie voor server en browser; hier her-geëxporteerd omdat de routes en tests hem hier halen.
-export { plusDagen } from "../web/marketing/kalender.js";

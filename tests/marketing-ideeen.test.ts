@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
-import { plusDagen } from "../src/model/marketing-momenten.js";
+import { plusDagen } from "../src/web/marketing/kalender.js";
 import {
   ideeenInstructie,
   IdeeenVoorstelSchema,

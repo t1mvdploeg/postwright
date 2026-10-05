@@ -2,13 +2,9 @@ import { mkdir, open, readdir, readFile, rename, unlink } from "node:fs/promises
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { randomUUID } from "node:crypto";
 
-function dataDir(): string {
-  return process.env.POSTWRIGHT_DATA_DIR ?? join(process.cwd(), "data");
-}
-
-/** Waar de gegevens staan. `dir` is de datamap; zonder `dir` geldt `POSTWRIGHT_DATA_DIR` of `./data`. */
+/** Waar de gegevens staan: `dir` is de datamap (die `start.ts` bepaalt). */
 export interface Opslag {
-  dir?: string;
+  dir: string;
 }
 
 /**
@@ -16,8 +12,8 @@ export interface Opslag {
  * dat buiten de datamap uitkomt (bijvoorbeeld door `..` in een id) wordt geweigerd, zodat één
  * vergeten validatie in een route een fout geeft in plaats van een bestand elders.
  */
-export function pad(o: Opslag | undefined, ...delen: string[]): string {
-  const wortel = o?.dir ?? dataDir();
+export function pad(o: Opslag, ...delen: string[]): string {
+  const wortel = o.dir;
   const p = join(wortel, ...delen);
   const rel = relative(wortel, p);
   if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error("Pad valt buiten de datamap");

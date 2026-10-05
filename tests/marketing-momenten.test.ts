@@ -3,7 +3,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { alleMomenten, plusDagen, type Moment } from "../src/model/marketing-momenten.js";
+import { alleMomenten, type Moment } from "../src/model/marketing-momenten.js";
+import { plusDagen } from "../src/web/marketing/kalender.js";
 import { leesEigenMomenten } from "../src/server/api-marketing.js";
 import { FeitInvoerSchema } from "../src/model/marketing-schema.js";
 import { startStudio } from "./helpers/studio.js";
