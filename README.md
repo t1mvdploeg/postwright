@@ -45,11 +45,11 @@ Open `http://127.0.0.1:4173` and choose **Add sample content** on the overview. 
 
 ## What it does
 
-- **Templates.** Nine built in, from a statement to a carousel and a LinkedIn banner, in ten formats from a LinkedIn square to an Instagram story. Plus your own, made from your old posts.
+- **Templates.** Nine built in, from a statement to a carousel and a LinkedIn banner, in ten formats from a LinkedIn square to an Instagram story. Plus your own, made from your old posts. Up to 20 slides per post, each its own template.
 - **Brand check.** Text that runs out of its box, contrast below WCAG, banned words, a missing alt text, and any number without an active fact behind it. Errors block scheduling.
 - **Facts and snippets.** A fact bank with a source and an optional end date per claim, and reusable openers, closers and hashtags.
 - **Planning.** Weeks and months, campaigns with UTM tags, AI ideas for a period, and a calendar export (`.ics`).
-- **Export.** PNG or JPEG per format, a ZIP with every format and the captions, and a PDF for a LinkedIn carousel.
+- **Export.** PNG or JPEG per format and slide, a ZIP with every format and the captions, and a LinkedIn PDF for carousels and multi-slide posts.
 - **Projects.** One per brand, each a full workspace with its own posts, facts, templates, company profile and settings.
 - **Everywhere.** Light and dark mode, and it works on a phone.
 
