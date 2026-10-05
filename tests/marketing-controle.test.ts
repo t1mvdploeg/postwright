@@ -5,7 +5,6 @@ import { haalGetallen, ongedekteGetallen } from "../src/web/marketing/getallen.j
 import { contrastVerhouding, contrastenOp, GRONDEN } from "../src/web/marketing/kleur.js";
 import { bevatWoord, controleer, feitBruikbaar, tekstenVan, titelUit } from "../src/web/marketing/merkcontrole.js";
 import { sjabloon } from "../src/web/marketing/sjablonen.js";
-import { contrastVerhouding as serverContrast } from "../src/server/api-huisstijl.js";
 import { feitOnbruikbaar } from "../src/server/api-marketing.js";
 import { STANDAARD_MARKETING_INSTELLINGEN } from "../src/model/marketing-schema.js";
 
@@ -17,7 +16,7 @@ describe("posttekst", () => {
   });
 
   it("telt op X elke link als 23 tekens", () => {
-    expect(lengteVoor("x", "Lees meer: https://mijntarieftool.nl/?utm_source=x&utm_medium=social")).toBe("Lees meer: ".length + 23);
+    expect(lengteVoor("x", "Lees meer: https://example.com/?utm_source=x&utm_medium=social")).toBe("Lees meer: ".length + 23);
     expect(lengteVoor("linkedin", "https://a.nl")).toBe(12);
   });
 
@@ -39,11 +38,11 @@ describe("posttekst", () => {
   });
 
   it("zet UTM op een https-link en laat bestaande parameters en het anker staan", () => {
-    expect(voegUtmToe("https://mijntarieftool.nl/?ref=a#demo", { bron: "linkedin", medium: "social", campagne: "najaar", inhoud: "p-1" }))
-      .toBe("https://mijntarieftool.nl/?ref=a&utm_source=linkedin&utm_medium=social&utm_campaign=najaar&utm_content=p-1#demo");
-    expect(voegUtmToe("https://mijntarieftool.nl/?utm_source=oud", { bron: "x" })).toBe("https://mijntarieftool.nl/?utm_source=x");
+    expect(voegUtmToe("https://example.com/?ref=a#demo", { bron: "linkedin", medium: "social", campagne: "najaar", inhoud: "p-1" }))
+      .toBe("https://example.com/?ref=a&utm_source=linkedin&utm_medium=social&utm_campaign=najaar&utm_content=p-1#demo");
+    expect(voegUtmToe("https://example.com/?utm_source=oud", { bron: "x" })).toBe("https://example.com/?utm_source=x");
     expect(voegUtmToe("javascript:alert(1)", { bron: "x" })).toBeNull();
-    expect(voegUtmToe("http://mijntarieftool.nl", { bron: "x" })).toBeNull();
+    expect(voegUtmToe("http://example.com", { bron: "x" })).toBeNull();
     expect(voegUtmToe("geen url", {})).toBeNull();
     expect(linksZonderUtm("a https://a.nl/?utm_source=x b https://b.nl/c")).toEqual(["https://b.nl/c"]);
   });
@@ -58,8 +57,8 @@ describe("posttekst", () => {
 
 describe("zetUtmInhoud", () => {
   it("zet utm_content alleen in links met utm_source en laat leestekens erbuiten", () => {
-    const t = "Zie https://mijntarieftool.nl/?utm_source=linkedin. En https://example.org/pad, ook (https://x.nl/?utm_source=x&utm_content=oud).";
-    expect(zetUtmInhoud(t, "p-1")).toBe("Zie https://mijntarieftool.nl/?utm_source=linkedin&utm_content=p-1. En https://example.org/pad, ook (https://x.nl/?utm_source=x&utm_content=p-1).");
+    const t = "Zie https://example.com/?utm_source=linkedin. En https://example.org/pad, ook (https://x.nl/?utm_source=x&utm_content=oud).";
+    expect(zetUtmInhoud(t, "p-1")).toBe("Zie https://example.com/?utm_source=linkedin&utm_content=p-1. En https://example.org/pad, ook (https://x.nl/?utm_source=x&utm_content=p-1).");
   });
   it("laat tekst zonder links, lege tekst en kapotte links ongemoeid", () => {
     expect(zetUtmInhoud("geen link hier", "p-1")).toBe("geen link hier");
@@ -95,13 +94,13 @@ describe("getallen", () => {
   });
 
   it("ziet cijfers in een link (UTM met post-id) niet als claim (reviewbevinding 3)", () => {
-    expect(waarden("Lees meer: https://mijntarieftool.nl/?utm_source=linkedin&utm_content=p-3fa2c1d0-7731-4821-9a0b-000000000000 en 40 uur")).toEqual([["getal", 40]]);
+    expect(waarden("Lees meer: https://example.com/?utm_source=linkedin&utm_content=p-3fa2c1d0-7731-4821-9a0b-000000000000 en 40 uur")).toEqual([["getal", 40]]);
     expect(waarden("Zie http://voorbeeld.nl/2026/10/artikel-1234")).toEqual([]);
   });
 
   it("slaat losse telwoorden, jaartallen en tekst zonder cijfers over", () => {
     expect(waarden("in 4 stappen, per 1 juli 2026")).toEqual([]);
-    expect(waarden("mijntarieftool.nl")).toEqual([]);
+    expect(waarden("example.com")).toEqual([]);
     expect(waarden("Stap 3 van 4")).toEqual([]);
     expect(waarden("acht procent")).toEqual([]);
   });
@@ -114,9 +113,13 @@ describe("getallen", () => {
 });
 
 describe("contrast", () => {
-  it("rekent hetzelfde als de server", () => {
-    const paren = [["#ffffff", "#245cf0"], ["#10243e", "#eaf2ff"], ["#55b6ff", "#10243e"], ["#000000", "#ffffff"], ["#5a6b84", "#f6f8fd"], ["#cfe2ff", "#245cf0"], ["#123456", "#654321"], ["#ff0000", "#00ff00"], ["#eeeeee", "#dddddd"], ["#1748c9", "#fdf1dc"]];
-    for (const [a, b] of paren) expect(contrastVerhouding(a, b), `${a}/${b}`).toBe(serverContrast(a, b));
+  it("rekent de WCAG-verhouding uit, in beide richtingen", () => {
+    expect(contrastVerhouding("#000000", "#ffffff")).toBe(21);
+    expect(contrastVerhouding("#ffffff", "#000000")).toBe(21);
+    expect(contrastVerhouding("#777777", "#777777")).toBe(1);
+    // Wit op #767676 is de bekende grens van 4,5:1.
+    expect(contrastVerhouding("#ffffff", "#767676")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastVerhouding("#ffffff", "#777777")).toBeLessThan(4.5);
   });
 
   it("haalt op elke ondergrond van de kit de drempels", () => {
@@ -133,7 +136,7 @@ describe("merkcontrole", () => {
   const basis = {
     sjabloon: "stelling", formaten: ["li-vierkant"],
     inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een uitvraag vol afspraken." },
-    posttekst: { linkedin: "Een tarief dat u kunt uitleggen. https://mijntarieftool.nl/?utm_source=linkedin" },
+    posttekst: { linkedin: "Een tarief dat u kunt uitleggen. https://example.com/?utm_source=linkedin" },
     altTekst: "Tekst op blauw: Genoeg gezien.", feiten: [] as string[],
   };
   const codes = (r: ReturnType<typeof controleer>) => r.bevindingen.filter((b) => b.niveau !== "ok").map((b) => b.code);

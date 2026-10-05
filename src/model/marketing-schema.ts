@@ -1,5 +1,4 @@
-// Marketingstudio (docs/ontwerpen/2026-09-24-marketingstudio.md): de vorm van alles wat de studio
-// bewaart. Een post is een RECEPT — sjabloon, velden, formaten — en nooit een plaatje: `data/`
+// De vorm van alles wat de studio bewaart. Een post is een RECEPT — sjabloon, velden, formaten — en nooit een plaatje: `data/`
 // staat in git, en een recept levert in de browser steeds hetzelfde beeld op.
 //
 // De server kent de sjablonen zelf niet (die staan als JS-modules in `src/web/marketing/`); hij
@@ -155,14 +154,13 @@ export const TekstInvoerSchema = z.object({
 export type TekstInvoer = z.infer<typeof TekstInvoerSchema>;
 export interface Tekst extends TekstInvoer { id: string; aangemaakt: string; gewijzigd: string }
 
-export const FEIT_SOORTEN = ["product", "voorbeelddossier", "cao", "bedrijf"] as const;
+export const FEIT_SOORTEN = ["product", "bedrijf", "extern"] as const;
 export const FEIT_STATUSSEN = ["concept", "actief", "ingetrokken"] as const;
-export const BRON_SOORTEN = ["site", "kennis", "parameter", "extern"] as const;
+export const BRON_SOORTEN = ["site", "extern"] as const;
 
 /**
  * Eén feit uit de feitenbank (ontwerpregel 4: geen claim zonder feit). "Verlopen" is geen status
- * maar volgt uit `geldigTot`. Een cao-feit moet naar de kennisbank of de parameters verwijzen: de
- * projectregel "geen cao-feit zonder bron" (CLAUDE.md) geldt hier net zo.
+ * maar volgt uit `geldigTot`. Een externe bron is een https-adres.
  */
 export const FeitInvoerSchema = z.object({
   tekst: z.string().trim().min(1).max(500),
@@ -176,14 +174,11 @@ export const FeitInvoerSchema = z.object({
   status: z.enum(FEIT_STATUSSEN).default("concept"),
 }).strict()
   .refine((f) => !f.geldigVan || !f.geldigTot || f.geldigVan <= f.geldigTot, { message: "geldig tot ligt vóór geldig vanaf", path: ["geldigTot"] })
-  .refine((f) => f.soort !== "cao" || /^(docs\/kennis\/|data\/parameters\/)/.test(f.bron.verwijzing), {
-    message: "een cao-feit verwijst naar docs/kennis/… of data/parameters/…", path: ["bron", "verwijzing"],
-  })
   .refine((f) => f.bron.soort !== "extern" || /^https:\/\//.test(f.bron.verwijzing), {
     message: "een externe bron is een https-adres", path: ["bron", "verwijzing"],
   });
 export type FeitInvoer = z.infer<typeof FeitInvoerSchema>;
-export interface Feit extends FeitInvoer { id: string; aangemaakt: string; gewijzigd: string; door: string }
+export interface Feit extends FeitInvoer { id: string; aangemaakt: string; gewijzigd: string }
 
 export const MarketingInstellingenSchema = z.object({
   kanalen: z.array(z.enum(KANALEN)).max(KANALEN.length),
@@ -202,15 +197,14 @@ export const MarketingInstellingenSchema = z.object({
 export type MarketingInstellingen = z.infer<typeof MarketingInstellingenSchema>;
 
 /**
- * De standaard zolang er niets is ingesteld. LinkedIn-first zoals de merkkits; de schrijfhulp
- * staat uit (hij kost API-geld, open vraag 3 in het ontwerp). De verboden woorden zijn beloftes
- * die de tool niet kan waarmaken of die de handleiding van de kit uitsluit.
+ * De standaard zolang er niets is ingesteld. LinkedIn-first; de schrijfhulp staat uit (hij kost
+ * API-geld). De verboden woorden zijn beloftes die een merk zelden kan waarmaken.
  */
 export const STANDAARD_MARKETING_INSTELLINGEN: MarketingInstellingen = {
   kanalen: ["linkedin"],
   formaten: ["li-vierkant", "li-staand", "li-carrousel", "li-link", "li-profiel", "li-bedrijf", "story"],
   utm: { medium: "social", bron: { linkedin: "linkedin", instagram: "instagram", x: "x", facebook: "facebook" } },
-  verbodenWoorden: ["gegarandeerd", "garantie", "100%", "altijd correct", "foutloos", "nooit meer", "cao-proof", "beste", "revolutionair"],
-  standaardHashtags: "#gelijkwaardigebeloning #uitzenden #detachering",
+  verbodenWoorden: ["gegarandeerd", "garantie", "100%", "altijd correct", "foutloos", "nooit meer", "beste", "revolutionair"],
+  standaardHashtags: "#postwright",
   schrijfhulp: { aan: false, plafondEurPerMaand: 10 },
 };

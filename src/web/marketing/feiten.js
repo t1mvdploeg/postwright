@@ -1,17 +1,17 @@
 // Marketingstudio — Feitenbank: de claims en getallen die in marketing mogen, elk met bron en
-// geldigheid (ontwerpregel 4). Een nieuw feit begint als concept; pas als Tim het heeft nagelopen
+// geldigheid. Een nieuw feit begint als concept; pas als de gebruiker het heeft nagelopen
 // en op "actief" zet, telt het mee in de getallencheck.
 import { bevestigDialoog, el, legeStaat, melding } from "/app.js";
 import { haalGetallen } from "/marketing/getallen.js";
 import { feitBruikbaar } from "/marketing/merkcontrole.js";
 import { vandaagAmsterdam } from "/marketing/recept.js";
 
-const SOORTEN = { product: "Product", voorbeelddossier: "Voorbeelddossier", cao: "Cao en wet", bedrijf: "Bedrijf" };
-const BRONNEN = { site: "De site", kennis: "Kennisbank (docs/kennis)", parameter: "Parameters (data/parameters)", extern: "Externe bron (https)" };
+const SOORTEN = { product: "Product", bedrijf: "Bedrijf", extern: "Extern" };
+const BRONNEN = { site: "Eigen site of document", extern: "Externe bron (https)" };
 const STATUSSEN = { concept: "Concept", actief: "Actief", ingetrokken: "Ingetrokken" };
 
 export async function toon(container, ctx) {
-  let [{ feiten }, { posts }] = await Promise.all([ctx.api("/api/beheer/marketing/feiten"), ctx.api("/api/beheer/marketing/posts")]);
+  let [{ feiten }, { posts }] = await Promise.all([ctx.api("/api/feiten"), ctx.api("/api/posts")]);
   if (!ctx.geldig()) return;
   const vandaag = vandaagAmsterdam();
   const gebruik = (id) => posts.filter((p) => p.feiten.includes(id) && p.status !== "gearchiveerd").length;
@@ -23,7 +23,6 @@ export async function toon(container, ctx) {
   const zoek = el("input", { type: "search", id: "feit-zoek-lijst", placeholder: "Zoek in de feiten" });
   const lijstHouder = el("div");
   const formHouder = el("div");
-  const parameterHouder = el("div");
 
   function formulier(bestaand = null) {
     const f = bestaand ?? { tekst: "", soort: "product", bron: { soort: "site", verwijzing: "" }, geldigVan: null, geldigTot: null, status: "concept" };
@@ -31,7 +30,7 @@ export async function toon(container, ctx) {
     tekst.value = f.tekst;
     const soort = el("select", { id: "feit-soort" }, Object.entries(SOORTEN).map(([w, t]) => el("option", { value: w, text: t, ...(w === f.soort ? { selected: "" } : {}) })));
     const bronSoort = el("select", { id: "feit-bronsoort" }, Object.entries(BRONNEN).map(([w, t]) => el("option", { value: w, text: t, ...(w === f.bron.soort ? { selected: "" } : {}) })));
-    const verwijzing = el("input", { type: "text", id: "feit-verwijzing", maxlength: "300", value: f.bron.verwijzing, placeholder: "src/web/landing.html, sectie demo tarief" });
+    const verwijzing = el("input", { type: "text", id: "feit-verwijzing", maxlength: "300", value: f.bron.verwijzing, placeholder: "README.md, kopje Functies" });
     const van = el("input", { type: "date", id: "feit-van", value: f.geldigVan ?? "" });
     const tot = el("input", { type: "date", id: "feit-tot", value: f.geldigTot ?? "" });
     const status = el("select", { id: "feit-status" }, Object.entries(STATUSSEN).map(([w, t]) => el("option", { value: w, text: t, ...(w === f.status ? { selected: "" } : {}) })));
@@ -42,7 +41,7 @@ export async function toon(container, ctx) {
     };
     tekst.addEventListener("input", zetGetallen);
     zetGetallen();
-    const hulpBron = el("p", { class: "hulptekst", text: "Een cao-feit verwijst naar docs/kennis/… of data/parameters/… (geen cao-feit zonder bron). Een externe bron is een https-adres." });
+    const hulpBron = el("p", { class: "hulptekst", text: "Een externe bron is een https-adres." });
     const opslaan = el("button", { type: "button", text: bestaand ? "Wijziging bewaren" : "Feit toevoegen" });
     const annuleren = el("button", { type: "button", class: "secundair", text: "Annuleren" });
     annuleren.addEventListener("click", () => formHouder.replaceChildren(nieuwKnop()));
@@ -54,8 +53,8 @@ export async function toon(container, ctx) {
       opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
       try {
         const uit = bestaand
-          ? await ctx.api(`/api/beheer/marketing/feiten/${bestaand.id}`, { method: "PUT", body })
-          : await ctx.api("/api/beheer/marketing/feiten", { method: "POST", body });
+          ? await ctx.api(`/api/feiten/${bestaand.id}`, { method: "PUT", body })
+          : await ctx.api("/api/feiten", { method: "POST", body });
         feiten = bestaand ? feiten.map((x) => (x.id === uit.id ? uit : x)) : [...feiten, uit];
         formHouder.replaceChildren(nieuwKnop());
         tekenLijst();
@@ -84,51 +83,21 @@ export async function toon(container, ctx) {
   function nieuwKnop() {
     return el("div", { class: "knoppenrij" }, [
       el("button", { type: "button", text: "Nieuw feit", onclick: () => formulier() }),
-      el("button", { type: "button", class: "secundair", text: "Feit uit de parameters…", onclick: () => { void toonParameters(); } }),
-      el("button", { type: "button", class: "secundair", text: "Neem de teksten van de site over", onclick: startvulling }),
+      el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }),
     ]);
   }
 
-  /** De letterlijke claims en cijfers van de site (en de vaste teksten) overnemen; wat er al staat, blijft staan. */
+  /** Voorbeeldfeiten, -teksten en -posts toevoegen; wat er al staat, blijft staan. */
   async function startvulling() {
     try {
-      const r = await ctx.api("/api/beheer/marketing/startvulling", { method: "POST", body: {} });
-      melding(r.feiten || r.teksten
+      const r = await ctx.api("/api/startvulling", { method: "POST", body: {} });
+      melding(r.feiten || r.teksten || r.posts
         // Het concept-deel alleen als er feiten bij kwamen: bij 0 feiten staat er niets na te lopen.
-        ? `${r.feiten} feit${r.feiten === 1 ? "" : "en"} en ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} overgenomen.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
-        : "Alles van de site stond er al");
-      ({ feiten } = await ctx.api("/api/beheer/marketing/feiten"));
+        ? `${r.feiten} feit${r.feiten === 1 ? "" : "en"}, ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} en ${r.posts} post${r.posts === 1 ? "" : "s"} toegevoegd.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
+        : "De voorbeeldinhoud stond er al");
+      ({ feiten } = await ctx.api("/api/feiten"));
       tekenLijst();
     } catch (e) { melding(e.message, "fout"); }
-  }
-
-  async function toonParameters() {
-    let lijst;
-    try { lijst = (await ctx.api("/api/beheer/marketing/parameters")).parameters; } catch (e) { melding(e.message, "fout"); return; }
-    parameterHouder.replaceChildren(el("div", { class: "kaart" }, [
-      el("h2", { text: "Feit uit de parameters" }),
-      el("p", { class: "hulptekst", text: "Actuele waarden uit data/parameters, met de kennispagina als bron en de volgende ingangsdatum als einde. Het feit komt als concept binnen; zet het op actief nadat u het hebt nagelopen." }),
-      lijst.length
-        ? el("div", { class: "tabel-scroll" }, [el("table", { class: "lijst" }, [
-          el("thead", {}, [el("tr", {}, ["Parameter", "Waarde", "Geldig", "Bron", ""].map((t) => el("th", { scope: "col", text: t })))]),
-          el("tbody", {}, lijst.map((p) => el("tr", {}, [
-            el("td", { text: p.naam }),
-            el("td", { text: p.tekst }),
-            el("td", { text: `${p.geldigVan ?? "–"} t/m ${p.geldigTot ?? "nu"}` }),
-            el("td", { text: p.bron }),
-            el("td", {}, [el("button", { type: "button", class: "secundair klein", text: "Maak feit", onclick: async () => {
-              try {
-                const f = await ctx.api(`/api/beheer/marketing/parameters/${encodeURIComponent(p.sleutel)}/feit`, { method: "POST", body: {} });
-                feiten = [...feiten, f];
-                tekenLijst();
-                melding("Feit toegevoegd als concept");
-              } catch (e) { melding(e.message, "fout"); }
-            } })]),
-          ]))),
-        ])])
-        : el("p", { class: "hulptekst", text: "Geen parameters beschikbaar." }),
-      el("button", { type: "button", class: "secundair", text: "Sluiten", onclick: () => parameterHouder.replaceChildren() }),
-    ]));
   }
 
   function tekenLijst() {
@@ -140,8 +109,8 @@ export async function toon(container, ctx) {
       return !q || f.tekst.toLowerCase().includes(q) || f.bron.verwijzing.toLowerCase().includes(q);
     });
     if (!feiten.length) {
-      const leeg = legeStaat("Nog geen feiten", "Begin met de claims die al letterlijk op de site staan, en de cijfers van het voorbeelddossier.");
-      leeg.append(el("button", { type: "button", class: "secundair", text: "Neem de teksten van de site over", onclick: startvulling }));
+      const leeg = legeStaat("Nog geen feiten", "Een feit is een claim of getal dat in een post mag staan, met bron. Voeg voorbeeldinhoud toe om te zien hoe het werkt.");
+      leeg.append(el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }));
       lijstHouder.replaceChildren(leeg);
       return;
     }
@@ -163,7 +132,7 @@ export async function toon(container, ctx) {
             el("button", { type: "button", class: "secundair klein gevaar", text: "Wissen", onclick: async () => {
               if (!await bevestigDialoog(`Het feit "${f.tekst}" wissen?`, { titel: "Feit wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
               try {
-                await ctx.api(`/api/beheer/marketing/feiten/${f.id}`, { method: "DELETE" });
+                await ctx.api(`/api/feiten/${f.id}`, { method: "DELETE" });
                 feiten = feiten.filter((x) => x.id !== f.id);
                 tekenLijst();
               } catch (e) { melding(e.message, "fout"); }
@@ -183,7 +152,6 @@ export async function toon(container, ctx) {
       el("p", { text: "Elk getal in een post moet in een gekoppeld, actief feit staan. Een verlopen of ingetrokken feit houdt het plannen tegen. De controle herkent geen getallen in woorden (\"acht procent\"); lees dus zelf ook na." }),
     ])]),
     formHouder,
-    parameterHouder,
     el("div", { class: "kaart" }, [
       el("div", { class: "studio-filters" }, [
         el("div", { class: "veld" }, [el("label", { for: "feit-filter-soort", text: "Soort" }), filterSoort]),

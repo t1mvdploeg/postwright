@@ -23,7 +23,7 @@ export async function toon(container, ctx) {
     if (!sjabloonVan(tweede)) { ctx.navigeer("#maken"); return undefined; }
     return toonEditor(container, ctx, { ...nieuwRecept(tweede, { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie }), status: "concept" });
   }
-  const post = await ctx.api(`/api/beheer/marketing/posts/${encodeURIComponent(eerste)}`);
+  const post = await ctx.api(`/api/posts/${encodeURIComponent(eerste)}`);
   if (!ctx.geldig()) return undefined;
   return toonEditor(container, ctx, post);
 }
@@ -104,10 +104,10 @@ async function toonEditor(container, ctx, begin) {
 
   // Bronnen die de editor naast de post nodig heeft; geen ervan is onmisbaar.
   const [feiten, campagnes, teksten, mediaLijst] = await Promise.all([
-    ctx.api("/api/beheer/marketing/feiten").then((r) => r.feiten).catch(() => null),
-    ctx.api("/api/beheer/marketing/campagnes").then((r) => r.campagnes).catch(() => []),
-    ctx.api("/api/beheer/marketing/teksten").then((r) => r.teksten).catch(() => []),
-    ctx.api("/api/beheer/marketing/media").then((r) => r.media).catch(() => []),
+    ctx.api("/api/feiten").then((r) => r.feiten).catch(() => null),
+    ctx.api("/api/campagnes").then((r) => r.campagnes).catch(() => []),
+    ctx.api("/api/teksten").then((r) => r.teksten).catch(() => []),
+    ctx.api("/api/media").then((r) => r.media).catch(() => []),
   ]);
   if (!ctx.geldig()) return undefined;
   Object.assign(staat, { feiten, campagnes, teksten, mediaLijst });
@@ -523,7 +523,7 @@ async function toonEditor(container, ctx, begin) {
     knop.addEventListener("click", async () => {
       try {
         const doel = sjabloonVan(keuze.value);
-        const nieuw = await ctx.api("/api/beheer/marketing/posts", { method: "POST", body: naarInvoer(zetOm(staat.post, doel.id, { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie }), doel, null) });
+        const nieuw = await ctx.api("/api/posts", { method: "POST", body: naarInvoer(zetOm(staat.post, doel.id, { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie }), doel, null) });
         melding(`Nieuwe post als ${doel.naam} gemaakt; het origineel is ongewijzigd`);
         ctx.navigeer(`#maken/${nieuw.id}`);
       } catch (e) { melding(e.message, "fout"); }
@@ -556,7 +556,7 @@ async function toonEditor(container, ctx, begin) {
       // zijn hierboven al gelezen, dus dat bewaren het statuspaneel opnieuw opbouwt, raakt ze niet.
       if (staat.onbewaard && !await bewaar()) return;
       try {
-        const p2 = await ctx.api(`/api/beheer/marketing/posts/${staat.post.id}/resultaat`, { method: "PUT", body: waarden });
+        const p2 = await ctx.api(`/api/posts/${staat.post.id}/resultaat`, { method: "PUT", body: waarden });
         staat.post = { ...staat.post, ...p2 };
         tekenStatus();
         tekenBewaarStand();
@@ -699,11 +699,8 @@ async function toonEditor(container, ctx, begin) {
     bestand.addEventListener("change", async () => {
       const f = bestand.files?.[0];
       if (!f) return;
-      if (!await bevestigDialoog("Toont dit beeld alleen het voorbeelddossier (Noordhaven Techniek) of openbare informatie, en geen gegevens van klanten of hun medewerkers?", {
-        titel: "Alleen voorbeeldgegevens", bevestigTekst: "Ja, alleen voorbeeldgegevens",
-      })) return;
       try {
-        const r = await fetch("/api/beheer/marketing/media", { method: "POST", headers: { "content-type": f.type || "application/octet-stream", "x-voorbeeldgegevens": "ja" }, body: f });
+        const r = await fetch("/api/media", { method: "POST", headers: { "content-type": f.type || "application/octet-stream" }, body: f });
         const data = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(data.fout ?? `Uploaden mislukte (${r.status})`);
         staat.mediaLijst = [data, ...staat.mediaLijst.filter((m) => m.id !== data.id)];
@@ -731,8 +728,8 @@ async function toonEditor(container, ctx, begin) {
       const nieuw = !staat.post.id;
       const voorStatus = staat.post.status;
       const antwoord = nieuw
-        ? await ctx.api("/api/beheer/marketing/posts", { method: "POST", body: invoer })
-        : await ctx.api(`/api/beheer/marketing/posts/${staat.post.id}`, { method: "PUT", body: { ...invoer, versie: staat.post.versie } });
+        ? await ctx.api("/api/posts", { method: "POST", body: invoer })
+        : await ctx.api(`/api/posts/${staat.post.id}`, { method: "PUT", body: { ...invoer, versie: staat.post.versie } });
       if (!ctx.geldig()) return false;
       // De server zet utm_content op het eigen post-id; bij een nieuwe post of een link die vóór
       // het eerste bewaren is ingevoegd, wijkt de teruggekomen tekst dan af van wat hier stond.
@@ -761,7 +758,7 @@ async function toonEditor(container, ctx, begin) {
   async function zetStatus(overgang) {
     if (staat.onbewaard && !await bewaar()) return;
     try {
-      const p = await ctx.api(`/api/beheer/marketing/posts/${staat.post.id}/status`, { method: "POST", body: overgang });
+      const p = await ctx.api(`/api/posts/${staat.post.id}/status`, { method: "POST", body: overgang });
       staat.post = { ...staat.post, ...p };
       tekenStatus();
       tekenBewaarStand();
@@ -772,7 +769,7 @@ async function toonEditor(container, ctx, begin) {
   async function dupliceer() {
     if (staat.onbewaard && !await bewaar()) return;
     try {
-      const kopie = await ctx.api(`/api/beheer/marketing/posts/${staat.post.id}/dupliceer`, { method: "POST", body: {} });
+      const kopie = await ctx.api(`/api/posts/${staat.post.id}/dupliceer`, { method: "POST", body: {} });
       ctx.navigeer(`#maken/${kopie.id}`);
     } catch (e) { melding(e.message, "fout"); }
   }
@@ -780,7 +777,7 @@ async function toonEditor(container, ctx, begin) {
   async function wis() {
     if (!await bevestigDialoog(`De post "${staat.post.titel}" wordt definitief gewist. Het recept is daarna weg.`, { titel: "Post wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
     try {
-      await ctx.api(`/api/beheer/marketing/posts/${staat.post.id}`, { method: "DELETE" });
+      await ctx.api(`/api/posts/${staat.post.id}`, { method: "DELETE" });
       staat.onbewaard = false;
       ctx.navigeer("#bibliotheek");
     } catch (e) { melding(e.message, "fout"); }

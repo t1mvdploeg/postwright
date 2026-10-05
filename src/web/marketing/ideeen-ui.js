@@ -126,8 +126,8 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     if (!controleer()) return null;
     const body = invoer();
     const nieuw = idee.id
-      ? await ctx.api(`/api/beheer/marketing/ideeen/${idee.id}`, { method: "PUT", body })
-      : await ctx.api("/api/beheer/marketing/ideeen", { method: "POST", body });
+      ? await ctx.api(`/api/ideeen/${idee.id}`, { method: "PUT", body })
+      : await ctx.api("/api/ideeen", { method: "POST", body });
     idee = { ...nieuw };
     begin = formulier();
     bewaard(nieuw);
@@ -139,7 +139,7 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     let feiten = [...i.feiten];
     if (i.moment) {
       try {
-        const f = await ctx.api(`/api/beheer/marketing/momenten/${encodeURIComponent(i.moment)}/feit`, { method: "POST", body: {} });
+        const f = await ctx.api(`/api/momenten/${encodeURIComponent(i.moment)}/feit`, { method: "POST", body: {} });
         // Het momentfeit vooraan: een idee draagt hooguit tien feiten, en bij het bijwerken van het
         // idee hieronder valt dan een AI-feit af, niet dit.
         feiten = [f.id, ...feiten.filter((x) => x !== f.id)];
@@ -152,11 +152,11 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     const campagneNu = staat().campagnes.some((c) => c.id === i.campagne && !c.gearchiveerd) ? i.campagne : null;
     const s = sjabloonVan(i.sjabloon);
     const recept = ideeNaarRecept({ ...i, feiten, campagne: campagneNu }, { formatenAan: ctx.instellingen.formaten, merkVersie: ctx.merk.versie });
-    const post = await ctx.api("/api/beheer/marketing/posts", { method: "POST", body: naarInvoer(recept, s, null) });
+    const post = await ctx.api("/api/posts", { method: "POST", body: naarInvoer(recept, s, null) });
     const { id, aangemaakt: _a, gewijzigd: _g, ...rest } = i;
     try {
       // Een idee draagt hooguit tien feiten (serverschema); de post krijgt ze allemaal.
-      await ctx.api(`/api/beheer/marketing/ideeen/${id}`, { method: "PUT", body: { ...rest, feiten: feiten.slice(0, 10), post: post.id } });
+      await ctx.api(`/api/ideeen/${id}`, { method: "PUT", body: { ...rest, feiten: feiten.slice(0, 10), post: post.id } });
     } catch (e) {
       // De post bestaat al. Hier toch als gebruikt tonen: nog eens "Maak post" gaf een tweede, losse post.
       staat().posts.push(post);
@@ -254,7 +254,7 @@ export function ideePaneel({ ctx, staat, bewaard, gewist, terugval }) {
     if (!await bevestigDialoog(`Idee "${idee.titel}" wissen?`, { titel: "Idee wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
     const id = idee.id;
     await metKnoppenUit(async () => {
-      await ctx.api(`/api/beheer/marketing/ideeen/${id}`, { method: "DELETE" });
+      await ctx.api(`/api/ideeen/${id}`, { method: "DELETE" });
       gewist(id);
       melding("Idee gewist");
       sluit();
@@ -352,7 +352,7 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
     try {
       // Via ctx.api, zodat een verlopen sessie naar de loginpagina gaat; Annuleren breekt de fetch af
       // met een AbortError, en die is geen foutmelding.
-      const data = await ctx.api("/api/beheer/marketing/ideeen/voorstellen", { method: "POST", body, signal: afbreken.signal });
+      const data = await ctx.api("/api/ideeen/voorstellen", { method: "POST", body, signal: afbreken.signal });
       campagneVanVerzoek = body.campagne;
       voorstellen = (data?.voorstellen ?? []).map(voorstel);
       tekenLijst();
@@ -381,7 +381,7 @@ export function voorstellenPaneel({ ctx, verzoek, momentTitel, naBewaren }) {
       // Na elkaar, zodat bij een fout precies bekend is wat er wél staat.
       for (const x of gekozen) {
         const { datum, titel, toelichting, sjabloon, kop, feiten, moment } = x.v;
-        await ctx.api("/api/beheer/marketing/ideeen", {
+        await ctx.api("/api/ideeen", {
           method: "POST",
           body: { datum, titel, toelichting, sjabloon, kop, feiten, moment, campagne: campagneVanVerzoek, herkomst: "ai", post: null },
         });

@@ -13,9 +13,9 @@ const PER_PAGINA = 24;
 
 export async function toon(container, ctx) {
   const [{ posts }, { campagnes }, feitenAntwoord] = await Promise.all([
-    ctx.api("/api/beheer/marketing/posts"),
-    ctx.api("/api/beheer/marketing/campagnes"),
-    ctx.api("/api/beheer/marketing/feiten").catch(() => ({ feiten: [] })),
+    ctx.api("/api/posts"),
+    ctx.api("/api/campagnes"),
+    ctx.api("/api/feiten").catch(() => ({ feiten: [] })),
   ]);
   if (!ctx.geldig()) return undefined;
   const vandaag = vandaagAmsterdam();
@@ -50,7 +50,7 @@ export async function toon(container, ctx) {
 
   async function zetStatus(p, naar) {
     try {
-      const nieuw = await ctx.api(`/api/beheer/marketing/posts/${p.id}/status`, { method: "POST", body: { naar } });
+      const nieuw = await ctx.api(`/api/posts/${p.id}/status`, { method: "POST", body: { naar } });
       Object.assign(p, nieuw);
       teken();
     } catch (e) { melding(e.message, "fout"); }
@@ -58,7 +58,7 @@ export async function toon(container, ctx) {
 
   async function dupliceer(p) {
     try {
-      const kopie = await ctx.api(`/api/beheer/marketing/posts/${p.id}/dupliceer`, { method: "POST", body: {} });
+      const kopie = await ctx.api(`/api/posts/${p.id}/dupliceer`, { method: "POST", body: {} });
       ctx.navigeer(`#maken/${kopie.id}`);
     } catch (e) { melding(e.message, "fout"); }
   }
@@ -66,7 +66,7 @@ export async function toon(container, ctx) {
   async function wis(p) {
     if (!await bevestigDialoog(`De post "${p.titel}" wordt definitief gewist.`, { titel: "Post wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
     try {
-      await ctx.api(`/api/beheer/marketing/posts/${p.id}`, { method: "DELETE" });
+      await ctx.api(`/api/posts/${p.id}`, { method: "DELETE" });
       posts.splice(posts.indexOf(p), 1);
       teken();
     } catch (e) { melding(e.message, "fout"); }

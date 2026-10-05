@@ -32,7 +32,7 @@ let basis = "";
 let cookie = "";
 let dataDir = "";
 let sluit: () => Promise<void>;
-const API = "/api/beheer/marketing";
+const API = "/api";
 
 async function vraag(pad: string, body?: unknown, methode = body === undefined ? "GET" : "POST") {
   const r = await fetch(basis + pad, {

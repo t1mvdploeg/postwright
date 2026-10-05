@@ -1,35 +1,24 @@
-// Marketingstudio — de routes onder /api/beheer/marketing: alleen platformadmin, alles in de
-// rootmap (nooit onder een tenant), recepten met versiecontrole, statusovergangen die de
-// merkcontrole als poort gebruiken, en uploads die alleen echte PNG/JPEG/WebP toelaten.
+// De studio-routes onder /api: recepten met versiecontrole, statusovergangen die de merkcontrole als
+// poort gebruiken, en uploads die alleen echte PNG/JPEG/WebP toelaten.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtempSync, existsSync, readFileSync, rmSync, mkdirSync, cpSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { startServer } from "../src/server/http.js";
-import { bewaarBedrijf, STANDAARD_HUISSTIJL } from "../src/data/bedrijven.js";
-import { hashWachtwoord } from "../src/server/auth.js";
 import { maakPost } from "../src/data/marketing.js";
-import { leesAudit } from "../src/model/audit.js";
-import { adminCookie } from "./helpers/sessie.js";
+import { startStudio } from "./helpers/studio.js";
 import type { Post } from "../src/model/marketing-schema.js";
 
 let basis = "";
-let poort = 0;
 let dataDir = "";
-let cookie = "";
-let tenantCookie = "";
 let sluit: () => Promise<void>;
 
-const API = "/api/beheer/marketing";
+const API = "/api";
 
-async function vraag(pad: string, opties: { methode?: string; body?: unknown; cookie?: string | null; headers?: Record<string, string>; ruw?: Buffer; host?: string } = {}) {
+async function vraag(pad: string, opties: { methode?: string; body?: unknown; headers?: Record<string, string>; ruw?: Buffer } = {}) {
   const headers: Record<string, string> = { ...(opties.headers ?? {}) };
-  const c = opties.cookie === undefined ? cookie : opties.cookie;
-  if (c) headers.cookie = c;
   let body: BodyInit | undefined;
   if (opties.ruw) body = new Uint8Array(opties.ruw);
   else if (opties.body !== undefined) { headers["content-type"] = "application/json"; body = JSON.stringify(opties.body); }
-  const r = await fetch((opties.host ?? basis) + pad, { method: opties.methode ?? (body ? "POST" : "GET"), headers, body });
+  const r = await fetch(basis + pad, { method: opties.methode ?? (body ? "POST" : "GET"), headers, body });
   const tekst = await r.text();
   let data: any = null;
   try { data = tekst ? JSON.parse(tekst) : null; } catch { data = tekst; }
@@ -45,8 +34,8 @@ function recept(extra: Record<string, unknown> = {}) {
     soort: "beeld",
     sjabloon: "stelling",
     formaten: ["li-vierkant", "li-staand"],
-    inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een uitvraag vol afspraken." },
-    merkVersie: "mixed-1.0",
+    inhoud: { ondergrond: "blauw", kop: "Genoeg gezien. *Nu bent u aan zet.*", tekst: "Een korte tekst bij de kop." },
+    merkVersie: "test-1.0",
     controle: GROEN(),
     ...extra,
   };
@@ -59,57 +48,11 @@ async function nieuwePost(extra: Record<string, unknown> = {}): Promise<Post> {
 }
 
 beforeAll(async () => {
-  dataDir = mkdtempSync(join(tmpdir(), "ct-marketing-api-"));
-  // Het overzicht (golf 2) haalt de actualiteitenkalender op, en die laadt de parameters van
-  // het ingestelde jaar (standaard 2026) uit de dataDir; zelfde aanpak als marketing-momenten.test.ts.
-  cpSync("data/parameters", join(dataDir, "parameters"), { recursive: true });
-  await bewaarBedrijf({
-    slug: "alfa", naam: "Alfa B.V.", huisstijl: STANDAARD_HUISSTIJL,
-    werknemers: [{ email: "baas@alfa.nl", naam: "Baas", rol: "beheerder", wachtwoordHash: hashWachtwoord("wachtwoord-alfa-1"), tokenVersie: 0, actief: true }],
-    aangemaakt: "2026-01-01T00:00:00.000Z", gewijzigd: "2026-01-01T00:00:00.000Z",
-  }, { dir: dataDir });
-  mkdirSync(join(dataDir, "tenants", "alfa"), { recursive: true });
-  const s = await startServer({ poort: 0, dataDir, maxAanvragenPerMinuut: 10_000 });
-  poort = s.poort;
-  basis = `http://127.0.0.1:${poort}`;
-  sluit = s.sluit;
-  cookie = await adminCookie(basis);
-  const login = await fetch(`http://alfa.localhost:${poort}/api/login`, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email: "baas@alfa.nl", wachtwoord: "wachtwoord-alfa-1" }),
-  });
-  expect(login.status).toBe(200);
-  tenantCookie = (login.headers.get("set-cookie") ?? "").split(";")[0];
+  ({ dataDir, basis, sluit } = await startStudio());
 });
 
 afterAll(async () => {
   await sluit();
-  rmSync(dataDir, { recursive: true, force: true });
-});
-
-describe("toegang", () => {
-  const paden = ["/posts", "/campagnes", "/teksten", "/feiten", "/instellingen", "/overzicht", "/media"];
-
-  it("geeft 401 zonder sessie", async () => {
-    for (const p of paden) expect((await vraag(API + p, { cookie: null })).status, p).toBe(401);
-  });
-
-  it("geeft 403 aan een bedrijfsbeheerder op zijn eigen tenant-host", async () => {
-    for (const p of paden) {
-      const r = await vraag(API + p, { cookie: tenantCookie, host: `http://alfa.localhost:${poort}` });
-      expect(r.status, p).toBe(403);
-    }
-    const r = await vraag(`${API}/posts`, { cookie: tenantCookie, host: `http://alfa.localhost:${poort}`, body: recept() });
-    expect(r.status).toBe(403);
-  });
-
-  it("serveert de studio op /beheer/marketing van het hoofddomein, maar niet op een tenant-host", async () => {
-    const r = await fetch(`${basis}/beheer/marketing`);
-    expect(r.status).toBe(200);
-    expect(await r.text()).toContain("Marketingstudio");
-    const t = await fetch(`http://alfa.localhost:${poort}/beheer/marketing`, { headers: { cookie: tenantCookie }, redirect: "manual" });
-    expect(t.status).toBe(404);
-  });
 });
 
 describe("posts", () => {
@@ -119,7 +62,6 @@ describe("posts", () => {
     expect(p).toMatchObject({ versie: 1, status: "concept", gepland: null, gepubliceerd: null });
     expect(p.geschiedenis).toHaveLength(1);
     expect(existsSync(join(dataDir, "marketing", "posts", `${p.id}.json`))).toBe(true);
-    expect(existsSync(join(dataDir, "tenants", "alfa", "marketing"))).toBe(false);
   });
 
   it("leest, lijst zonder geschiedenis en filtert op status", async () => {
@@ -156,7 +98,7 @@ describe("posts", () => {
     expect((await vraag(`${API}/posts`, { body: recept({ formaten: ["poster-a0"] }) })).status).toBe(400);
     expect((await vraag(`${API}/posts`, { body: recept({ formaten: ["li-vierkant", "li-vierkant"] }) })).status).toBe(400);
     expect((await vraag(`${API}/posts`, { body: recept({ link: "javascript:alert(1)" }) })).status).toBe(400);
-    expect((await vraag(`${API}/posts`, { body: recept({ link: "http://mijntarieftool.nl" }) })).status).toBe(400);
+    expect((await vraag(`${API}/posts`, { body: recept({ link: "http://example.com" }) })).status).toBe(400);
     expect((await vraag(`${API}/posts`, { body: recept({ geheim: "x" }) })).status).toBe(400);
     expect((await vraag(`${API}/posts`, { body: recept({ inhoud: { kop: "x".repeat(2001) } }) })).status).toBe(400);
     const r = await vraag(`${API}/posts`, { body: recept({ campagne: "c-00000000-0000-4000-8000-000000000000" }) });
@@ -169,7 +111,7 @@ describe("posts", () => {
     expect((await vraag(`${API}/posts/p-00000000-0000-4000-8000-000000000000`)).status).toBe(404);
   });
 
-  it("dupliceert als nieuw concept en wist met een auditregel", async () => {
+  it("dupliceert als nieuw concept en wist", async () => {
     const p = await nieuwePost({ titel: "Origineel" });
     const kopie = await vraag(`${API}/posts/${p.id}/dupliceer`, { body: {} });
     expect(kopie.status).toBe(201);
@@ -177,14 +119,12 @@ describe("posts", () => {
     expect(kopie.body.id).not.toBe(p.id);
     expect((await vraag(`${API}/posts/${kopie.body.id}`, { methode: "DELETE" })).status).toBe(200);
     expect((await vraag(`${API}/posts/${kopie.body.id}`)).status).toBe(404);
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.some((r) => r.actie === "marketing.post-gewist" && r.doelwit === kopie.body.id)).toBe(true);
   });
 });
 
 describe("utm_content wijst naar de eigen post", () => {
   it("zet bij aanmaken, opslaan en dupliceren het eigen post-id in elke studio-link", async () => {
-    const link = "https://mijntarieftool.nl/?utm_source=linkedin&utm_medium=social";
+    const link = "https://example.com/?utm_source=linkedin&utm_medium=social";
     const p = await nieuwePost({ posttekst: { linkedin: `Lees meer op ${link}.` } });
     expect(p.posttekst.linkedin).toBe(`Lees meer op ${link}&utm_content=${p.id}.`);
     const kopie = (await vraag(`${API}/posts/${p.id}/dupliceer`, { body: {} })).body;
@@ -223,9 +163,9 @@ describe("statusovergangen", () => {
   });
 
   it("weigert plannen en publiceren als een gekoppeld feit intussen is ingetrokken, verlopen of gewist (reviewbevinding 2)", async () => {
-    const f = await vraag(`${API}/feiten`, { body: { tekst: "Uurtarief € 62,75", soort: "voorbeelddossier", bron: { soort: "site", verwijzing: "src/web/landing.html" }, status: "actief" } });
+    const f = await vraag(`${API}/feiten`, { body: { tekst: "Postwright exports PNG, PDF and ZIP", soort: "product", bron: { soort: "site", verwijzing: "README.md" }, status: "actief" } });
     const p = await nieuwePost({ feiten: [f.body.id] });
-    const { id: _i, aangemaakt: _a, gewijzigd: _g, door: _d, ...rest } = f.body;
+    const { id: _i, aangemaakt: _a, gewijzigd: _g, ...rest } = f.body;
     await vraag(`${API}/feiten/${f.body.id}`, { methode: "PUT", body: { ...rest, status: "ingetrokken" } });
     const r = await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "gepland", gepland: TOEKOMST } });
     expect(r.status).toBe(409);
@@ -260,8 +200,9 @@ describe("statusovergangen", () => {
     expect((await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "gepland", gepland: TOEKOMST } })).status).toBe(409);
     const terug = await vraag(`${API}/posts/${p.id}/status`, { body: { naar: "concept" } });
     expect(terug.body).toMatchObject({ status: "concept", gepubliceerd: { url: "https://www.linkedin.com/feed/update/1" } });
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.filter((r) => r.actie === "marketing.status" && r.doelwit.startsWith(p.id)).length).toBeGreaterThanOrEqual(3);
+    expect((await vraag(`${API}/posts/${p.id}`)).body.geschiedenis.map((g: { wat: string }) => g.wat)).toEqual(
+      expect.arrayContaining(["gepubliceerd", "gearchiveerd", "terug naar concept"]),
+    );
   });
 });
 
@@ -281,24 +222,24 @@ describe("campagnes, teksten en feiten", () => {
   });
 
   it("wijzigt en wist teksten", async () => {
-    const t = await vraag(`${API}/teksten`, { body: { soort: "hashtags", naam: "Standaard", tekst: "#uitzenden" } });
+    const t = await vraag(`${API}/teksten`, { body: { soort: "hashtags", naam: "Standaard", tekst: "#launch" } });
     expect(t.status).toBe(201);
-    const w = await vraag(`${API}/teksten/${t.body.id}`, { methode: "PUT", body: { soort: "hashtags", naam: "Standaard", tekst: "#detachering" } });
-    expect(w.body.tekst).toBe("#detachering");
+    const w = await vraag(`${API}/teksten/${t.body.id}`, { methode: "PUT", body: { soort: "hashtags", naam: "Standaard", tekst: "#release" } });
+    expect(w.body.tekst).toBe("#release");
     expect(w.body.aangemaakt).toBe(t.body.aangemaakt);
     expect((await vraag(`${API}/teksten/t-00000000-0000-4000-8000-000000000000`, { methode: "PUT", body: { soort: "opening", naam: "x", tekst: "y" } })).status).toBe(404);
     expect((await vraag(`${API}/teksten/${t.body.id}`, { methode: "DELETE" })).status).toBe(200);
   });
 
-  it("eist bij een cao-feit een bron in de kennisbank of de parameters, en logt wijzigingen", async () => {
-    const zonder = await vraag(`${API}/feiten`, { body: { tekst: "WML per 1 juli", soort: "cao", bron: { soort: "extern", verwijzing: "https://www.rijksoverheid.nl" } } });
+  it("eist bij een externe bron een https-adres, en weigert wissen zolang een post het feit gebruikt", async () => {
+    const zonder = await vraag(`${API}/feiten`, { body: { tekst: "Een claim", soort: "extern", bron: { soort: "extern", verwijzing: "geen adres" } } });
     expect(zonder.status).toBe(400);
-    expect(zonder.body.fout).toMatch(/docs\/kennis/);
-    const f = await vraag(`${API}/feiten`, { body: { tekst: "WML per 1 juli", soort: "cao", bron: { soort: "kennis", verwijzing: "docs/kennis/minimumloon.md" }, geldigTot: "2026-12-31" } });
+    expect(zonder.body.fout).toMatch(/https/);
+    expect((await vraag(`${API}/feiten`, { body: { tekst: "Een claim", soort: "oud", bron: { soort: "site", verwijzing: "README.md" } } })).status).toBe(400);
+    expect((await vraag(`${API}/feiten`, { body: { tekst: "Een claim", soort: "extern", bron: { soort: "kennis", verwijzing: "x" } } })).status).toBe(400);
+    const f = await vraag(`${API}/feiten`, { body: { tekst: "Een claim", soort: "extern", bron: { soort: "extern", verwijzing: "https://example.com/bron" }, geldigTot: "2026-12-31" } });
     expect(f.status).toBe(201);
-    expect(f.body).toMatchObject({ status: "concept", door: expect.stringContaining("@") });
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.some((r) => r.actie === "marketing.feit-gewijzigd" && r.doelwit === f.body.id)).toBe(true);
+    expect(f.body).toMatchObject({ status: "concept", soort: "extern" });
     const p = await nieuwePost({ feiten: [f.body.id] });
     const weg = await vraag(`${API}/feiten/${f.body.id}`, { methode: "DELETE" });
     expect(weg.status).toBe(409);
@@ -357,9 +298,11 @@ describe("media", () => {
     b.writeUIntLE(breedte - 1, 24, 3); b.writeUIntLE(hoogte - 1, 27, 3);
     return b;
   }
-  const upload = (inhoud: Buffer, vinkje = true) => vraag(`${API}/media`, {
-    methode: "POST", ruw: inhoud, headers: { "content-type": "application/octet-stream", ...(vinkje ? { "x-voorbeeldgegevens": "ja" } : {}) },
+  const upload = (inhoud: Buffer, type = "application/octet-stream") => vraag(`${API}/media`, {
+    methode: "POST", ruw: inhoud, headers: { "content-type": type },
   });
+  // Een echte, kleinste PNG: 1 bij 1 pixel.
+  const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 
   it("neemt PNG, JPEG en WebP aan, met de afmetingen uit het bestand", async () => {
     const a = await upload(png(1440, 900));
@@ -385,28 +328,42 @@ describe("media", () => {
     expect(regel).toMatchObject({ breedte: 800, hoogte: 600, bytes: groot.length });
   });
 
-  it("weigert SVG, HTML met een png-naam, een upload zonder vinkje en een te groot bestand", async () => {
-    const svg = await upload(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'));
-    expect(svg.status).toBe(415);
-    expect((await upload(Buffer.from("<!doctype html><script>alert(1)</script>"))).status).toBe(415);
-    const zonder = await upload(png(10, 10), false);
-    expect(zonder.status).toBe(400);
-    expect(zonder.body.fout).toMatch(/voorbeelddossier/);
-    expect((await upload(Buffer.concat([png(10, 10), Buffer.alloc(5 * 1024 * 1024)]))).status).toBe(413);
+  it("weigert SVG en HTML, ook als de aanvraag zegt dat het een PNG is", async () => {
+    const svg = await upload(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'), "image/png");
+    expect(svg.status).toBe(400);
+    const html = await upload(Buffer.from("<!doctype html><script>alert(1)</script>"), "image/png");
+    expect(html.status).toBe(400);
+    expect(html.body.fout).toMatch(/PNG, JPEG of WebP/);
+    expect((await upload(Buffer.alloc(0), "image/png")).status).toBe(400);
     expect((await upload(png(9000, 10))).status).toBe(400);
+  });
+
+  it("weigert 5 MB + 1 byte met 413 en neemt precies 5 MB wel aan", async () => {
+    const MB5 = 5 * 1024 * 1024;
+    const kop = png(10, 10);
+    expect((await upload(Buffer.concat([kop, Buffer.alloc(MB5 + 1 - kop.length)]), "image/png")).status).toBe(413);
+    expect((await upload(Buffer.concat([kop, Buffer.alloc(MB5 - kop.length)]), "image/png")).status).toBe(201);
+  });
+
+  it("bewaart een geldig PNG van 1 bij 1 en geeft precies die bytes terug", async () => {
+    const a = await upload(PNG_1X1, "image/png");
+    expect(a.status).toBe(201);
+    expect(a.body).toMatchObject({ breedte: 1, hoogte: 1, bytes: PNG_1X1.length });
+    const r = await fetch(`${basis}${API}/media/${a.body.id}`);
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-type")).toBe("image/png");
+    expect(Buffer.from(await r.arrayBuffer()).equals(PNG_1X1)).toBe(true);
   });
 
   it("serveert een beeld met het juiste type en een afsluitende CSP, en geeft 400/404 bij een fout id", async () => {
     const a = await upload(png(20, 20));
-    const r = await fetch(`${basis}${API}/media/${a.body.id}`, { headers: { cookie } });
+    const r = await fetch(`${basis}${API}/media/${a.body.id}`);
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toBe("image/png");
     expect(r.headers.get("content-security-policy")).toMatch(/sandbox/);
     expect(Buffer.from(await r.arrayBuffer()).equals(png(20, 20))).toBe(true);
-    expect((await vraag(`${API}/media/..%2Fbedrijven.json`)).status).toBe(400);
+    expect((await vraag(`${API}/media/..%2Fpackage.json`)).status).toBe(400);
     expect((await vraag(`${API}/media/${"0".repeat(32)}.png`)).status).toBe(404);
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.some((r) => r.actie === "marketing.media-geupload" && r.doelwit === a.body.id)).toBe(true);
     expect(readFileSync(join(dataDir, "marketing", "media", a.body.id)).length).toBe(40);
   });
 
@@ -424,14 +381,12 @@ describe("media", () => {
     expect((await vraag(`${API}/media/${id}`)).status).toBe(404);
     expect((await vraag(`${API}/media/${id}`, { methode: "DELETE" })).status).toBe(404);
     expect((await vraag(`${API}/media/geen-id`, { methode: "DELETE" })).status).toBe(400);
-    const audit = await leesAudit({ dir: dataDir });
-    expect(audit.some((r) => r.actie === "marketing.media-gewist" && r.doelwit === id)).toBe(true);
   });
 });
 
 describe("ideeën", () => {
   it("bewaart, wijzigt en wist een idee; een onbekend sjabloon mag niet", async () => {
-    const r = await vraag(`${API}/ideeen`, { body: { datum: "2026-10-06", titel: "Wtta uitleggen", sjabloon: "stelling", kop: "De Wtta komt. *Bent u klaar?*" } });
+    const r = await vraag(`${API}/ideeen`, { body: { datum: "2026-10-06", titel: "Een idee", sjabloon: "stelling", kop: "Een *kop.*" } });
     expect(r.status).toBe(201);
     expect(r.body).toMatchObject({ id: expect.stringMatching(/^i-/), herkomst: "hand", post: null, feiten: [], moment: null, toelichting: "" });
     const { id, aangemaakt: _a, gewijzigd: _g, ...rest } = r.body;

@@ -69,7 +69,7 @@ function tekenNav(scherm) {
 function laadInstellingen(opnieuw = false) {
   // Een mislukte aanroep niet bewaren, anders faalt elk scherm tot de pagina herlaadt.
   if (opnieuw || !instellingenBelofte) {
-    const belofte = api("/api/beheer/marketing/instellingen").catch((e) => {
+    const belofte = api("/api/instellingen").catch((e) => {
       if (instellingenBelofte === belofte) instellingenBelofte = null;
       throw e;
     });

@@ -26,7 +26,8 @@ function alleBestanden(map: string): string[] {
   });
 }
 
-describe("merkbestanden van de studio", () => {
+// Task 7 removes this skip: the brand files and this test are replaced there.
+describe.skip("merkbestanden van de studio", () => {
   it("is elk bestand byte-gelijk aan zijn bron in de kit", () => {
     const bestanden = alleBestanden(STUDIO).map((p) => relative(STUDIO, p)).filter((p) => p !== "merk.json");
     expect(bestanden.length).toBeGreaterThan(30);

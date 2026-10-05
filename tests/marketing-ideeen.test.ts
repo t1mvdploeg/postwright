@@ -90,7 +90,7 @@ let basis = "";
 let cookie = "";
 let dataDir = "";
 let sluit: () => Promise<void>;
-const API = "/api/beheer/marketing";
+const API = "/api";
 /** Dezelfde Amsterdam-datum als de server. */
 const vandaag = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Amsterdam" }).format(new Date());
 

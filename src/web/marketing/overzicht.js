@@ -1,7 +1,7 @@
 // Marketingstudio — Overzicht: wat staat er deze week, wat is blijven liggen, en waar leunt een
 // post op een feit dat niet meer klopt. Golf 2: ook het ritme (laatste publicatie, lege weken),
 // de actualiteitenkalender en de handmatige resultaten.
-import { el, legeStaat } from "/app.js";
+import { el, legeStaat, melding } from "/app.js";
 import { leesbaarMoment } from "/marketing/recept.js";
 import { dagenGeleden } from "/marketing/kalender.js";
 import { sjabloon } from "/marketing/sjablonen.js";
@@ -33,9 +33,21 @@ function geledenTekst(iso) {
 const getal = (n) => n.toLocaleString("nl-NL");
 
 export async function toon(container, ctx) {
-  const o = await ctx.api("/api/beheer/marketing/overzicht");
+  const o = await ctx.api("/api/overzicht");
   if (!ctx.geldig()) return;
   const mb = o.media.bytes / (1024 * 1024);
+  /** De lege staat met de knop die voorbeeldinhoud toevoegt, zodat een nieuwe gebruiker meteen iets ziet. */
+  const legeStaatMetVoorbeeld = () => {
+    const leeg = legeStaat("Niets gepland", "Maak een post en plan hem in; hij verschijnt dan hier en in de agenda-export.", { tekst: "Nieuwe post", href: "#maken" });
+    leeg.append(el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: async () => {
+      try {
+        await ctx.api("/api/startvulling", { method: "POST", body: {} });
+        melding("Voorbeeldfeiten, -teksten en -posts toegevoegd");
+        await toon(container, ctx);
+      } catch (e) { melding(e.message, "fout"); }
+    } }));
+    return leeg;
+  };
   const laatstePublicatie = geledenTekst(o.laatstGepubliceerd);
   container.replaceChildren(
     el("section", { class: "pagina-intro" }, [
@@ -69,7 +81,7 @@ export async function toon(container, ctx) {
             el("a", { href: `#maken/${p.id}`, text: p.titel }),
             el("b", { text: leesbaarMoment(p.gepland) }),
           ])))
-          : legeStaat("Niets gepland", "Maak een post en plan hem in; hij verschijnt dan hier en in de agenda-export.", { tekst: "Nieuwe post", href: "#maken" }),
+          : legeStaatMetVoorbeeld(),
       ]),
       el("div", { class: "overzicht-zij" }, [
         el("div", { class: "kaart" }, [

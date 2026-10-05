@@ -5,7 +5,7 @@ import { bevestigDialoog, el, legeStaat, melding } from "/app.js";
 const SOORTEN = { opening: "Openingszinnen", afsluiter: "Afsluiters met actie", hashtags: "Hashtagsets", boilerplate: "Vaste teksten" };
 
 export async function toon(container, ctx) {
-  let { teksten } = await ctx.api("/api/beheer/marketing/teksten");
+  let { teksten } = await ctx.api("/api/teksten");
   if (!ctx.geldig()) return;
   const formHouder = el("div");
   const lijstHouder = el("div");
@@ -21,8 +21,8 @@ export async function toon(container, ctx) {
       opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
       try {
         const t = bestaand
-          ? await ctx.api(`/api/beheer/marketing/teksten/${bestaand.id}`, { method: "PUT", body })
-          : await ctx.api("/api/beheer/marketing/teksten", { method: "POST", body });
+          ? await ctx.api(`/api/teksten/${bestaand.id}`, { method: "PUT", body })
+          : await ctx.api("/api/teksten", { method: "POST", body });
         teksten = bestaand ? teksten.map((x) => (x.id === t.id ? t : x)) : [...teksten, t];
         formHouder.replaceChildren(nieuwKnop());
         tekenLijst();
@@ -44,27 +44,27 @@ export async function toon(container, ctx) {
   function nieuwKnop() {
     return el("div", { class: "knoppenrij" }, [
       el("button", { type: "button", text: "Nieuwe tekst", onclick: () => formulier() }),
-      el("button", { type: "button", class: "secundair", text: "Neem de teksten van de site over", onclick: startvulling }),
+      el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }),
     ]);
   }
 
-  /** De vaste teksten van de site (en de letterlijke claims als concept-feiten) overnemen; wat er al staat, blijft staan. */
+  /** Voorbeeldfeiten, -teksten en -posts toevoegen; wat er al staat, blijft staan. */
   async function startvulling() {
     try {
-      const r = await ctx.api("/api/beheer/marketing/startvulling", { method: "POST", body: {} });
-      melding(r.feiten || r.teksten
+      const r = await ctx.api("/api/startvulling", { method: "POST", body: {} });
+      melding(r.feiten || r.teksten || r.posts
         // Het concept-deel alleen als er feiten bij kwamen: bij 0 feiten staat er niets na te lopen.
-        ? `${r.feiten} feit${r.feiten === 1 ? "" : "en"} en ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} overgenomen.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
-        : "Alles van de site stond er al");
-      ({ teksten } = await ctx.api("/api/beheer/marketing/teksten"));
+        ? `${r.feiten} feit${r.feiten === 1 ? "" : "en"}, ${r.teksten} tekst${r.teksten === 1 ? "" : "en"} en ${r.posts} post${r.posts === 1 ? "" : "s"} toegevoegd.${r.feiten ? ` ${r.feiten === 1 ? "Het feit staat" : "De feiten staan"} op concept: loop ${r.feiten === 1 ? "het" : "ze"} na en zet ${r.feiten === 1 ? "het" : "ze"} op actief.` : ""}`
+        : "De voorbeeldinhoud stond er al");
+      ({ teksten } = await ctx.api("/api/teksten"));
       tekenLijst();
     } catch (e) { melding(e.message, "fout"); }
   }
 
   function tekenLijst() {
     if (!teksten.length) {
-      const leeg = legeStaat("Nog geen teksten", "Leg vaste stukken vast, zoals uw standaardhashtags of de korte tekst over Mijntarieftool.");
-      leeg.append(el("button", { type: "button", class: "secundair", text: "Neem de teksten van de site over", onclick: startvulling }));
+      const leeg = legeStaat("Nog geen teksten", "Leg vaste stukken vast, zoals uw standaardhashtags of een afsluitende zin.");
+      leeg.append(el("button", { type: "button", class: "secundair", text: "Voeg voorbeeldinhoud toe", onclick: startvulling }));
       lijstHouder.replaceChildren(el("div", { class: "kaart" }, [leeg]));
       return;
     }
@@ -79,7 +79,7 @@ export async function toon(container, ctx) {
             el("button", { type: "button", class: "secundair klein gevaar", text: "Wissen", onclick: async () => {
               if (!await bevestigDialoog(`De tekst "${t.naam}" wissen?`, { titel: "Tekst wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
               try {
-                await ctx.api(`/api/beheer/marketing/teksten/${t.id}`, { method: "DELETE" });
+                await ctx.api(`/api/teksten/${t.id}`, { method: "DELETE" });
                 teksten = teksten.filter((x) => x.id !== t.id);
                 tekenLijst();
               } catch (e) { melding(e.message, "fout"); }

@@ -56,7 +56,7 @@ export function schrijfhulpPaneel({ ctx, sjabloon, veldenNu, postNu, kanaalNu, p
     try {
       const velden = veldenNu().filter((v) => v.soort !== "keuze" && v.soort !== "media")
         .map((v) => ({ id: v.id, label: v.label, soort: v.soort, max: v.max ?? null, nadruk: v.nadruk === "precies-een" }));
-      const r = await fetch("/api/beheer/marketing/schrijfhulp", {
+      const r = await fetch("/api/schrijfhulp", {
         method: "POST", signal: afbreken.signal, headers: { "content-type": "application/json" },
         body: JSON.stringify({ taak: taak.value, sjabloon: sjabloon.naam, velden, kanaal: kanaalNu(), toelichting: toelichting.value, feiten: post.feiten ?? [], huidig: huidigeInhoud(post, velden, kanaalNu()) }),
       });

@@ -20,11 +20,11 @@ const DAGEN = ["ma", "di", "wo", "do", "vr", "za", "zo"];
 export async function toon(container, ctx) {
   const begin = vandaagAmsterdam();
   let [{ posts }, { campagnes }, { ideeen }, momenten] = await Promise.all([
-    ctx.api("/api/beheer/marketing/posts"),
-    ctx.api("/api/beheer/marketing/campagnes"),
-    ctx.api("/api/beheer/marketing/ideeen"),
+    ctx.api("/api/posts"),
+    ctx.api("/api/campagnes"),
+    ctx.api("/api/ideeen"),
     // De momenten zijn een extra: laden ze niet, dan werkt de planning gewoon zonder.
-    ctx.api(`/api/beheer/marketing/momenten?van=${plusDagen(begin, -31)}&tot=${plusDagen(begin, 365)}`).then((r) => r?.momenten ?? [], () => []),
+    ctx.api(`/api/momenten?van=${plusDagen(begin, -31)}&tot=${plusDagen(begin, 365)}`).then((r) => r?.momenten ?? [], () => []),
   ]);
   if (!ctx.geldig()) return;
   const nu = new Date();
@@ -53,7 +53,7 @@ export async function toon(container, ctx) {
   const aantalVeld = el("input", { type: "number", id: "periode-aantal", min: "1", max: "20", step: "1", inputmode: "numeric" });
   const kanaalVeld = el("select", { id: "periode-kanaal" }, kanalen.map((k) => el("option", { value: k, text: KANAAL_REGELS[k]?.naam ?? k })));
   const campagneVeld = el("select", { id: "periode-campagne" });
-  const wensVeld = el("textarea", { id: "periode-wens", rows: "2", maxlength: "1000", placeholder: "Bijvoorbeeld: meer over de loonstrookcontrole; voor HR bij uitzendbureaus." });
+  const wensVeld = el("textarea", { id: "periode-wens", rows: "2", maxlength: "1000", placeholder: "Bijvoorbeeld: meer over de merkcontrole; voor ontwerpers en marketeers." });
   /** Het aantal volgt de periode (twee per week) tot u het zelf aanpast; een nieuwe periode zet het terug. */
   let aantalVoor = null;
 
@@ -83,7 +83,7 @@ export async function toon(container, ctx) {
     },
     momentTitel: (sleutel) => momenten.find((m) => m.sleutel === sleutel)?.titel ?? sleutel,
     naBewaren: async () => {
-      ({ ideeen } = await ctx.api("/api/beheer/marketing/ideeen"));
+      ({ ideeen } = await ctx.api("/api/ideeen"));
       teken();
     },
   });
@@ -178,7 +178,7 @@ export async function toon(container, ctx) {
   async function verzetIdee(i, datum) {
     try {
       const { id, aangemaakt: _a, gewijzigd: _g, ...rest } = i;
-      const nieuw = await ctx.api(`/api/beheer/marketing/ideeen/${id}`, { method: "PUT", body: { ...rest, datum } });
+      const nieuw = await ctx.api(`/api/ideeen/${id}`, { method: "PUT", body: { ...rest, datum } });
       ideeen = ideeen.map((x) => (x.id === id ? nieuw : x));
       paneel.bijgewerkt(nieuw);
       melding(`Idee verzet naar ${korteDag(datum)}`);
@@ -193,7 +193,7 @@ export async function toon(container, ctx) {
    */
   async function maakFeit(m) {
     try {
-      await ctx.api(`/api/beheer/marketing/momenten/${encodeURIComponent(m.sleutel)}/feit`, { method: "POST", body: {} });
+      await ctx.api(`/api/momenten/${encodeURIComponent(m.sleutel)}/feit`, { method: "POST", body: {} });
       melding("Het feit bij dit moment staat in de Feitenbank; zet het daar op actief als het nog een concept is.");
     } catch (e) { melding(e.message, "fout"); }
   }
@@ -202,14 +202,14 @@ export async function toon(container, ctx) {
   function ideeBijMoment(m, dag, knop) {
     const vandaag = vandaagAmsterdam();
     paneel.open({
-      datum: dag < vandaag ? vandaag : dag, titel: m.titel, toelichting: m.tekst, sjabloon: null, kop: "",
+      datum: dag < vandaag ? vandaag : dag, titel: m.titel, toelichting: m.zin, sjabloon: null, kop: "",
       feiten: [], moment: m.sleutel, campagne: null, herkomst: "hand", post: null,
     }, knop);
   }
 
   async function verzet(p, iso) {
     try {
-      const nieuw = await ctx.api(`/api/beheer/marketing/posts/${p.id}/status`, { method: "POST", body: { naar: "gepland", gepland: iso } });
+      const nieuw = await ctx.api(`/api/posts/${p.id}/status`, { method: "POST", body: { naar: "gepland", gepland: iso } });
       Object.assign(p, nieuw);
       melding(`Verzet naar ${leesbaarMoment(iso)}`);
       teken();
@@ -262,14 +262,13 @@ export async function toon(container, ctx) {
   }
 
   function momentRij(m, dag) {
-    const einde = m.tot === dag && m.datum !== dag;
     const feitKnop = el("button", { type: "button", class: "secundair klein", "aria-label": `Maak feit: ${m.titel}`, text: "Maak feit" });
     const ideeKnop = el("button", { type: "button", class: "secundair klein", "data-focus": `moment-${m.sleutel}-${dag}`, "aria-label": `Idee op deze dag: ${m.titel}`, text: "Idee op deze dag" });
     feitKnop.addEventListener("click", () => maakFeit(m));
     ideeKnop.addEventListener("click", () => ideeBijMoment(m, dag, ideeKnop));
     return el("tr", {}, [
       el("td", { text: korteDag(dag) }),
-      el("td", {}, [el("span", { text: `${einde ? "Moment eindigt" : "Moment"}: ${m.titel}` }), el("span", { class: "tabel-subtekst", text: m.tekst })]),
+      el("td", {}, [el("span", { text: `Moment: ${m.titel}` }), el("span", { class: "tabel-subtekst", text: m.zin })]),
       el("td", { text: "Moment" }),
       el("td", {}, [el("div", { class: "rij-acties" }, [feitKnop, ideeKnop])]),
     ]);
@@ -325,11 +324,9 @@ export async function toon(container, ctx) {
       b.rijen.push({ sorteer: `${i.datum} 2 ${i.titel}`, tr: ideeRij(i) });
     }
     for (const m of momenten) {
-      for (const dag of new Set([m.datum, m.tot].filter(Boolean))) {
-        if (dag < eerste) continue;
-        const b = weken.get(komendeWeken(dag, 1)[0].maandag);
-        if (b) b.rijen.push({ sorteer: `${dag} 0 ${m.titel}`, tr: momentRij(m, dag) });
-      }
+      if (m.datum < eerste) continue;
+      const b = weken.get(komendeWeken(m.datum, 1)[0].maandag);
+      if (b) b.rijen.push({ sorteer: `${m.datum} 0 ${m.titel}`, tr: momentRij(m, m.datum) });
     }
     for (const { w, rijen, gevuld } of [...weken.values()].sort((x, y) => x.w.maandag.localeCompare(y.w.maandag))) {
       blokken.push(tabel(`Week ${w.week}${w.jaar !== nu.getFullYear() ? ` van ${w.jaar}` : ""}`, rijen.sort((x, y) => x.sorteer.localeCompare(y.sorteer)).map((x) => x.tr), {
@@ -351,7 +348,7 @@ export async function toon(container, ctx) {
       bij(perDag, dagVan(m), p);
     }
     const momentenOp = new Map();
-    for (const m of momenten) for (const dag of new Set([m.datum, m.tot].filter(Boolean))) bij(momentenOp, dag, m);
+    for (const m of momenten) bij(momentenOp, m.datum, m);
     const ideeenOp = new Map();
     for (const i of ideeen) bij(ideeenOp, i.datum, i);
     const weken = maandRaster(jaar, maand);
@@ -375,7 +372,7 @@ export async function toon(container, ctx) {
           }
           return a;
         }),
-        ...(momentenOp.get(datum) ?? []).map((m) => el("span", { class: "studio-moment", title: m.tekst, text: m.tot === datum && m.datum !== datum ? `Einde: ${m.titel}` : m.titel })),
+        ...(momentenOp.get(datum) ?? []).map((m) => el("span", { class: "studio-moment", title: m.zin, text: m.titel })),
         ...(ideeenOp.get(datum) ?? []).map((i) => {
           const klaar = gebruikt(i);
           const knop = el("button", {
@@ -441,7 +438,7 @@ export async function toon(container, ctx) {
     if (!gepland.length) { melding("Er staan geen posts in de toekomst gepland", "fout"); return; }
     // Teruggezette posts met een toekomstig moment gaan als ingetrokken mee, zodat een eerdere export opgeruimd wordt.
     const ingetrokken = posts.filter((p) => (p.status === "concept" || p.status === "gearchiveerd") && toekomst(p));
-    download(maakIcs([...gepland, ...ingetrokken], { basisUrl: location.origin }), "mijntarieftool-marketing.ics", "text/calendar;charset=utf-8");
+    download(maakIcs([...gepland, ...ingetrokken], { basisUrl: location.origin }), "postwright.ics", "text/calendar;charset=utf-8");
     melding(`${gepland.length} afspra${gepland.length === 1 ? "ak" : "ken"} in de agenda-export`);
   });
 
@@ -464,8 +461,8 @@ export async function toon(container, ctx) {
       opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
       try {
         const c = bewerkt
-          ? await ctx.api(`/api/beheer/marketing/campagnes/${bewerkt.id}`, { method: "PUT", body })
-          : await ctx.api("/api/beheer/marketing/campagnes", { method: "POST", body });
+          ? await ctx.api(`/api/campagnes/${bewerkt.id}`, { method: "PUT", body })
+          : await ctx.api("/api/campagnes", { method: "POST", body });
         campagnes = bewerkt ? campagnes.map((x) => (x.id === c.id ? c : x)) : [...campagnes, c];
         leeg();
         tekenCampagnes();
@@ -485,7 +482,7 @@ export async function toon(container, ctx) {
         el("button", { type: "button", class: "secundair klein", text: c.gearchiveerd ? "Terughalen" : "Archiveren", onclick: async () => {
           try {
             const { id: _i, aangemaakt: _a, gewijzigd: _g, ...rest } = c;
-            const nieuw = await ctx.api(`/api/beheer/marketing/campagnes/${c.id}`, { method: "PUT", body: { ...rest, gearchiveerd: !c.gearchiveerd } });
+            const nieuw = await ctx.api(`/api/campagnes/${c.id}`, { method: "PUT", body: { ...rest, gearchiveerd: !c.gearchiveerd } });
             campagnes = campagnes.map((x) => (x.id === c.id ? nieuw : x));
             tekenCampagnes();
           } catch (e) { melding(e.message, "fout"); }
@@ -493,7 +490,7 @@ export async function toon(container, ctx) {
         el("button", { type: "button", class: "secundair klein gevaar", text: "Wissen", onclick: async () => {
           if (!await bevestigDialoog(`Campagne "${c.naam}" wissen?`, { titel: "Campagne wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
           try {
-            await ctx.api(`/api/beheer/marketing/campagnes/${c.id}`, { method: "DELETE" });
+            await ctx.api(`/api/campagnes/${c.id}`, { method: "DELETE" });
             campagnes = campagnes.filter((x) => x.id !== c.id);
             tekenCampagnes();
           } catch (e) { melding(e.message, "fout"); }

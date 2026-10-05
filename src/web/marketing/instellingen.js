@@ -5,7 +5,7 @@ import { bevestigDialoog, el, melding } from "/app.js";
 import { FORMATEN, KANALEN } from "/marketing/formaten.js";
 
 export async function toon(container, ctx) {
-  const [i, { media: mediaLijst }] = await Promise.all([ctx.herlaadInstellingen(), ctx.api("/api/beheer/marketing/media")]);
+  const [i, { media: mediaLijst }] = await Promise.all([ctx.herlaadInstellingen(), ctx.api("/api/media")]);
   if (!ctx.geldig()) return;
   let media = mediaLijst;
 
@@ -42,7 +42,7 @@ export async function toon(container, ctx) {
     };
     opslaan.disabled = true; // geen dubbele aanvraag bij een dubbelklik (BM-21)
     try {
-      await ctx.api("/api/beheer/marketing/instellingen", { method: "PUT", body });
+      await ctx.api("/api/instellingen", { method: "PUT", body });
       await ctx.herlaadInstellingen();
       melding("Instellingen bewaard");
     } catch (e) { melding(e.message, "fout"); } finally { opslaan.disabled = false; }
@@ -57,7 +57,7 @@ export async function toon(container, ctx) {
     mediaHouder.replaceChildren(el("div", { class: "tabel-scroll" }, [el("table", { class: "lijst" }, [
       el("thead", {}, [el("tr", {}, ["Beeld", "Maat", "Gebruikt in", ""].map((t) => el("th", { scope: "col", text: t })))]),
       el("tbody", {}, media.map((m) => el("tr", {}, [
-        el("td", {}, [el("img", { class: "studio-mediamini", src: `/api/beheer/marketing/media/${encodeURIComponent(m.id)}`, alt: "", loading: "lazy" })]),
+        el("td", {}, [el("img", { class: "studio-mediamini", src: `/api/media/${encodeURIComponent(m.id)}`, alt: "", loading: "lazy" })]),
         el("td", { text: `${m.breedte ?? "?"}×${m.hoogte ?? "?"} px · ${(m.bytes / 1048576).toFixed(1).replace(".", ",")} MB` }),
         el("td", { text: m.gebruikt > 0 ? `${m.gebruikt} post${m.gebruikt === 1 ? "" : "s"}` : "Niet gebruikt" }),
         el("td", {}, [el("button", {
@@ -66,7 +66,7 @@ export async function toon(container, ctx) {
           onclick: async () => {
             if (!await bevestigDialoog("Dit beeld wordt definitief gewist.", { titel: "Beeld wissen?", bevestigTekst: "Wissen", gevaarlijk: true })) return;
             try {
-              await ctx.api(`/api/beheer/marketing/media/${encodeURIComponent(m.id)}`, { method: "DELETE" });
+              await ctx.api(`/api/media/${encodeURIComponent(m.id)}`, { method: "DELETE" });
               media = media.filter((x) => x.id !== m.id);
               tekenMedia();
               melding("Beeld gewist");

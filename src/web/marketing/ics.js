@@ -58,12 +58,12 @@ export function maakIcs(posts, { basisUrl, nu = new Date() }) {
     const begin = new Date(p.gepland);
     const eind = new Date(begin.getTime() + 15 * 60 * 1000);
     const tekst = Object.values(p.posttekst ?? {}).find((t) => t && t.trim()) ?? "";
-    const beschrijving = [tekst.length > 300 ? `${tekst.slice(0, 300)}…` : tekst, `Openen in de studio: ${basisUrl}/beheer/marketing#maken/${p.id}`]
+    const beschrijving = [tekst.length > 300 ? `${tekst.slice(0, 300)}…` : tekst, `Openen in de studio: ${basisUrl}/#maken/${p.id}`]
       .filter(Boolean).join("\n\n");
     const ingetrokken = p.status === "concept" || p.status === "gearchiveerd";
     regels.push(
       "BEGIN:VEVENT",
-      `UID:${p.id}@mijntarieftool.nl`,
+      `UID:${p.id}@postwright.local`,
       `SEQUENCE:${ingetrokken ? 1 : 0}`,
       ...(ingetrokken ? ["STATUS:CANCELLED"] : []),
       `DTSTAMP:${stempel}`,
@@ -71,7 +71,7 @@ export function maakIcs(posts, { basisUrl, nu = new Date() }) {
       `DTEND:${icsTijd(eind)}`,
       `SUMMARY:${icsTekst(`Post: ${p.titel}`)}`,
       `DESCRIPTION:${icsTekst(beschrijving)}`,
-      `URL:${basisUrl}/beheer/marketing#maken/${p.id}`,
+      `URL:${basisUrl}/#maken/${p.id}`,
       ...(ingetrokken ? [] : [
         "BEGIN:VALARM",
         "ACTION:DISPLAY",

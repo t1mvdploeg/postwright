@@ -49,7 +49,7 @@ export async function laadMedia(ids, maxZijde = 3200) {
   await Promise.all([...new Set(ids)].filter((id) => /^[0-9a-f]{32}\.(png|jpg|webp)$/.test(id)).map(async (id) => {
     if (!mediaCache.has(id)) {
       mediaCache.set(id, (async () => {
-        const r = await fetch(`/api/beheer/marketing/media/${id}`);
+        const r = await fetch(`/api/media/${id}`);
         if (!r.ok) return null;
         const blob = await r.blob();
         const bitmap = await createImageBitmap(blob);

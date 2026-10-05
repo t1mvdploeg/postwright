@@ -17,12 +17,12 @@ describe("zip", () => {
   it("levert een ZIP die fflate uitpakt tot dezelfde namen en bytes, ook met accenten", () => {
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 250]);
     const zip = maakZip([
-      { naam: "mijntarieftool_stelling_li-vierkant_1200x1200.png", bytes: png },
+      { naam: "postwright_stelling_li-vierkant_1200x1200.png", bytes: png },
       { naam: "posttekst café.txt", bytes: "Genoeg gezien. Nu bent u aan zet." },
     ], new Date(2026, 8, 24, 13, 30, 10));
     const uit = unzipSync(zip);
-    expect(Object.keys(uit)).toEqual(["mijntarieftool_stelling_li-vierkant_1200x1200.png", "posttekst café.txt"]);
-    expect([...uit["mijntarieftool_stelling_li-vierkant_1200x1200.png"]]).toEqual([...png]);
+    expect(Object.keys(uit)).toEqual(["postwright_stelling_li-vierkant_1200x1200.png", "posttekst café.txt"]);
+    expect([...uit["postwright_stelling_li-vierkant_1200x1200.png"]]).toEqual([...png]);
     expect(strFromU8(uit["posttekst café.txt"])).toBe("Genoeg gezien. Nu bent u aan zet.");
   });
 
@@ -94,16 +94,16 @@ describe("ics", () => {
     const ics = maakIcs([
       { id: "p-1", titel: "Stelling, blauw", gepland: "2026-10-06T08:30:00+02:00", posttekst: { linkedin: "Genoeg gezien." } },
       { id: "p-2", titel: "Zonder datum", gepland: null },
-    ], { basisUrl: "https://mijntarieftool.nl", nu: new Date("2026-10-01T00:00:00Z") });
+    ], { basisUrl: "https://postwright.example", nu: new Date("2026-10-01T00:00:00Z") });
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(1);
-    expect(ics).toContain("UID:p-1@mijntarieftool.nl");
+    expect(ics).toContain("UID:p-1@postwright.local");
     expect(ics).toContain("DTSTART:20261006T063000Z");
     expect(ics).toContain("DTEND:20261006T064500Z");
     expect(ics).toContain("SUMMARY:Post: Stelling\\, blauw");
     expect(ics).toContain("TRIGGER:-PT15M");
-    expect(ics.replace(/\r\n /g, "")).toContain("URL:https://mijntarieftool.nl/beheer/marketing#maken/p-1");
+    expect(ics.replace(/\r\n /g, "")).toContain("URL:https://postwright.example/#maken/p-1");
     expect(ics.split("\r\n").every((r) => !r.includes("\n"))).toBe(true);
   });
 
@@ -111,18 +111,18 @@ describe("ics", () => {
     const ics = maakIcs([
       { id: "p-1", titel: "Gepland", gepland: "2026-10-06T08:30:00+02:00", status: "gepland" },
       { id: "p-2", titel: "Terug naar concept", gepland: "2026-10-07T08:30:00+02:00", status: "concept" },
-    ], { basisUrl: "https://mijntarieftool.nl" });
+    ], { basisUrl: "https://postwright.example" });
     const [gepland, ingetrokken] = ics.split("BEGIN:VEVENT").slice(1);
     expect(gepland).toContain("SEQUENCE:0");
     expect(gepland).not.toContain("STATUS:CANCELLED");
-    expect(ingetrokken).toContain("UID:p-2@mijntarieftool.nl");
+    expect(ingetrokken).toContain("UID:p-2@postwright.local");
     expect(ingetrokken).toContain("SEQUENCE:1");
     expect(ingetrokken).toContain("STATUS:CANCELLED");
     expect(ingetrokken).not.toContain("VALARM");
   });
 
   it("geeft een geldige lege agenda zonder afspraken", () => {
-    const ics = maakIcs([], { basisUrl: "https://mijntarieftool.nl" });
+    const ics = maakIcs([], { basisUrl: "https://postwright.example" });
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).not.toContain("VEVENT");
   });
