@@ -3,7 +3,7 @@
 // browser.
 import { template as templateOf, defaultContent, fieldsOf } from "./templates.js";
 import { titleFrom } from "./brand-check.js";
-import { takeOver } from "./slides.js";
+import { sharedFormats, takeOver } from "./slides.js";
 
 const LOCAL_DATE = new Intl.DateTimeFormat("sv-SE");
 
@@ -83,6 +83,7 @@ export function newRecipe(id, { enabledFormats = [], brandVersion = "" } = {}) {
     formats: formats.length ? formats : [s.formats[0]],
     content: s.kind === "carousel" ? {} : defaultContent(s),
     slides,
+    moreSlides: [],
     caption: {},
     altText: "",
     link: "",
@@ -96,11 +97,26 @@ export function newRecipe(id, { enabledFormats = [], brandVersion = "" } = {}) {
 
 /**
  * The part of a post that goes to the server on save: only the fields of the schema, only
- * fields that the template (or the slide kind) knows, and no empty captions.
+ * fields that the template (or the slide kind) knows, and no empty captions. `s` is the
+ * template of slide 1 (or the carousel). An extra slide whose template no longer exists goes
+ * along unchanged: its content is not ours to cut.
  */
 export function toInput(post, s, check) {
   const only = (content, fields) =>
     Object.fromEntries(fields.map((v) => [v.id, String(content?.[v.id] ?? v.defaultValue ?? "")]));
+  const carousel = s.kind === "carousel";
+  const moreSlides = carousel
+    ? []
+    : (post.moreSlides ?? []).map((d) => {
+        const t = templateOf(d.template);
+        return t
+          ? { template: t.id, content: only(d.content, t.fields) }
+          : { template: d.template, content: d.content ?? {} };
+      });
+  const allowed = carousel ? s.formats : sharedFormats([s.id, ...moreSlides.map((d) => d.template)]);
+  const formats = [...new Set(post.formats)].filter((f) => allowed.includes(f));
+  if (!formats.length && moreSlides.length)
+    throw new Error("The slides share no format; choose a format every slide's template has");
   return {
     title:
       String(post.title ?? "")
@@ -108,12 +124,12 @@ export function toInput(post, s, check) {
         .slice(0, 120) || titleFrom(post, s),
     kind: s.kind,
     template: s.id,
-    formats: [...new Set(post.formats)].filter((f) => s.formats.includes(f)),
-    content: s.kind === "carousel" ? {} : only(post.content, s.fields),
-    slides:
-      s.kind === "carousel"
-        ? (post.slides ?? []).map((d) => ({ kind: d.kind, content: only(d.content, fieldsOf(s, d.kind)) }))
-        : [],
+    formats,
+    content: carousel ? {} : only(post.content, s.fields),
+    slides: carousel
+      ? (post.slides ?? []).map((d) => ({ kind: d.kind, content: only(d.content, fieldsOf(s, d.kind)) }))
+      : [],
+    moreSlides,
     caption: Object.fromEntries(Object.entries(post.caption ?? {}).filter(([, t]) => String(t ?? "").trim())),
     altText: String(post.altText ?? ""),
     link: String(post.link ?? "").trim(),
@@ -138,8 +154,8 @@ export function moveSlide(slides, index, direction) {
 
 /**
  * A post as a new recipe in a different template ("Convert"). To and from a carousel goes
- * via the cover slide. The original is left untouched: everything that goes along is a
- * copy.
+ * via the cover slide. Extra slides do not come along: Convert makes a new post from slide 1.
+ * The original is left untouched: everything that goes along is a copy.
  */
 export function convert(post, targetId, { enabledFormats = [], brandVersion = "" } = {}) {
   const source = templateOf(post.template);

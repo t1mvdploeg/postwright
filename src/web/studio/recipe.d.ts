@@ -1,5 +1,6 @@
 // Type declaration next to recipe.js (plain browser ESM, no build step).
 import type { Slide, Template } from "./templates.js";
+import type { Page } from "./slides.js";
 
 export interface Recipe {
   title: string;
@@ -8,6 +9,7 @@ export interface Recipe {
   formats: string[];
   content: Record<string, string>;
   slides: Slide[];
+  moreSlides: Page[];
   caption: Record<string, string>;
   altText: string;
   link: string;

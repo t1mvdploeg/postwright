@@ -206,3 +206,48 @@ describe("convert", () => {
     expect(convert(p, "product-image").content.image).toBe(newRecipe("product-image").content.image);
   });
 });
+
+describe("extra slides", () => {
+  it("starts a new recipe with no extra slides", () => {
+    expect(newRecipe("statement").moreSlides).toEqual([]);
+    expect(newRecipe("carousel").moreSlides).toEqual([]);
+  });
+
+  it("sends extra slides with only their template's fields, and only shared formats", () => {
+    const post = {
+      ...newRecipe("statement", { brandVersion: "test-1.0" }),
+      formats: ["li-square", "story"],
+      moreSlides: [{ template: "question", content: { headline: "Why *not*?", nonsense: "x" } }],
+    };
+    const input = toInput(post, template("statement")!, null);
+    expect(input.formats).toEqual(["li-square"]);
+    expect(input.moreSlides[0].template).toBe("question");
+    expect(input.moreSlides[0].content.headline).toBe("Why *not*?");
+    expect(input.moreSlides[0].content).not.toHaveProperty("nonsense");
+    expect(PostInputSchema.safeParse({ ...input, check: undefined }).success).toBe(true);
+  });
+
+  it("keeps a slide whose template is gone exactly as it was", () => {
+    const gone = { template: "own-deadbeef", content: { headline: "Old" } };
+    const input = toInput({ ...newRecipe("statement"), moreSlides: [gone] }, template("statement")!, null);
+    expect(input.moreSlides).toEqual([gone]);
+  });
+
+  it("refuses when the slides share no format", () => {
+    const post = {
+      ...newRecipe("statement"),
+      formats: ["wide"],
+      moreSlides: [{ template: "question", content: {} }],
+    };
+    expect(() => toInput(post, template("statement")!, null)).toThrow(/share no format/);
+  });
+
+  it("sends no extra slides for a carousel, and Convert starts from slide 1 only", () => {
+    const c = newRecipe("carousel");
+    expect(
+      toInput({ ...c, moreSlides: [{ template: "question", content: {} }] }, template("carousel")!, null).moreSlides,
+    ).toEqual([]);
+    const post = { ...newRecipe("statement"), title: "T", moreSlides: [{ template: "question", content: {} }] };
+    expect(convert(post, "question").moreSlides).toEqual([]);
+  });
+});
