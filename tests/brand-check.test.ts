@@ -367,12 +367,14 @@ describe("brand-check", () => {
       overflow: [
         { format: "story", field: "the headline", kind: "safe-zone", reason: "controls at the top" },
         { format: "li-portrait", field: "the text", kind: "outside-image" },
+        { format: "li-carousel", slide: 1, field: "item 1", kind: "overlap", with: "item 2" },
       ],
     });
     const snippets = r.findings.filter((b) => b.code === "overflow").map((b) => b.text);
     expect(snippets).toEqual([
       "Story: the headline is in the zone of the controls at the top",
       "LinkedIn portrait: the text runs outside the image",
+      "LinkedIn carousel (PDF), slide 2: item 1 overlaps item 2",
     ]);
   });
 

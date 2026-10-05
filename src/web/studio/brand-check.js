@@ -245,7 +245,7 @@ export function runCheck({
       o.kind === "safe-zone"
         ? `${where}: ${o.field} is in the zone of the ${o.reason ?? "platform controls"}`
         : o.kind === "overlap"
-          ? `${where}: ${o.field} touches ${o.with ?? "another text block"}`
+          ? `${where}: ${o.field} overlaps ${o.with ?? "another text block"}`
           : `${where}: ${o.field} runs outside the image`;
     add("error", "overflow", text, { field: o.fieldId ?? null, slide: o.slide ?? null });
   }

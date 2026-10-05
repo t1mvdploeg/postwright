@@ -1200,7 +1200,8 @@ async function showEditor(container, ctx, begin) {
     for (const f of state.post.formats) {
       for (const slide of list) {
         const fields = s.kind === "carousel" ? fieldsOf(s, slides()[slide]?.kind) : s.fields;
-        for (const v of fields) names[v.id] = `the ${v.label.toLowerCase()}`;
+        // "the headline", but "item 2": a numbered label has no article.
+        for (const v of fields) names[v.id] = `${/\d$/.test(v.label) ? "" : "the "}${v.label.toLowerCase()}`;
         try {
           const image = buildImage({
             template: s.id,

@@ -39,6 +39,22 @@ function load(iframe, html) {
 }
 
 /**
+ * The pairs of blocks `{ el, r }` that overlap by more than `tolerance` pixels. A block inside
+ * another (`el.contains`) is not a collision. Blocks that merely touch are none either.
+ */
+export function overlapPairs(items, tolerance = 2) {
+  const pairs = [];
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      const [a, c] = [items[i], items[j]];
+      if (a.el.contains(c.el) || c.el.contains(a.el)) continue;
+      if (overlaps(a.r, c.r, tolerance)) pairs.push([a, c]);
+    }
+  }
+  return pairs;
+}
+
+/**
  * Measures one image. `names` translates a `data-field` to a readable name ("the headline").
  * @returns {Promise<Array<{ format: string, slide: number|null, field: string, fieldId: string, kind: string, reason?: string, with?: string }>>}
  */
@@ -83,21 +99,23 @@ export async function measureOverflow(image, format, { slide = null, names = {} 
         }
       }
     }
-    for (let i = 0; i < elements.length; i++) {
-      for (let j = i + 1; j < elements.length; j++) {
-        const a = elements[i];
-        const c = elements[j];
-        if (a.el.contains(c.el) || c.el.contains(a.el)) continue;
-        if (overlaps(rel(a.r), rel(c.r), 2))
-          out.push({
-            format: format.key,
-            slide,
-            field: name(a.id),
-            fieldId: a.id,
-            kind: "overlap",
-            with: name(c.id),
-          });
-      }
+    // Overlap is measured with transforms switched off. A rotated block (the paper of the
+    // checklist is tilted) reports the box around its tilted shape, which grows by ~2.5% of
+    // its width: the rows of such a list then "overlap" although in the layout they only
+    // touch. Transforms do not move anything in the layout, so this measures the layout.
+    const style = doc.createElement("style");
+    style.textContent = "*, *::before, *::after { transform: none !important; }";
+    doc.head.append(style);
+    const flat = elements.map((x) => ({ id: x.id, el: x.el, r: rel(x.el.getBoundingClientRect()) }));
+    for (const [a, c] of overlapPairs(flat)) {
+      out.push({
+        format: format.key,
+        slide,
+        field: name(a.id),
+        fieldId: a.id,
+        kind: "overlap",
+        with: name(c.id),
+      });
     }
     return out;
   } finally {
