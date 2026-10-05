@@ -7,15 +7,23 @@ export default {
   doel: "Eén uitspraak met een gekleurde frase; voor bewustwording.",
   soort: "beeld",
   formaten: ["li-vierkant", "li-staand", "ig-vierkant", "ig-staand", "story", "breed"],
-  voorbeelddata: false,
   velden: [
     ondergrond("accent"),
-    kop("Genoeg gezien. *Nu bent u aan zet.*", 90),
+    kop("On-brand posts, *without the design tool.*", 90),
     KOPGROOTTE,
-    tekst("Een uitvraag vol afspraken. Een berekening die u kunt volgen.", 160),
-    regel("voetLinks", "Voetregel links", "Probeer de tool op"),
+    tekst("Pick a template, fill in the fields and export. Everything runs on your own computer.", 160),
+    regel("voetLinks", "Voetregel links", "Try it yourself"),
     regel("voetRechts", "Voetregel rechts", "", 40, { hulp: "Leeg: de website van het merk." }),
-    { id: "motief", label: "Routemotief", soort: "keuze", standaard: "aan", opties: [{ waarde: "aan", tekst: "Tonen" }, { waarde: "uit", tekst: "Verbergen" }] },
+    {
+      id: "motief",
+      label: "Routemotief",
+      soort: "keuze",
+      standaard: "aan",
+      opties: [
+        { waarde: "aan", tekst: "Tonen" },
+        { waarde: "uit", tekst: "Verbergen" },
+      ],
+    },
   ],
   html(v, c) {
     return `<div class="beeld ${grondKlasse(v.ondergrond)}">

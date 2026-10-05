@@ -5,7 +5,10 @@
 export function ondergrond(standaard = "licht", toegestaan = ["licht", "inkt", "accent"]) {
   const namen = { licht: "Licht", inkt: "Inkt", accent: "Accent" };
   return {
-    id: "ondergrond", label: "Ondergrond", soort: "keuze", standaard,
+    id: "ondergrond",
+    label: "Ondergrond",
+    soort: "keuze",
+    standaard,
     opties: toegestaan.map((w) => ({ waarde: w, tekst: namen[w] })),
   };
 }
@@ -20,7 +23,11 @@ export function grondKlasse(grond) {
   return grond === "inkt" ? "grond-inkt" : grond === "accent" ? "grond-accent" : "";
 }
 
-export function kop(standaard, max = 80, hulp = "Zet precies één frase tussen *sterretjes*; die krijgt de accentkleur.") {
+export function kop(
+  standaard,
+  max = 80,
+  hulp = "Zet precies één frase tussen *sterretjes*; die krijgt de accentkleur.",
+) {
   return { id: "kop", label: "Kop", soort: "kop", verplicht: true, nadruk: "precies-een", max, standaard, hulp };
 }
 
@@ -34,7 +41,10 @@ export function regel(id, label, standaard, max = 60, extra = {}) {
 
 /** De grootte van de kop: automatisch naar lengte, zoals de kit korte koppen groot zet en lange kleiner. */
 export const KOPGROOTTE = {
-  id: "kopgrootte", label: "Grootte van de kop", soort: "keuze", standaard: "automatisch",
+  id: "kopgrootte",
+  label: "Grootte van de kop",
+  soort: "keuze",
+  standaard: "automatisch",
   opties: [
     { waarde: "automatisch", tekst: "Automatisch" },
     { waarde: "groot", tekst: "Groot" },

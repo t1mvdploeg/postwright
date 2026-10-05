@@ -3,8 +3,20 @@
 // nieuw sjabloon dat ergens ruwe invoer in de markup zet hier meteen rood wordt.
 import { describe, it, expect } from "vitest";
 import {
-  SJABLONEN, bouwBeeld, escapeHtml, metNadruk, nadrukOmSelectie, remNaarPx, sjabloon, standaardInhoud, telNadruk, veldenVan, zonderNadruk,
-  type Dia, type Sjabloon, type Veld,
+  SJABLONEN,
+  bouwBeeld,
+  escapeHtml,
+  metNadruk,
+  nadrukOmSelectie,
+  remNaarPx,
+  sjabloon,
+  standaardInhoud,
+  telNadruk,
+  veldenVan,
+  zonderNadruk,
+  type Dia,
+  type Sjabloon,
+  type Veld,
 } from "../src/web/marketing/sjablonen.js";
 import { FORMATEN } from "../src/web/marketing/formaten.js";
 import { merkVanSchijf } from "./helpers/marketing-merk.js";
@@ -14,9 +26,11 @@ const KWAAD = `<img src=x onerror=alert(1)></style><script>alert(1)</script>"'&`
 
 /** Alle (sjabloon, diasoort | null) paren, met hun velden. */
 function alleVeldsets(): Array<{ s: Sjabloon; dia: string | null; velden: Veld[] }> {
-  return SJABLONEN.flatMap((s): Array<{ s: Sjabloon; dia: string | null; velden: Veld[] }> => (s.soort === "carrousel"
-    ? (s.dias ?? []).map((d) => ({ s, dia: d.soort, velden: d.velden }))
-    : [{ s, dia: null, velden: s.velden }]));
+  return SJABLONEN.flatMap((s): Array<{ s: Sjabloon; dia: string | null; velden: Veld[] }> =>
+    s.soort === "carrousel"
+      ? (s.dias ?? []).map((d) => ({ s, dia: d.soort, velden: d.velden }))
+      : [{ s, dia: null, velden: s.velden }],
+  );
 }
 
 function bouw(s: Sjabloon, dia: string | null, inhoud: Record<string, string>, formaat = s.formaten[0]) {
@@ -27,12 +41,14 @@ function bouw(s: Sjabloon, dia: string | null, inhoud: Record<string, string>, f
 
 describe("hulpfuncties", () => {
   it("escapet alle vijf de tekens", () => {
-    expect(escapeHtml(`<a href="x" title='y'>&</a>`)).toBe("&lt;a href=&quot;x&quot; title=&#39;y&#39;&gt;&amp;&lt;/a&gt;");
+    expect(escapeHtml(`<a href="x" title='y'>&</a>`)).toBe(
+      "&lt;a href=&quot;x&quot; title=&#39;y&#39;&gt;&amp;&lt;/a&gt;",
+    );
     expect(escapeHtml(null)).toBe("");
   });
 
   it("maakt van *frase* nadruk, maar laat losse sterren en sterren met spaties staan", () => {
-    expect(metNadruk("Achter elk tarief een *helder verhaal.*")).toBe("Achter elk tarief een <em>helder verhaal.</em>");
+    expect(metNadruk("Achter elke post een *helder verhaal.*")).toBe("Achter elke post een <em>helder verhaal.</em>");
     expect(metNadruk("Kost € 5* per maand")).toBe("Kost € 5* per maand");
     expect(metNadruk("3 * 4 * 5")).toBe("3 * 4 * 5");
     expect(metNadruk("*<b>*")).toBe("<em>&lt;b&gt;</em>");
@@ -43,7 +59,7 @@ describe("hulpfuncties", () => {
     expect(zonderNadruk("Nu bent u *aan zet.*")).toBe("Nu bent u aan zet.");
   });
 
-  it("zet nadruk om een selectie zonder de spaties eromheen op te eten (reviewbevinding 5)", () => {
+  it("zet nadruk om een selectie zonder de spaties eromheen op te eten", () => {
     const t = "Nu bent u aan zet.";
     // Dubbelklik op Windows selecteert "aan " inclusief de spatie erachter.
     expect(nadrukOmSelectie(t, 10, 14)).toEqual({ tekst: "Nu bent u *aan* zet.", begin: 10, eind: 15 });
@@ -64,6 +80,25 @@ describe("hulpfuncties", () => {
 describe("sjabloonbeschrijvingen", () => {
   const formaatSleutels = new Set(FORMATEN.map((f) => f.sleutel));
 
+  it("kent negen algemene sjablonen", () => {
+    expect(SJABLONEN.map((s) => s.id)).toEqual([
+      "stelling",
+      "vraag",
+      "werkroute",
+      "productbeeld",
+      "cijfer",
+      "carrousel",
+      "linkvoorbeeld",
+      "profielbanner",
+      "bedrijfsomslag",
+    ]);
+    expect(SJABLONEN.some((s) => "voorbeelddata" in s)).toBe(false);
+  });
+
+  it("noemt in de standaardtekst van het cijfer het echte aantal sjablonen", () => {
+    expect(standaardInhoud(sjabloon("cijfer")!).getal).toBe(String(SJABLONEN.length));
+  });
+
   it("hebben geldige id's, bekende formaten en velden die de server accepteert", () => {
     expect(new Set(SJABLONEN.map((s) => s.id)).size).toBe(SJABLONEN.length);
     for (const s of SJABLONEN) {
@@ -77,8 +112,13 @@ describe("sjabloonbeschrijvingen", () => {
         expect(v.id, `${s.id}/${dia}`).toMatch(/^[a-zA-Z][a-zA-Z0-9]{0,40}$/);
         expect(["kop", "tekst", "regel", "keuze", "media"]).toContain(v.soort);
         expect(v.label, v.id).toBeTruthy();
-        if (v.soort === "keuze") expect(v.opties!.map((o) => o.waarde), `${s.id}.${v.id}`).toContain(v.standaard);
-        if (v.max !== undefined && v.standaard) expect(v.standaard.length, `${s.id}.${v.id}`).toBeLessThanOrEqual(v.max);
+        if (v.soort === "keuze")
+          expect(
+            v.opties!.map((o) => o.waarde),
+            `${s.id}.${v.id}`,
+          ).toContain(v.standaard);
+        if (v.max !== undefined && v.standaard)
+          expect(v.standaard.length, `${s.id}.${v.id}`).toBeLessThanOrEqual(v.max);
         if (v.nadruk === "precies-een") expect(telNadruk(v.standaard), `${s.id}.${v.id}`).toBe(1);
       }
     }
@@ -88,6 +128,15 @@ describe("sjabloonbeschrijvingen", () => {
     expect(standaardInhoud(sjabloon("stelling")!).ondergrond).toBe("accent");
     expect(standaardInhoud(sjabloon("carrousel")!, "omslag").ondergrond).toBe("inkt");
     expect(veldenVan(sjabloon("carrousel")!, "stap").some((v) => v.id === "illustratie")).toBe(true);
+  });
+});
+
+describe("vraag", () => {
+  it("is vraag en antwoord zonder vaste illustratiekaart", () => {
+    const { html } = bouwBeeld({ sjabloon: "vraag", inhoud: {}, formaat: "li-vierkant", merk });
+    expect(html).toContain('data-veld="kop"');
+    expect(html).toContain('data-veld="tekst"');
+    expect(html).not.toMatch(/papier|<figure|class="rij"|status/);
   });
 });
 
@@ -101,7 +150,8 @@ describe("bouwBeeld", () => {
         expect(b.hoogte).toBe(formaat.hoogte);
         expect(b.html).toContain(`--breedte:${formaat.breedte}px`);
         expect(b.html).toMatch(/class="merk vorm-/);
-        for (const [, bron] of b.html.matchAll(/\ssrc="([^"]*)"/g)) expect(bron.startsWith("data:"), `${s.id}: ${bron.slice(0, 40)}`).toBe(true);
+        for (const [, bron] of b.html.matchAll(/\ssrc="([^"]*)"/g))
+          expect(bron.startsWith("data:"), `${s.id}: ${bron.slice(0, 40)}`).toBe(true);
         expect(b.html).not.toMatch(/<script|\son\w+=|javascript:/i);
         expect(b.css).not.toMatch(/url\(\s*["']?https?:/);
         expect(b.css).not.toMatch(/\d(rem)\b/);
@@ -131,7 +181,12 @@ describe("bouwBeeld", () => {
   });
 
   it("laat een keuzeveld alleen een van zijn opties zijn", () => {
-    const b = bouwBeeld({ sjabloon: "stelling", inhoud: { ondergrond: 'x" onclick="kwaad' }, formaat: "li-vierkant", merk });
+    const b = bouwBeeld({
+      sjabloon: "stelling",
+      inhoud: { ondergrond: 'x" onclick="kwaad' },
+      formaat: "li-vierkant",
+      merk,
+    });
     expect(b.html).toContain('class="beeld grond-accent"');
     expect(b.html).not.toContain("onclick");
   });
@@ -144,18 +199,39 @@ describe("bouwBeeld", () => {
     expect(inkt.html).toContain("grond-inkt");
   });
 
-  it("toont het label Voorbeelddossier altijd bij sjablonen met voorbeelddata, in elk formaat", () => {
-    for (const s of SJABLONEN.filter((x) => x.voorbeelddata)) {
+  it("zet in geen enkel sjabloon vaste bedragen of een voorbeeldlabel in het beeld", () => {
+    for (const s of SJABLONEN) {
       for (const f of s.formaten) {
-        expect(bouwBeeld({ sjabloon: s.id, inhoud: {}, formaat: f, merk }).html, `${s.id}/${f}`).toContain(">Voorbeelddossier<");
+        const { html } = bouwBeeld({ sjabloon: s.id, inhoud: {}, formaat: f, merk });
+        expect(html, `${s.id}/${f}`).not.toContain("€");
+        expect(html, `${s.id}/${f}`).not.toMatch(/>\s*voorbeeld/i);
       }
+    }
+    for (const dia of sjabloon("carrousel")!.standaardDias!.keys()) {
+      const { html } = bouwBeeld({ sjabloon: "carrousel", dias: [], dia, formaat: "li-carrousel", merk });
+      expect(html, `dia ${dia + 1}`).not.toContain("€");
     }
   });
 
   it("kiest de kopgrootte automatisch naar lengte, en laat een expliciete keuze staan", () => {
-    const kort = bouwBeeld({ sjabloon: "stelling", inhoud: { kop: "Kort en *krachtig.*" }, formaat: "li-vierkant", merk });
-    const lang = bouwBeeld({ sjabloon: "stelling", inhoud: { kop: "Van binnengekomen uitvraag naar *goed voorbereid gesprek.*" }, formaat: "li-vierkant", merk });
-    const gekozen = bouwBeeld({ sjabloon: "stelling", inhoud: { kop: "Kort en *krachtig.*", kopgrootte: "klein" }, formaat: "li-vierkant", merk });
+    const kort = bouwBeeld({
+      sjabloon: "stelling",
+      inhoud: { kop: "Kort en *krachtig.*" },
+      formaat: "li-vierkant",
+      merk,
+    });
+    const lang = bouwBeeld({
+      sjabloon: "stelling",
+      inhoud: { kop: "Van eerste idee naar *goed voorbereide post.*" },
+      formaat: "li-vierkant",
+      merk,
+    });
+    const gekozen = bouwBeeld({
+      sjabloon: "stelling",
+      inhoud: { kop: "Kort en *krachtig.*", kopgrootte: "klein" },
+      formaat: "li-vierkant",
+      merk,
+    });
     expect(kort.html).toContain('class="kop"');
     expect(lang.html).toContain('class="kop middel"');
     expect(gekozen.html).toContain('class="kop klein"');
@@ -163,9 +239,20 @@ describe("bouwBeeld", () => {
 
   it("toont een media-veld alleen als data-URI die de studio zelf aanlevert, nooit als vrije URL", () => {
     const id = `${"a".repeat(32)}.png`;
-    const met = bouwBeeld({ sjabloon: "productbeeld", inhoud: { beeld: id }, formaat: "li-vierkant", merk, media: { [id]: "data:image/png;base64,AAAA" } });
+    const met = bouwBeeld({
+      sjabloon: "productbeeld",
+      inhoud: { beeld: id },
+      formaat: "li-vierkant",
+      merk,
+      media: { [id]: "data:image/png;base64,AAAA" },
+    });
     expect(met.html).toContain('src="data:image/png;base64,AAAA"');
-    const vrij = bouwBeeld({ sjabloon: "productbeeld", inhoud: { beeld: "https://kwaad.nl/x.png" }, formaat: "li-vierkant", merk });
+    const vrij = bouwBeeld({
+      sjabloon: "productbeeld",
+      inhoud: { beeld: "https://kwaad.nl/x.png" },
+      formaat: "li-vierkant",
+      merk,
+    });
     expect(vrij.html).not.toContain("kwaad.nl");
     expect(vrij.html).toContain("Kies een schermafbeelding");
   });
@@ -179,7 +266,12 @@ describe("bouwBeeld", () => {
 describe("carrousel", () => {
   const s = sjabloon("carrousel")!;
 
-  it("rendert de zes standaarddia's van de kit, met een stapketen op de vier stappen", () => {
+  it("kent alleen de illustraties vinklijst en geen", () => {
+    const keuze = veldenVan(s, "stap").find((v) => v.id === "illustratie")!;
+    expect(keuze.opties!.map((o) => o.waarde)).toEqual(["vinklijst", "geen"]);
+  });
+
+  it("rendert de zes standaarddia's, met een stapketen op de vier stappen", () => {
     expect(s.standaardDias).toHaveLength(6);
     for (let i = 0; i < 6; i++) {
       const b = bouwBeeld({ sjabloon: "carrousel", dias: [], dia: i, formaat: "li-carrousel", merk });
@@ -205,6 +297,8 @@ describe("carrousel", () => {
   });
 
   it("weigert een onbekende diasoort", () => {
-    expect(() => bouwBeeld({ sjabloon: "carrousel", dias: [{ soort: "poster", inhoud: {} }], formaat: "li-carrousel", merk })).toThrow(/diasoort/);
+    expect(() =>
+      bouwBeeld({ sjabloon: "carrousel", dias: [{ soort: "poster", inhoud: {} }], formaat: "li-carrousel", merk }),
+    ).toThrow(/diasoort/);
   });
 });

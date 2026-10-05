@@ -8,14 +8,22 @@ export default {
   doel: "De omslag van de LinkedIn-bedrijfspagina.",
   soort: "beeld",
   formaten: ["li-bedrijf"],
-  voorbeelddata: false,
   velden: [
-    { id: "variant", label: "Variant", soort: "keuze", standaard: "licht", opties: [{ waarde: "licht", tekst: "Licht, met de keten" }, { waarde: "accent", tekst: "Accent, met het logo" }] },
-    kop("Achter elk tarief een *helder verhaal.*", 45),
-    regel("keten1", "Keten 1", "De afspraken", 22, { hulp: "Alleen bij de lichte variant." }),
-    regel("keten2", "Keten 2", "Uw controle", 22),
-    regel("keten3", "Keten 3", "Een helder dossier", 22),
-    regel("keten4", "Keten 4 (gevuld)", "Een uitlegbaar tarief", 24),
+    {
+      id: "variant",
+      label: "Variant",
+      soort: "keuze",
+      standaard: "licht",
+      opties: [
+        { waarde: "licht", tekst: "Licht, met de keten" },
+        { waarde: "accent", tekst: "Accent, met het logo" },
+      ],
+    },
+    kop("On-brand posts, *without the design tool.*", 45),
+    regel("keten1", "Keten 1", "Pick a template", 22, { hulp: "Alleen bij de lichte variant." }),
+    regel("keten2", "Keten 2", "Fill in the fields", 22),
+    regel("keten3", "Keten 3", "Check your brand", 22),
+    regel("keten4", "Keten 4 (gevuld)", "Export and schedule", 24),
   ],
   html(v, c) {
     if (v.variant === "accent") {
@@ -26,7 +34,10 @@ export default {
   <h1 class="kop" data-veld="kop">${c.t("kop")}</h1>
 </div>`;
     }
-    const keten = [1, 2, 3].filter((n) => !c.leeg(`keten${n}`)).map((n) => `<span>${c.e(`keten${n}`)}</span><i></i>`).join("");
+    const keten = [1, 2, 3]
+      .filter((n) => !c.leeg(`keten${n}`))
+      .map((n) => `<span>${c.e(`keten${n}`)}</span><i></i>`)
+      .join("");
     return `<div class="beeld variant-licht">
   ${c.route()}
   <div class="inhoud">

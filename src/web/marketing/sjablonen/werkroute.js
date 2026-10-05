@@ -1,12 +1,12 @@
 // Werkroute: genummerde stappen die een lijn verbindt; de volgorde draagt betekenis.
-// Bron: werkroute.html in de Mixed-kit. Stap 4 is optioneel.
+// Stap 4 is optioneel.
 import { kop, regel } from "./velden.js";
 
 const STAPPEN = [
-  ["Lees de afspraken in", "Start met de uitvraag gelijkwaardige beloning van uw opdrachtgever."],
-  ["Geef uw oordeel", "Beoordeel cao-afspraken, bronnen en openstaande aannames."],
-  ["Leg de basis vast", "Bewaar de arbeidsvoorwaarden voor berekeningen én loonstrookcontrole."],
-  ["Maak het tarief bespreekbaar", "Bewaar uw berekening als PDF of exporteer naar Salesforce met een ingestelde koppeling."],
+  ["Pick a template", "Start from a statement, a number, a route or a carousel."],
+  ["Fill in the fields", "Write the headline and the text; the preview updates as you type."],
+  ["Check and export", "The brand check runs first. Then export PNG, PDF or ZIP."],
+  ["", ""],
 ];
 
 export default {
@@ -15,16 +15,26 @@ export default {
   doel: "Drie of vier stappen van de werkwijze, genummerd en verbonden.",
   soort: "beeld",
   formaten: ["li-vierkant", "li-staand", "ig-vierkant", "ig-staand", "story"],
-  voorbeelddata: false,
   velden: [
-    kop("Van uitvraag naar *tarief.*", 50),
+    kop("From template to *finished post.*", 50),
     ...STAPPEN.flatMap(([titel, uitleg], i) => [
-      regel(`stap${i + 1}`, `Stap ${i + 1}`, titel, 40, i < 3 ? { verplicht: true } : { hulp: "Laat leeg voor drie stappen." }),
+      regel(
+        `stap${i + 1}`,
+        `Stap ${i + 1}`,
+        titel,
+        40,
+        i < 3 ? { verplicht: true } : { hulp: "Laat leeg voor drie stappen." },
+      ),
       regel(`stap${i + 1}Tekst`, `Uitleg bij stap ${i + 1}`, uitleg, 110),
     ]),
   ],
   html(v, c) {
-    const stappen = [1, 2, 3, 4].filter((n) => !c.leeg(`stap${n}`)).map((n, i) => `<li><span class="routenummer">${String(i + 1).padStart(2, "0")}</span><div><h2 data-veld="stap${n}">${c.e(`stap${n}`)}</h2>${c.leeg(`stap${n}Tekst`) ? "" : `<p data-veld="stap${n}Tekst">${c.e(`stap${n}Tekst`)}</p>`}</div></li>`);
+    const stappen = [1, 2, 3, 4]
+      .filter((n) => !c.leeg(`stap${n}`))
+      .map(
+        (n, i) =>
+          `<li><span class="routenummer">${String(i + 1).padStart(2, "0")}</span><div><h2 data-veld="stap${n}">${c.e(`stap${n}`)}</h2>${c.leeg(`stap${n}Tekst`) ? "" : `<p data-veld="stap${n}Tekst">${c.e(`stap${n}Tekst`)}</p>`}</div></li>`,
+      );
     return `<div class="beeld grond-inkt">
   ${c.logo("op-inkt")}
   <h1 class="kop klein" data-veld="kop">${c.t("kop")}</h1>

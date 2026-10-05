@@ -5,13 +5,16 @@
 import { documentHtml } from "./render.js";
 import { overlapt } from "./formaten.js";
 
-const VASTE_NAMEN = { label: "het label Voorbeelddossier", voet: "de voetregel", bron: "de bron", keten: "de keten" };
+const VASTE_NAMEN = { voet: "de voetregel", bron: "de bron", keten: "de keten" };
 
 let pool = [];
 
 function vrijIframe() {
   const vrij = pool.find((f) => !f.dataset.bezet);
-  if (vrij) { vrij.dataset.bezet = "1"; return vrij; }
+  if (vrij) {
+    vrij.dataset.bezet = "1";
+    return vrij;
+  }
   const f = document.createElement("iframe");
   f.setAttribute("sandbox", "allow-same-origin");
   f.setAttribute("aria-hidden", "true");
@@ -25,7 +28,10 @@ function vrijIframe() {
 
 function laad(iframe, html) {
   return new Promise((ok) => {
-    const klaar = () => { iframe.removeEventListener("load", klaar); ok(); };
+    const klaar = () => {
+      iframe.removeEventListener("load", klaar);
+      ok();
+    };
     iframe.addEventListener("load", klaar);
     iframe.srcdoc = html;
   });
@@ -63,7 +69,17 @@ export async function meetOverloop(beeld, formaat, { dia = null, namen = {} } = 
         continue;
       }
       for (const z of formaat.veiligeZones) {
-        if (overlapt(r, z, 1)) { uit.push({ formaat: formaat.sleutel, dia, veld: naam(x.id), veldId: x.id, soort: "veilige-zone", reden: z.reden }); break; }
+        if (overlapt(r, z, 1)) {
+          uit.push({
+            formaat: formaat.sleutel,
+            dia,
+            veld: naam(x.id),
+            veldId: x.id,
+            soort: "veilige-zone",
+            reden: z.reden,
+          });
+          break;
+        }
       }
     }
     for (let i = 0; i < elementen.length; i++) {
@@ -71,7 +87,15 @@ export async function meetOverloop(beeld, formaat, { dia = null, namen = {} } = 
         const a = elementen[i];
         const c = elementen[j];
         if (a.el.contains(c.el) || c.el.contains(a.el)) continue;
-        if (overlapt(rel(a.r), rel(c.r), 2)) uit.push({ formaat: formaat.sleutel, dia, veld: naam(a.id), veldId: a.id, soort: "overlap", met: naam(c.id) });
+        if (overlapt(rel(a.r), rel(c.r), 2))
+          uit.push({
+            formaat: formaat.sleutel,
+            dia,
+            veld: naam(a.id),
+            veldId: a.id,
+            soort: "overlap",
+            met: naam(c.id),
+          });
       }
     }
     return uit;

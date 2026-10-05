@@ -9,11 +9,7 @@ export default {
   doel: "De achtergrond van een persoonlijk LinkedIn-profiel.",
   soort: "beeld",
   formaten: ["li-profiel"],
-  voorbeelddata: false,
-  velden: [
-    kop("Postwright*.*", 30),
-    regel("adres", "Regel eronder", "Gelijkwaardige beloning, helder berekend.", 60),
-  ],
+  velden: [kop("Postwright*.*", 30), regel("adres", "Regel eronder", "On-brand posts, without the design tool.", 60)],
   html(v, c) {
     return `<div class="beeld grond-inkt">
   ${c.route()}
