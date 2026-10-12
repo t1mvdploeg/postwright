@@ -73,6 +73,8 @@ describe.skipIf(!browser)("own templates in the studio", () => {
         .evaluate((f) => (f as HTMLIFrameElement).srcdoc);
       expect(html).toContain(`template-${IMAGE}`);
       expect(html).toContain("without the design tool.");
+      // Convert sits under "More" in the status card; a closed menu has no rendered text.
+      await page.locator("#editor-panel-caption .post-menu summary").click();
       const convert = await page.locator("#field-convert option").allInnerTexts();
       expect(convert).toContain("Tour (your template)");
       expect(convert).toContain("Statement");

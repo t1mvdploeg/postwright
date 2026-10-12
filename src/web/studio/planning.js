@@ -1,12 +1,12 @@
-// Planning: scheduled and published posts, ideas and moments as a list
-// (default, also on a phone) or as a month, the calendar export (.ics) and the campaigns.
-// Rescheduling is always possible with a date field; dragging in the month view is an
-// extra, never the only way.
+// Planner: scheduled and published posts, ideas and moments as an agenda per week and day
+// (default, also on a phone) or as a month, the drafts and campaigns beside it and the calendar
+// export (.ics). Rescheduling is always possible with a date field; dragging in the month view
+// is an extra, never the only way.
 //
 // Choosing a period (click a start and an end day in the month, or use the two date
 // fields, which show the same choice), having ideas suggested for it or adding one
 // yourself. The idea panel and the suggestions are in ideas-ui.js.
-import { confirmDialog, el, emptyState, notice, fieldError } from "/ui.js";
+import { confirmDialog, el, notice, fieldError } from "/ui.js";
 import { download } from "/studio/render.js";
 import { createIcs } from "/studio/ics.js";
 import {
@@ -19,12 +19,16 @@ import {
   defaultCount,
   rescheduleToDay,
   nextMonth,
+  agendaDays,
 } from "/studio/calendar.js";
+import { deskOf, factProblems } from "/studio/desk.js";
+import { drawArtwork, statusBadge } from "/studio/post-cards.js";
 import { readableMoment, withOffset, toLocal, localToday } from "/studio/recipe.js";
+import { template as templateOf } from "/studio/templates.js";
+import { format } from "/studio/formats.js";
 import { CHANNEL_RULES } from "/studio/caption.js";
 import { ideaPanel, shortDay, longDay, suggestionsPanel, fillCampaigns } from "/studio/ideas-ui.js";
 
-const STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published", archived: "Archived" };
 const MONTHS = [
   "January",
   "February",
@@ -43,7 +47,7 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export async function show(container, ctx) {
   const begin = localToday();
-  let [{ posts }, { campaigns }, { ideas }, moments] = await Promise.all([
+  let [{ posts }, { campaigns }, { ideas }, moments, { facts }] = await Promise.all([
     ctx.api("/api/posts"),
     ctx.api("/api/campaigns"),
     ctx.api("/api/ideas"),
@@ -52,8 +56,11 @@ export async function show(container, ctx) {
       (r) => r?.moments ?? [],
       () => [],
     ),
+    ctx.api("/api/facts").catch(() => ({ facts: null })),
   ]);
-  if (!ctx.valid()) return;
+  if (!ctx.valid()) return undefined;
+  /** The observer that draws the thumbnails of the agenda; replaced at every redraw. */
+  let observer;
   const now = new Date();
   let view = "list";
   let { year, month } = { year: now.getFullYear(), month: now.getMonth() };
@@ -64,7 +71,7 @@ export async function show(container, ctx) {
   const campaignHolder = el("div");
   const listButton = el("button", { type: "button", class: "secondary", "aria-pressed": "true", text: "List" });
   const monthButton = el("button", { type: "button", class: "secondary", "aria-pressed": "false", text: "Month" });
-  const icsButton = el("button", { type: "button", class: "secondary", text: "Calendar export (.ics)" });
+  const icsButton = el("button", { type: "button", class: "secondary", text: "Export calendar" });
 
   const moment = (p) => (p.status === "scheduled" ? p.scheduled : p.status === "published" ? p.published?.on : null);
   /**
@@ -117,7 +124,10 @@ export async function show(container, ctx) {
       ideas = ideas.filter((i) => i.id !== id);
       render();
     },
-    fallback: () => addButton,
+    fallback: () => {
+      periodCard.open = true;
+      return addButton;
+    },
   });
 
   const help = suggestionsPanel({
@@ -159,8 +169,8 @@ export async function show(container, ctx) {
     help.hint,
   ]);
 
-  const periodCard = el("section", { class: "card studio-period", "aria-labelledby": "period-headline" }, [
-    el("h2", { id: "period-headline", text: "Period and ideas" }),
+  const periodCard = el("details", { class: "card studio-period" }, [
+    el("summary", {}, [el("h2", { text: "Period and ideas" })]),
     el("div", { class: "field-row" }, [
       el("div", { class: "field" }, [el("label", { for: "period-from", text: "From" }), fromField]),
       el("div", { class: "field" }, [el("label", { for: "period-to", text: "Up to and including" }), toField]),
@@ -229,6 +239,7 @@ export async function show(container, ctx) {
    * old field error no longer applies then.
    */
   function setPeriod(updated) {
+    periodCard.open = true;
     period = updated;
     fieldError(fromField, "");
     fieldError(toField, "");
@@ -335,21 +346,42 @@ export async function show(container, ctx) {
     return el("span", { class: "studio-reschedule" }, [input, button]);
   }
 
-  function row(p) {
-    return el("tr", {}, [
-      el("td", { text: readableMoment(moment(p)), "data-label": "Moment" }),
-      el("td", { class: "card-title" }, [
-        el("a", { href: `#editor/${p.id}`, text: p.title }),
-        p.campaign
-          ? el("span", { class: "table-subtext", text: campaigns.find((c) => c.id === p.campaign)?.name ?? "" })
-          : null,
-      ]),
-      el("td", { "data-label": "Status" }, [
-        el("span", { class: `badge studio-badge-${p.status}`, text: STATUS[p.status] }),
-      ]),
-      el("td", {}, [
+  const clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  /** A post, idea or moment in the agenda: an optional time and thumbnail, the text, the actions. */
+  function item({ time = null, post = null, body, actions = null }) {
+    let art = null;
+    if (post) {
+      const thumbnail = el("div", { class: "studio-thumbnail" });
+      thumbnail.dataset.id = post.id;
+      art = el("div", { class: "studio-artwork", "aria-hidden": "true" }, [thumbnail]);
+    }
+    return el("div", { class: "studio-plan-item" }, [
+      time ? el("span", { class: "studio-plan-time", text: time }) : null,
+      art,
+      el("div", { class: "studio-plan-body" }, body),
+      actions,
+    ]);
+  }
+
+  function row(p, { dated = false } = {}) {
+    const campaign = p.campaign ? campaigns.find((c) => c.id === p.campaign)?.name : null;
+    return item({
+      time: dated ? readableMoment(moment(p)) : clock(moment(p)),
+      post: p,
+      body: [
+        statusBadge(p.status),
+        el("a", { href: `#editor/${p.id}`, class: "studio-plan-title", text: p.title }),
+        el("span", {
+          class: "table-subtext",
+          text: [templateOf(p.template)?.name ?? p.template, format(p.formats[0])?.name ?? p.formats[0], campaign]
+            .filter(Boolean)
+            .join(" · "),
+        }),
+      ],
+      actions:
         p.status === "scheduled"
-          ? rescheduleField(p)
+          ? el("details", { class: "studio-item-more" }, [el("summary", { text: "Reschedule" }), rescheduleField(p)])
           : p.published?.url
             ? el("a", {
                 href: p.published.url,
@@ -358,37 +390,19 @@ export async function show(container, ctx) {
                 text: "View the post",
               })
             : null,
-      ]),
-    ]);
+    });
   }
 
-  /**
-   * A block with heading and table; `sub` is a line under the heading, `below` comes after
-   * the table (e.g. an empty state).
-   */
-  function table(title, rows, { sub = null, below = null } = {}) {
+  /** A block with heading and agenda items; `sub` is a line under the heading. */
+  function block(title, items, { sub = null } = {}) {
     return el("section", { class: "studio-plan-block" }, [
       el("h2", { text: title }),
       sub ? el("p", { class: "help-text studio-plan-block-sub", text: sub }) : null,
-      rows.length
-        ? el("div", { class: "table-scroll" }, [
-            el("table", { class: "list cards" }, [
-              el("thead", {}, [
-                el(
-                  "tr",
-                  {},
-                  ["Moment", "Post", "Status", ""].map((t) => el("th", { scope: "col", text: t })),
-                ),
-              ]),
-              el("tbody", {}, rows),
-            ]),
-          ])
-        : null,
-      below,
+      el("div", { class: "studio-plan-list" }, items),
     ]);
   }
 
-  function ideaRow(i) {
+  function ideaRow(i, { dated = false } = {}) {
     const button = el("button", {
       type: "button",
       class: "secondary small",
@@ -397,16 +411,15 @@ export async function show(container, ctx) {
       text: "Open",
     });
     button.addEventListener("click", () => panel.open(i, button));
-    return el("tr", {}, [
-      el("td", { text: shortDay(i.date), "data-label": "Moment" }),
-      el("td", { class: "card-title" }, [
-        el("span", { text: i.title }),
-        " ",
+    return item({
+      time: dated ? shortDay(i.date) : null,
+      body: [
         el("span", { class: "badge studio-badge-idea", text: "Idea" }),
-      ]),
-      el("td", { text: used(i) ? "Idea, post made" : "Idea", "data-label": "Status" }),
-      el("td", {}, [button]),
-    ]);
+        el("span", { class: "studio-plan-title", text: i.title }),
+        used(i) ? el("span", { class: "table-subtext", text: "Post made" }) : null,
+      ],
+      actions: button,
+    });
   }
 
   function momentRow(m, day) {
@@ -425,18 +438,17 @@ export async function show(container, ctx) {
     });
     factButton.addEventListener("click", () => createFact(m));
     ideaButton.addEventListener("click", () => ideaForMoment(m, day, ideaButton));
-    return el("tr", {}, [
-      el("td", { text: shortDay(day), "data-label": "Moment" }),
-      el("td", { class: "card-title" }, [
-        el("span", { text: `Moment: ${m.title}` }),
+    return item({
+      body: [
+        el("span", { class: "badge", text: "Moment" }),
+        el("span", { class: "studio-plan-title", text: m.title }),
         el("span", { class: "table-subtext", text: m.sentence }),
-      ]),
-      el("td", { text: "Moment", "data-label": "Status" }),
-      el("td", {}, [el("div", { class: "row-actions" }, [factButton, ideaButton])]),
-    ]);
+      ],
+      actions: el("div", { class: "row-actions" }, [factButton, ideaButton]),
+    });
   }
 
-  /** The empty state of a week, with the button that chooses the week as the period. */
+  /** The line for a week without posts or ideas, with the button that chooses the week as the period. */
   function emptyWeek(w) {
     const button = el("button", { type: "button", class: "secondary", text: "Ideas for this week" });
     button.addEventListener("click", () => {
@@ -444,9 +456,14 @@ export async function show(container, ctx) {
       setPeriod({ from: w.monday < today ? today : w.monday, to: w.sunday });
       fromField.focus();
     });
-    const block = emptyState("Nothing scheduled yet", "No scheduled post and no idea in this week.");
-    block.append(button);
-    return block;
+    return el("div", { class: "studio-week-empty" }, [el("span", { text: "Nothing planned" }), button]);
+  }
+
+  /** "19–25 October", or "26 October – 1 November" when the week crosses a month. */
+  function weekRange(w) {
+    const part = (d) => `${Number(d.slice(8))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
+    const [from, to] = [part(w.monday), part(w.sunday)];
+    return w.monday.slice(5, 7) === w.sunday.slice(5, 7) ? `${Number(w.monday.slice(8))}–${to}` : `${from} – ${to}`;
   }
 
   function renderList() {
@@ -462,7 +479,7 @@ export async function show(container, ctx) {
       .sort((a, b) => new Date(b.published.on) - new Date(a.published.on));
     const blocks = [];
     // The next six weeks always, plus later weeks in which a scheduled post or an idea sits.
-    const weeks = new Map(upcomingWeeks(today, 6).map((w) => [w.monday, { w, rows: [], filled: false }]));
+    const weeks = new Map(upcomingWeeks(today, 6).map((w) => [w.monday, { w, rows: [], filled: false, posts: 0 }]));
     const first = upcomingWeeks(today, 1)[0].monday;
     // Open ideas from before this week would otherwise get lost: at the top, with the same row
     // and buttons as in the weeks. The Overview counts them too. Used ideas from the past stay
@@ -472,51 +489,95 @@ export async function show(container, ctx) {
       .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
     if (earlier.length) {
       blocks.push(
-        table("Open ideas from earlier", earlier.map(ideaRow), {
-          sub: "Not picked up yet. Open an idea to give it a new date, make a post from it or delete it.",
-        }),
+        block(
+          "Open ideas from earlier",
+          earlier.map((i) => ideaRow(i, { dated: true })),
+          {
+            sub: "Not picked up yet. Open an idea to give it a new date, make a post from it or delete it.",
+          },
+        ),
       );
     }
-    if (overdue.length) blocks.push(table("Overdue: scheduled but not yet marked as published", overdue.map(row)));
+    if (overdue.length)
+      blocks.push(
+        block(
+          "Overdue: scheduled but not yet marked as published",
+          overdue.map((p) => row(p, { dated: true })),
+        ),
+      );
 
     const weekOf = (day) => {
       const w = upcomingWeeks(day, 1)[0];
-      if (!weeks.has(w.monday)) weeks.set(w.monday, { w, rows: [], filled: false });
+      if (!weeks.has(w.monday)) weeks.set(w.monday, { w, rows: [], filled: false, posts: 0 });
       return weeks.get(w.monday);
     };
     // Sort per day: first moments, then posts (by time), then ideas.
     for (const p of upcoming) {
       const b = weekOf(dayOf(p.scheduled));
       b.filled = true;
-      b.rows.push({ sort: `${dayOf(p.scheduled)} 1 ${new Date(p.scheduled).toISOString()}`, tr: row(p) });
+      b.posts++;
+      b.rows.push({ sort: `${dayOf(p.scheduled)} 1 ${new Date(p.scheduled).toISOString()}`, item: row(p) });
     }
     for (const i of ideas.filter((x) => x.date >= first)) {
       const b = weekOf(i.date);
       b.filled = true;
-      b.rows.push({ sort: `${i.date} 2 ${i.title}`, tr: ideaRow(i) });
+      b.rows.push({ sort: `${i.date} 2 ${i.title}`, item: ideaRow(i) });
     }
     for (const m of moments) {
       if (m.date < first) continue;
       const b = weeks.get(upcomingWeeks(m.date, 1)[0].monday);
-      if (b) b.rows.push({ sort: `${m.date} 0 ${m.title}`, tr: momentRow(m, m.date) });
+      if (b) b.rows.push({ sort: `${m.date} 0 ${m.title}`, item: momentRow(m, m.date) });
     }
-    for (const { w, rows, filled } of [...weeks.values()].sort((x, y) => x.w.monday.localeCompare(y.w.monday))) {
+    for (const { w, rows, filled, posts: count } of [...weeks.values()].sort((x, y) =>
+      x.w.monday.localeCompare(y.w.monday),
+    )) {
+      const parts = [
+        `Week ${w.week}${w.year !== now.getFullYear() ? `, ${w.year}` : ""}`,
+        count ? `${count} scheduled post${count === 1 ? "" : "s"}` : null,
+      ];
       blocks.push(
-        table(
-          `Week ${w.week}${w.year !== now.getFullYear() ? ` of ${w.year}` : ""}`,
-          rows.sort((x, y) => x.sort.localeCompare(y.sort)).map((x) => x.tr),
-          {
-            sub: `${shortDay(w.monday)} – ${shortDay(w.sunday)}`,
-            below: filled ? null : emptyWeek(w),
-          },
-        ),
+        el("section", { class: "studio-plan-block studio-week" }, [
+          el("h2", { text: weekRange(w) }),
+          el("p", { class: "help-text studio-plan-block-sub", text: parts.filter(Boolean).join(" · ") }),
+          rows.length
+            ? el(
+                "ol",
+                { class: "studio-week-agenda" },
+                agendaDays(w.monday, rows).map((d, i) =>
+                  el("li", { class: "studio-plan-day", ...(d.date === today ? { "aria-current": "date" } : {}) }, [
+                    el("div", { class: "studio-plan-date" }, [
+                      el("span", { text: DAYS[i] }),
+                      el("strong", { text: String(Number(d.date.slice(8))) }),
+                    ]),
+                    el(
+                      "div",
+                      { class: "studio-plan-items" },
+                      d.rows.length
+                        ? d.rows.map((r) => r.item)
+                        : [el("p", { class: "help-text", text: "No post planned" })],
+                    ),
+                  ]),
+                ),
+              )
+            : null,
+          filled ? null : emptyWeek(w),
+        ]),
       );
     }
-    if (recent.length) blocks.push(table("Published, past 30 days", recent.map(row)));
+    if (recent.length)
+      blocks.push(
+        block(
+          "Published, past 30 days",
+          recent.map((p) => row(p, { dated: true })),
+        ),
+      );
     calendarHolder.replaceChildren(...blocks);
+    observer?.disconnect();
+    observer = drawArtwork(calendarHolder, posts, ctx.brand);
   }
 
   function renderMonth() {
+    observer?.disconnect();
     const today = localToday();
     const perDay = new Map();
     const at = (map, day, x) => {
@@ -716,7 +777,9 @@ export async function show(container, ctx) {
     });
     const save = el("button", { type: "button", text: "Add campaign" });
     const cancel = el("button", { type: "button", class: "secondary", text: "Cancel", hidden: "" });
+    const form = el("details", { class: "studio-campaign-form" });
     const empty = () => {
+      form.open = false;
       edited = null;
       for (const v of [name, utm, from, to, goal]) v.value = "";
       delete utm.dataset.self;
@@ -773,6 +836,7 @@ export async function show(container, ctx) {
                 goal.value = c.goal ?? "";
                 save.textContent = "Save changes";
                 cancel.hidden = false;
+                form.open = true;
                 name.focus();
               },
             }),
@@ -820,12 +884,19 @@ export async function show(container, ctx) {
         ]),
       ]),
     );
+    form.replaceChildren(
+      el("summary", { text: "Add campaign" }),
+      el("div", { class: "field-row" }, [
+        el("div", { class: "field" }, [el("label", { for: "campaign-name", text: "Name" }), name]),
+        el("div", { class: "field" }, [el("label", { for: "campaign-utm", text: "UTM campaign name" }), utm]),
+        el("div", { class: "field" }, [el("label", { for: "campaign-from", text: "From" }), from]),
+        el("div", { class: "field" }, [el("label", { for: "campaign-to", text: "Up to and including" }), to]),
+      ]),
+      el("div", { class: "field" }, [el("label", { for: "campaign-goal", text: "Goal (optional)" }), goal]),
+      el("div", { class: "button-row" }, [save, cancel]),
+    );
     campaignHolder.replaceChildren(
       el("h2", { text: "Campaigns" }),
-      el("p", {
-        class: "help-text",
-        text: "A campaign groups posts and gives the UTM campaign name for the links. That way posts can be attributed later, even if the site does not measure anything yet.",
-      }),
       campaigns.length
         ? el("div", { class: "table-scroll" }, [
             el("table", { class: "list cards" }, [
@@ -839,35 +910,81 @@ export async function show(container, ctx) {
               el("tbody", {}, rows),
             ]),
           ])
-        : el("p", { class: "help-text", text: "No campaigns yet." }),
-      el("div", { class: "field-row" }, [
-        el("div", { class: "field" }, [el("label", { for: "campaign-name", text: "Name" }), name]),
-        el("div", { class: "field" }, [el("label", { for: "campaign-utm", text: "UTM campaign name" }), utm]),
-        el("div", { class: "field" }, [el("label", { for: "campaign-from", text: "From" }), from]),
-        el("div", { class: "field" }, [el("label", { for: "campaign-to", text: "Up to and including" }), to]),
-      ]),
-      el("div", { class: "field" }, [el("label", { for: "campaign-goal", text: "Goal (optional)" }), goal]),
-      el("div", { class: "button-row" }, [save, cancel]),
+        : el("p", {
+            class: "help-text",
+            text: "No campaigns yet. Group related posts and give their links a shared UTM name.",
+          }),
+      form,
     );
     // The campaign dropdown for the period follows the list above.
     renderPeriod();
   }
 
-  // On a phone the week comes first and the period form after it (CSS `order`).
+  // ---------------- drafts ----------------
+  const problems = facts ? factProblems(posts, facts, localToday()) : new Set();
+  const drafts = posts.filter((p) => p.status === "draft");
+  const draftItems = deskOf(drafts, 4).map((p) => {
+    const thumbnail = el("div", { class: "studio-thumbnail" });
+    thumbnail.dataset.id = p.id;
+    return el("li", { class: "studio-draft" }, [
+      el("div", { class: "studio-artwork", "aria-hidden": "true" }, [thumbnail]),
+      el("div", {}, [
+        el("a", { href: `#editor/${p.id}`, class: "studio-plan-title", text: p.title }),
+        el("span", { class: "table-subtext", text: `${templateOf(p.template)?.name ?? p.template} · Draft` }),
+        problems.has(p.id)
+          ? el("span", { class: "studio-draft-warning", text: "Needs an active fact before it can be scheduled." })
+          : null,
+      ]),
+    ]);
+  });
+  const draftCard = el("section", { class: "studio-side-block studio-drafts" }, [
+    el("div", { class: "studio-side-head" }, [
+      el("h2", { text: "Still on your desk" }),
+      drafts.length
+        ? el("span", { class: "help-text", text: `${drafts.length} draft${drafts.length === 1 ? "" : "s"}` })
+        : null,
+    ]),
+    draftItems.length
+      ? el("ul", { class: "studio-draft-list" }, draftItems)
+      : el("p", { class: "help-text", text: "No drafts on your desk." }),
+    drafts.length > 4 ? el("a", { href: "#library/draft", text: "All drafts" }) : null,
+  ]);
+  const thumbnails = drawArtwork(draftCard, posts, ctx.brand);
+
+  // On a phone the week comes first, then the period form, then the side column (CSS `order`).
   container.replaceChildren(
     el("div", { class: "studio-planner" }, [
-      periodCard,
-      panel.element,
-      el("div", { class: "card studio-plan-card" }, [
-        el("div", { class: "studio-bar" }, [
-          el("div", { class: "button-row", role: "group", "aria-label": "View" }, [listButton, monthButton]),
-          icsButton,
+      el("div", { class: "studio-planner-main" }, [
+        periodCard,
+        panel.element,
+        el("div", { class: "card studio-plan-card" }, [
+          el("div", { class: "studio-bar" }, [
+            el("div", { class: "button-row", role: "group", "aria-label": "View" }, [listButton, monthButton]),
+            icsButton,
+          ]),
+          calendarHolder,
+          el("p", {
+            class: "help-text studio-plan-closing",
+            text: "Postwright keeps the plan. You export and upload the posts.",
+          }),
         ]),
-        calendarHolder,
       ]),
-      el("div", { class: "card studio-campaigns-card" }, [campaignHolder]),
+      el("aside", { class: "studio-planner-side" }, [
+        draftCard,
+        el("div", { class: "card studio-campaigns-card" }, [campaignHolder]),
+        el("div", { class: "studio-note" }, [
+          el("strong", { text: "Check before you schedule." }),
+          el("p", { text: "Save the post with a passing brand check, then choose a future date." }),
+        ]),
+      ]),
     ]),
   );
   render();
   renderCampaigns();
+  return {
+    leave: () => {
+      observer?.disconnect();
+      thumbnails.disconnect();
+    },
+  };
 }

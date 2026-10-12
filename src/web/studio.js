@@ -41,13 +41,12 @@ const NAV_GROUPS = [
 /** Settings sits apart, at the foot of the sidebar. */
 const BOTTOM_SCREEN = ["settings", "Settings"];
 const SCREENS = new Map([...NAV_GROUPS.flatMap(([, s]) => s), BOTTOM_SCREEN]);
-/** The heading of a screen when it is not its name, and the line under it. */
-const SCREEN_HEADING = { overview: "A little structure. A lot of possibility." };
+/** The line under the heading of a screen. */
 const SCREEN_LEDE = {
-  overview: "Your posts on the desk, and the week ahead.",
+  overview: "Your posts on the desk. A little room for what comes next.",
   library: "Everything you are making, in one place.",
   editor: "Pick a template, fill in the fields and check the post.",
-  planning: "A clear view of what goes out, and when.",
+  planning: "A plan for your posts. Room for your next idea.",
   facts: "A source behind every claim.",
   snippets: "Openers, closers and hashtags to reuse.",
   "brand-kit": "The essentials that make every post look like the brand.",
@@ -170,7 +169,10 @@ function renderNav(screen) {
         ...screens.map((s) => navLink(s, screen)),
       ]),
     ),
-    el("div", { class: "nav-group nav-bottom" }, [navLink(BOTTOM_SCREEN, screen)]),
+    el("div", { class: "nav-group nav-bottom" }, [
+      el("p", { class: "app-local", text: "Made on your computer." }),
+      navLink(BOTTOM_SCREEN, screen),
+    ]),
   );
 }
 
@@ -236,7 +238,7 @@ async function render() {
   active?.leave?.();
   active = null;
   renderNav(screen);
-  titleEl.textContent = SCREEN_HEADING[screen] ?? SCREENS.get(screen);
+  titleEl.textContent = SCREENS.get(screen);
   ledeEl.textContent = SCREEN_LEDE[screen];
   crumbEl.textContent = SCREENS.get(screen);
   document.title = `${SCREENS.get(screen)} — Postwright · ${projectName}`;
@@ -257,10 +259,6 @@ async function render() {
       valid: () => my === renderCounter,
       setTitle: (t) => {
         titleEl.textContent = t;
-      },
-      /** The line under the heading. */
-      setLede: (t) => {
-        ledeEl.textContent = t;
       },
       navigate: (hash) => {
         location.hash = hash;

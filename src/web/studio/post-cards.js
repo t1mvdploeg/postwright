@@ -9,15 +9,28 @@ import { imagesOf, mediaIdsOf } from "/studio/slides.js";
 
 export const STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published", archived: "Archived" };
 
-export function statusBadge(status) {
-  return el("span", { class: `badge studio-badge-${status}`, text: STATUS[status] });
+export function statusBadge(status, detail = null) {
+  return el("span", {
+    class: `badge studio-badge-${status}`,
+    text: detail ? `${STATUS[status]} · ${detail}` : STATUS[status],
+  });
+}
+
+/** The day of a moment (ISO) as a small tile: the day number over the short month, in local time. */
+export function dateTile(iso) {
+  const d = new Date(iso);
+  return el("span", { class: "studio-date-tile", "aria-hidden": "true" }, [
+    el("strong", { text: String(d.getDate()) }),
+    el("small", { text: new Intl.DateTimeFormat("en-GB", { month: "short" }).format(d) }),
+  ]);
 }
 
 /**
  * One post as a card. `meta` is the line under the title (or null), `side` sits right of the
- * status, `warning` on its own line under it and `extra` (buttons) at the bottom.
+ * status, `warning` on its own line under it and `extra` (buttons) at the bottom. `detail`
+ * is added to the status badge ("Scheduled · 19 Oct").
  */
-export function postCard(p, { meta = null, side = null, warning = null, extra = null } = {}) {
+export function postCard(p, { meta = null, side = null, warning = null, extra = null, detail = null } = {}) {
   const art = el("div", { class: "studio-thumbnail" });
   art.dataset.id = p.id;
   const count = imagesOf(p).length;
@@ -28,7 +41,7 @@ export function postCard(p, { meta = null, side = null, warning = null, extra = 
     ]),
     meta ? el("p", { class: "studio-post-meta", text: meta }) : null,
     el("div", { class: "studio-post-status" }, [
-      statusBadge(p.status),
+      statusBadge(p.status, detail),
       count > 1 ? el("span", { class: "badge", text: `${count} slides` }) : null,
       side,
     ]),

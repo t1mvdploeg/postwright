@@ -1,6 +1,8 @@
 // The calculation side of the planning: month grid (Monday first), ISO
-// week numbers and moving a post to another day with the same clock time. Pure.
+// week numbers, the days of a week for the agenda and moving a post to another day with the
+// same clock time. Pure.
 import { withOffset, toLocal, localToday } from "./recipe.js";
+import { plusDays } from "../date.js";
 // `realDate`/`plusDays` live in the shared, DOM-free `web/date.js` (no second
 // implementation) and are only passed on here, for routes.ts, ideas.ts and the planning
 // screens.
@@ -120,4 +122,18 @@ export function workdayCount(from, to) {
   let n = Math.floor(days / 7) * 5;
   for (let i = 0; i < days % 7; i++) if ((start + i) % 7 !== 0 && (start + i) % 7 !== 6) n++;
   return n;
+}
+
+/**
+ * The seven days of the week that starts on `monday`, each with the rows that fall on it. A row
+ * carries a `sort` key that starts with its date (YYYY-MM-DD); within a day the rows keep that order.
+ */
+export function agendaDays(monday, rows) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = plusDays(monday, i);
+    return {
+      date,
+      rows: rows.filter((r) => r.sort.startsWith(date)).sort((a, b) => a.sort.localeCompare(b.sort)),
+    };
+  });
 }

@@ -23,6 +23,7 @@ import {
   withoutEmphasis,
 } from "/studio/templates.js";
 import { observeThumbnails, templateCard } from "/studio/template-card.js";
+import { dateTile } from "/studio/post-cards.js";
 import { CHANNELS, format as formatOf } from "/studio/formats.js";
 import { showPreview } from "/studio/render.js";
 import { measureOverflow, removeMeasureFrames } from "/studio/overflow.js";
@@ -213,7 +214,19 @@ async function showEditor(container, ctx, begin) {
   ]);
   const feedHolder = el("div", { class: "studio-feed-holder" });
 
-  const titleField = el("input", { id: "field-title", type: "text", maxlength: "120", value: state.post.title });
+  const titleField = el("input", {
+    id: "field-title",
+    class: "studio-title-field",
+    type: "text",
+    maxlength: "120",
+    value: state.post.title,
+  });
+  // Under the title: the status, the template, the slides and the first format.
+  const metaBadge = el("span", { class: "badge" });
+  const metaText = el("span");
+  const metaLine = el("p", { class: "studio-editor-meta" }, [metaBadge, metaText]);
+  const statusHeading = el("h2", { text: "Status" });
+  const formatLine = el("p", { class: "studio-format-line" });
   titleField.addEventListener("input", () => {
     state.post.title = titleField.value;
     state.titleManual = true;
@@ -257,6 +270,12 @@ async function showEditor(container, ctx, begin) {
     state.post.altText = altField.value;
     changed(false);
   });
+  const altSummary = el("summary");
+  const renderAltSummary = () => {
+    altSummary.textContent = altField.value.trim() ? "Alt text included" : "No alt text yet";
+  };
+  altField.addEventListener("input", renderAltSummary);
+  renderAltSummary();
   const altFromImage = el("button", {
     type: "button",
     class: "secondary small",
@@ -312,33 +331,46 @@ async function showEditor(container, ctx, begin) {
     pdfButton,
   ]);
 
-  const leftColumn = el(
-    "section",
-    { class: "studio-column card", id: "editor-panel-fields", "aria-label": "Content" },
-    [
-      el("div", { class: "field" }, [el("label", { for: "field-title", text: "Title (studio only)" }), titleField]),
-      slideHolder,
-      fieldsHolder,
-      helpPanel?.element ?? null,
-      formatChoice,
-      el("div", { class: "field" }, [el("label", { for: "field-campaign", text: "Campaign" }), campaignChoice]),
-      factsHolder,
-    ],
-  );
+  const postDetails = el("details", { class: "studio-post-details" }, [
+    el("summary", { text: "Post details" }),
+    helpPanel?.element ?? null,
+    formatChoice,
+    el("div", { class: "field" }, [el("label", { for: "field-campaign", text: "Campaign" }), campaignChoice]),
+    factsHolder,
+  ]);
+  const leftColumn = el("section", { class: "studio-column", id: "editor-panel-fields", "aria-label": "Content" }, [
+    el("h2", { text: "Content" }),
+    slideHolder,
+    fieldsHolder,
+    postDetails,
+  ]);
   const centerColumn = el(
     "section",
     { class: "studio-column studio-center", id: "editor-panel-preview", "aria-label": "Preview" },
-    [viewGroup, formatTabs, previewFrame, feedHolder, slideNav, zoneToggle, exportButtons, exportStatus],
+    [
+      el("h2", { text: "Artwork" }),
+      viewGroup,
+      formatTabs,
+      previewFrame,
+      feedHolder,
+      slideNav,
+      formatLine,
+      el("details", { class: "studio-export" }, [
+        el("summary", {}, [icon("download"), "Export options"]),
+        zoneToggle,
+        exportButtons,
+      ]),
+      exportStatus,
+    ],
   );
   const checkCard = el("div", { class: "card" }, [checkHeadline, checkList]);
-  const rightColumn = el(
-    "section",
-    { class: "studio-column", id: "editor-panel-caption", "aria-label": "Check, text and status" },
-    [
-      checkCard,
-      el("div", { class: "card" }, [
-        el("h2", { text: "Caption" }),
-        captionHolder,
+  const rightColumn = el("section", { class: "studio-column", id: "editor-panel-caption", "aria-label": "Review" }, [
+    checkCard,
+    el("div", { class: "card" }, [
+      el("h2", { text: "Caption" }),
+      captionHolder,
+      el("details", { class: "studio-caption-extra" }, [
+        altSummary,
         el("div", { class: "field" }, [
           el("label", { for: "field-link", text: "Link for the post" }),
           linkField,
@@ -350,18 +382,25 @@ async function showEditor(container, ctx, begin) {
           altFromImage,
         ]),
       ]),
-      el("div", { class: "card" }, [el("h2", { text: "Status" }), statusHolder]),
-    ],
-  );
+    ]),
+    el("div", { class: "card" }, [
+      statusHeading,
+      statusHolder,
+      el("p", {
+        class: "help-text studio-manual-note",
+        text: "Export the post, then upload it yourself. The planner keeps track of when it is due.",
+      }),
+    ]),
+  ]);
 
   // On a phone the three columns become three tabs, so the preview is one tap away at any
   // point and a field never has the preview 3000px above it. The tab bar is hidden by CSS on
   // wider screens, where all three columns show.
   const phone = window.matchMedia("(max-width: 700px)");
   const TABS = [
-    ["fields", "Fields", leftColumn],
+    ["fields", "Content", leftColumn],
     ["preview", "Preview", centerColumn],
-    ["caption", "Caption", rightColumn],
+    ["caption", "Review", rightColumn],
   ];
   const tabButtons = TABS.map(([id, label], i) => {
     const button = el("button", {
@@ -433,6 +472,11 @@ async function showEditor(container, ctx, begin) {
   container.replaceChildren(
     el("div", { class: "studio-editor-head" }, [
       el("a", { href: "#library", class: "studio-back text-link" }, [icon("back"), "Back to your posts"]),
+      el("div", { class: "studio-editor-title" }, [
+        el("label", { for: "field-title", class: "visual-hidden", text: "Title (studio only)" }),
+        titleField,
+        metaLine,
+      ]),
       el("div", { class: "studio-editor-bar" }, [
         el("div", { class: "studio-bar-info" }, [
           el("div", { class: "studio-bar-line" }, [checkChip, statusChip]),
@@ -844,6 +888,8 @@ async function showEditor(container, ctx, begin) {
   }
 
   function renderPreview() {
+    const f = formatOf(state.format);
+    formatLine.replaceChildren(el("span", { text: f.name }), el("span", { text: `${f.width} × ${f.height} px` }));
     if (state.view === "feed") {
       renderFeed();
       return;
@@ -1006,22 +1052,9 @@ async function showEditor(container, ctx, begin) {
       }
       return el("li", { class: `level-${b.level}` }, content);
     };
-    // What is in order is collapsed: the panel is about what still has to happen.
-    const open = u.findings.filter((b) => b.level !== "ok");
-    const ok = u.findings.filter((b) => b.level === "ok");
-    checkList.replaceChildren(
-      ...open.map(line),
-      ...(ok.length
-        ? [
-            el("li", { class: "studio-check-ok" }, [
-              el("details", {}, [
-                el("summary", { text: `${ok.length} item${ok.length === 1 ? "" : "s"} OK` }),
-                el("ul", { class: "studio-check" }, ok.map(line)),
-              ]),
-            ]),
-          ]
-        : []),
-    );
+    // What still has to happen comes first; what is in order follows.
+    const rank = (b) => (b.level === "ok" ? 1 : 0);
+    checkList.replaceChildren(...[...u.findings].sort((x, y) => rank(x) - rank(y)).map(line));
   }
 
   function goTo(b) {
@@ -1039,6 +1072,8 @@ async function showEditor(container, ctx, begin) {
       renderAll();
     }
     const fieldTarget = document.getElementById(`field-${b.field}`);
+    // A field inside a closed disclosure cannot take focus: open what it sits in first.
+    for (let d = fieldTarget?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
     (fieldTarget?.matches("fieldset") ? fieldTarget.querySelector("input") : fieldTarget)?.focus();
   }
 
@@ -1113,6 +1148,8 @@ async function showEditor(container, ctx, begin) {
       search,
       list,
     );
+    // A warning must not hide in a closed disclosure.
+    if (factsHolder.querySelector(".studio-warning")) postDetails.open = true;
   }
 
   function renderCaption() {
@@ -1176,6 +1213,7 @@ async function showEditor(container, ctx, begin) {
       });
       if (!link) {
         fieldError(linkField, "First enter a link that starts with https://.");
+        linkField.closest("details").open = true;
         linkField.focus();
         return;
       }
@@ -1324,20 +1362,45 @@ async function showEditor(container, ctx, begin) {
 
   function buildStatus() {
     const p = state.post;
-    const lines = [
-      el("p", {}, [
-        el("span", {
-          class: `badge studio-badge-${p.status ?? "draft"}`,
-          text: STATUS_LABELS[p.status ?? "draft"],
-        }),
-      ]),
-    ];
+    const scheduled = p.status === "scheduled";
+    statusHeading.textContent = scheduled ? "Planned for" : "Status";
+    const lines = scheduled
+      ? []
+      : [
+          el("p", {}, [
+            el("span", {
+              class: `badge studio-badge-${p.status ?? "draft"}`,
+              text: STATUS_LABELS[p.status ?? "draft"],
+            }),
+          ]),
+        ];
+    // Everything that is not part of the main flow sits in the "More" menu.
+    const more = (items) =>
+      el("details", { class: "post-menu" }, [
+        el("summary", { text: "More" }),
+        el("div", { class: "post-menu-list" }, items),
+      ]);
     if (!p.id) {
       lines.push(el("p", { class: "help-text", text: "Not saved yet. Save the post so you can schedule it." }));
-      statusHolder.replaceChildren(...lines, el("div", { class: "studio-status-actions" }, [convertField()]));
+      statusHolder.replaceChildren(...lines, el("div", { class: "studio-status-actions" }, [more([convertField()])]));
       return;
     }
-    if (p.status === "scheduled") lines.push(el("p", { text: `Scheduled: ${readableMoment(p.scheduled)}` }));
+    if (scheduled) {
+      const at = new Date(p.scheduled);
+      const day = new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(at);
+      const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(at);
+      const time = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(at);
+      lines.push(
+        el("div", { class: "studio-scheduled" }, [
+          dateTile(p.scheduled),
+          el("div", {}, [
+            el("strong", { text: `${day}, ${date}` }),
+            el("p", { text: `${time} · ${formatOf(p.formats[0] ?? state.format).name}` }),
+          ]),
+        ]),
+        el("p", {}, [el("a", { href: "#planning", class: "text-link" }, ["View in planner ", icon("arrow")])]),
+      );
+    }
     if (p.status === "published") {
       lines.push(
         el("p", {}, [
@@ -1354,7 +1417,8 @@ async function showEditor(container, ctx, begin) {
       );
       lines.push(resultField(p));
     }
-    const actions = [convertField()];
+    const actions = [];
+    const menu = [convertField()];
     if (p.status === "draft" || p.status === "scheduled") {
       const moment = el("input", {
         type: "datetime-local",
@@ -1429,7 +1493,7 @@ async function showEditor(container, ctx, begin) {
       );
     }
     if (p.status !== "draft")
-      actions.push(
+      menu.push(
         el("button", {
           type: "button",
           class: "secondary",
@@ -1438,7 +1502,7 @@ async function showEditor(container, ctx, begin) {
         }),
       );
     if (p.status !== "archived")
-      actions.push(
+      menu.push(
         el("button", {
           type: "button",
           class: "secondary",
@@ -1446,10 +1510,11 @@ async function showEditor(container, ctx, begin) {
           onclick: () => setStatus({ target: "archived" }),
         }),
       );
-    actions.push(
+    menu.push(
       el("button", { type: "button", class: "secondary", text: "Duplicate", onclick: duplicate }),
       el("button", { type: "button", class: "secondary danger", text: "Delete", onclick: erase }),
     );
+    actions.push(more(menu));
     statusHolder.replaceChildren(...lines, el("div", { class: "studio-status-actions" }, actions));
   }
 
@@ -1463,9 +1528,21 @@ async function showEditor(container, ctx, begin) {
     const status = state.post.status ?? "draft";
     statusChip.className = `badge studio-badge-${status}`;
     statusChip.textContent = STATUS_LABELS[status];
+    metaBadge.className = `badge studio-badge-${status}`;
+    metaBadge.textContent =
+      status === "scheduled" && state.post.scheduled
+        ? `Scheduled · ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(state.post.scheduled))}`
+        : STATUS_LABELS[status];
+    const n = slideCount();
+    metaText.textContent = [
+      (slideTemplate(0) ?? s).name,
+      `${n} slide${n === 1 ? "" : "s"}`,
+      formatOf(state.post.formats[0] ?? state.format).name,
+    ].join(" · ");
   }
 
   function renderAll() {
+    renderSaveStatus();
     renderFormats();
     renderSlides();
     renderFields();
@@ -1561,6 +1638,7 @@ async function showEditor(container, ctx, begin) {
     if (state.post.link && !addUtm(state.post.link, {})) {
       fieldError(linkField, "A link must start with https://.");
       reveal("caption");
+      linkField.closest("details").open = true;
       linkField.focus();
       return false;
     }

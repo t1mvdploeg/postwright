@@ -13,6 +13,7 @@ import {
   defaultCount,
   rescheduleToDay,
   nextMonth,
+  agendaDays,
 } from "../src/web/studio/calendar.js";
 
 describe("calendar", () => {
@@ -137,5 +138,31 @@ describe("daysAgo", () => {
     expect(daysAgo("2026-10-24T10:00:00Z", new Date("2026-10-26T10:00:00Z"))).toBe(2);
     expect(daysAgo("2026-09-01T10:00:00Z", new Date("2026-09-24T10:00:00Z"))).toBe(23);
     expect(daysAgo("2026-09-28T10:00:00Z", new Date("2026-10-02T10:00:00Z"))).toBe(4);
+  });
+});
+
+describe("agendaDays", () => {
+  const row = (sort: string) => ({ sort });
+  it("gives the seven days of the week, each with its rows in order", () => {
+    const days = agendaDays("2026-10-19", [row("2026-10-19 1 b"), row("2026-10-21 2 idea"), row("2026-10-19 0 a")]);
+    expect(days.map((d) => d.date)).toEqual([
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25",
+    ]);
+    expect(days[0].rows.map((r) => r.sort)).toEqual(["2026-10-19 0 a", "2026-10-19 1 b"]);
+    expect(days[2].rows).toHaveLength(1);
+    expect(days[1].rows).toEqual([]);
+  });
+  it("shows a week that holds only a moment", () => {
+    expect(agendaDays("2026-10-19", [row("2026-10-23 0 moment")])[4].rows).toHaveLength(1);
+  });
+  it("leaves out a row dated outside the week", () => {
+    const days = agendaDays("2026-10-19", [row("2026-10-26 1 next week")]);
+    expect(days.every((d) => d.rows.length === 0)).toBe(true);
   });
 });

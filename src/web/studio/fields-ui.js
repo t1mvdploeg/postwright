@@ -3,6 +3,7 @@
 // click.
 import { el } from "/ui.js";
 import { emphasiseSelection } from "/studio/templates.js";
+import { groupFields } from "/studio/field-groups.js";
 
 /** A counter "12 / 90" that turns red above the maximum. */
 function counter(field, input) {
@@ -23,7 +24,7 @@ function counter(field, input) {
  * the upload.
  */
 export function buildFields(fields, values, { change, media = [], onUpload }) {
-  return fields.map((v) => {
+  const one = (v) => {
     const id = `field-${v.id}`;
     const value = values[v.id] ?? v.defaultValue ?? "";
     const helpId = v.help ? `${id}-help` : null;
@@ -100,7 +101,10 @@ export function buildFields(fields, values, { change, media = [], onUpload }) {
     input.value = value;
     input.addEventListener("input", () => change(v.id, input.value));
     const headline = el("div", { class: "studio-field-headline" }, [
-      el("label", { for: id, text: `${v.label}${v.required ? "" : " (optional)"}` }),
+      el("label", { for: id }, [
+        v.label,
+        v.required ? null : el("span", { class: "studio-optional", text: "Optional" }),
+      ]),
       counter(v, input),
     ]);
     const children = [headline, input, help];
@@ -123,5 +127,23 @@ export function buildFields(fields, values, { change, media = [], onUpload }) {
       children.push(el("div", { class: "studio-emphasis" }, [button]));
     }
     return el("div", { class: "field" }, children);
+  };
+
+  return groupFields(fields).map((group) => {
+    if (group.fields.length === 1) return one(group.fields[0]);
+    // The number in a box and the current value of the first field, e.g. "2  Check the sources".
+    const first = group.fields[0];
+    const summary = el("span", {
+      class: "studio-field-group-title",
+      text: values[first.id] ?? first.defaultValue ?? "",
+    });
+    const members = group.fields.map(one);
+    members[0].addEventListener("input", (e) => {
+      summary.textContent = e.target.value;
+    });
+    return el("fieldset", { class: "studio-field-group" }, [
+      el("legend", {}, [el("span", { class: "studio-field-group-number", text: group.number }), summary]),
+      ...members,
+    ]);
   });
 }

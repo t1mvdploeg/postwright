@@ -14,61 +14,64 @@
 :root {
   color-scheme: light dark;
 
-  /* Colours */
-  --background: #f8f7f4;
-  --sidebar: #f3f3ee;
-  --ink: #292b27;
-  --accent: #bc452e;
-  --accent-hover: #a33825;
-  --accent-soft: #f4e9e3;
-  --text: #292b27;
-  --text-muted: #62685b;
-  --card: #ffffff;
-  --edge: #e7e7e0;
-  --edge-strong: #dcded5;
-  --hover: #edeee6;
-  --olive: #404b39;
-  --olive-soft: #e9eddf;
-  --olive-text: #526045;
-  --quiet-soft: #eeeee7;
-  --warning: #8a4d00;
-  --confirmed: #496348;
-  --error: #b3261e;
-  --on-ink: #fff;
-  --shadow-card-color: rgba(41, 43, 39, 0.04);
+  /* Every colour is a light-dark() pair, light first. The page follows the computer unless the
+     colour choice (Settings, Appearance) sets data-theme; see :root[data-theme] below. Every
+     pair of text and ground reaches WCAG AA (4.5:1; 3:1 for the borders of form fields and the
+     focus ring). Posts, thumbnails and the brand colours are drawn in the brand's own colours and
+     are not touched here. */
+  --background: light-dark(#f8f7f3, #211f1a);
+  --sidebar: light-dark(#efeee7, #1b1915);
+  --ink: light-dark(#292b27, #f0eee6);
+  --accent: light-dark(#ad3f2b, #f09a80);
+  --accent-hover: light-dark(#91321f, #ffb39d);
+  --accent-soft: light-dark(#f6e7df, #362b24);
+  --text: light-dark(#292b27, #f0eee6);
+  --text-muted: light-dark(#64675e, #b8b2a5);
+  --card: light-dark(#fffefa, #28251f);
+  --edge: light-dark(#e7e7e0, #37332e);
+  --edge-strong: light-dark(#dedfd5, #444035);
+  --hover: light-dark(#edeee6, #2d2a26);
+  --olive: light-dark(#46533e, #c1cbb2);
+  --olive-soft: light-dark(#e8ece1, #30372a);
+  --olive-text: light-dark(#526045, #b5c8a4);
+  --quiet-soft: light-dark(#eeeee7, #2f2c28);
+  --warning: light-dark(#8a4d00, #e8a85a);
+  --confirmed: light-dark(#496348, #93b892);
+  --error: light-dark(#b3261e, #f4897f);
+  --on-ink: light-dark(#ffffff, #211f1a);
+  --shadow-card-color: light-dark(rgba(41, 43, 39, 0.04), rgba(0, 0, 0, 0.25));
   --shadow-button: none;
 
   /* Buttons keep the clay fill with white text; --accent itself is the clay as text and line. */
-  --accent-fill: #bc452e;
-  --accent-fill-hover: #a33825;
-  --on-accent: #fff;
+  --accent-fill: light-dark(#ad3f2b, #bc452e);
+  --accent-fill-hover: light-dark(#91321f, #a33825);
+  --on-accent: light-dark(#ffffff, #ffffff);
 
   /* Greys and washes that used to be written out where they were needed */
-  --edge-field: #dce0d2;
-  --edge-field-search: #dcdfd2;
-  --edge-input: #e7e7e0;
-  --edge-olive: #d9dfce;
-  --placeholder: #8a8c83;
-  --scrollbar: #c8c9bf;
-  --selection: #edd0bf;
-  --nav-text: #5c6056;
-  --nav-hover: #e6e7df;
-  --nav-current: #ebece4;
-  --card-hover: #fcfcfa;
-  --stage: #eeefe8;
-  --panel-soft: #f7f7f3;
-  --artwork-ground: #eeeee8;
-  --quiet-text: #6a6c60;
-  --tab-text: #6c7065;
-  --olive-strong: #394831;
-  --warning-soft: #f6ead9;
-  --warning-ink: #5c3a10;
-  --swatch-edge: rgba(41, 43, 39, 0.08);
-  --shadow-notice: 0 10px 28px rgba(41, 43, 39, 0.18);
-  --shadow-dialog: 0 18px 48px rgba(41, 43, 39, 0.2);
-  --shadow-drawer: 14px 0 32px rgba(40, 48, 33, 0.14);
-  --scrim: rgba(41, 43, 39, 0.28);
-  --scrim-dialog: rgba(41, 43, 39, 0.36);
+  --edge-field: light-dark(#dce0d2, #7c7566);
+  --edge-field-search: light-dark(#dcdfd2, #7c7566);
+  --edge-input: light-dark(#e7e7e0, #7c7566);
+  --edge-olive: light-dark(#d9dfce, #4c5a41);
+  --placeholder: light-dark(#8a8c83, #9a9588);
+  --scrollbar: light-dark(#c8c9bf, #4a463f);
+  --selection: light-dark(#edd0bf, #6b3a2c);
+  --nav-text: light-dark(#5c6056, #b9b4a7);
+  --nav-hover: light-dark(#e6e7df, #2b2824);
+  --card-hover: light-dark(#fcfcfa, #2d2a26);
+  --stage: light-dark(#eeede6, #302d25);
+  --panel-soft: light-dark(#f7f7f3, #24211e);
+  --artwork-ground: light-dark(#eeede6, #302d25);
+  --quiet-text: light-dark(#6a6c60, #aaa597);
+  --tab-text: light-dark(#6c7065, #b0ab9d);
+  --olive-strong: light-dark(#394831, #d3e2c4);
+  --warning-soft: light-dark(#f6ead9, #3a2c18);
+  --warning-ink: light-dark(#5c3a10, #f0cc9a);
+  --swatch-edge: light-dark(rgba(41, 43, 39, 0.08), rgba(236, 232, 223, 0.2));
+  --shadow-notice: 0 10px 28px light-dark(rgba(41, 43, 39, 0.18), rgba(0, 0, 0, 0.5));
+  --shadow-dialog: 0 18px 48px light-dark(rgba(41, 43, 39, 0.2), rgba(0, 0, 0, 0.6));
+  --shadow-drawer: 14px 0 32px light-dark(rgba(40, 48, 33, 0.14), rgba(0, 0, 0, 0.5));
+  --scrim: light-dark(rgba(41, 43, 39, 0.28), rgba(0, 0, 0, 0.55));
+  --scrim-dialog: light-dark(rgba(41, 43, 39, 0.36), rgba(0, 0, 0, 0.6));
 
   /* Marks the no-go zones drawn over a post preview; it sits on the artwork, so it never changes */
   --zone-edge: #b3261e;
@@ -88,73 +91,31 @@
   --t-xl: 20px;
   --t-2xl: 28px;
 
-  --round-s: 7px;
+  --round-s: 6px;
   --round-m: 12px;
   --round-l: 14px;
 
   /* Height of the toolbar; ui.js measures the real height and writes it on .app-shell. */
-  --headline-height: 64px;
-  --headline-min-height: 64px;
+  --headline-height: 72px;
+  --headline-min-height: 72px;
 }
 
-/* Dark: the same warm studio at night. Deep brown-grey paper instead of black, clay lightened so it
-   reads as text and as a line, olive and the status colours lightened to match. Every pair of text
-   and ground reaches WCAG AA (4.5:1; 3:1 for the borders of form fields and the focus ring).
-   Posts, thumbnails and the brand colours are drawn in the brand's own colours and are not
-   touched here. */
+/* The colour choice in Settings. Without it the computer's setting applies. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* The default logo is made for a light ground; it gets the light ground of the brand kit in dark. */
+:root[data-theme="dark"] .studio-identity img {
+  padding: 10px 16px;
+  border-radius: var(--round-s);
+  background: #fff7f3;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1e1c19;
-    --sidebar: #181614;
-    --ink: #ece8df;
-    --accent: #ec7d63;
-    --accent-hover: #f39a84;
-    --accent-soft: #3b2620;
-    --text: #ece8df;
-    --text-muted: #aaa597;
-    --card: #272420;
-    --edge: #37332e;
-    --edge-strong: #48433c;
-    --hover: #2d2a26;
-    --olive: #8fa57e;
-    --olive-soft: #2c3427;
-    --olive-text: #b5c8a4;
-    --quiet-soft: #2f2c28;
-    --warning: #e8a85a;
-    --confirmed: #93b892;
-    --error: #f4897f;
-    --on-ink: #1e1c19;
-    --shadow-card-color: rgba(0, 0, 0, 0.25);
-
-    --edge-field: #7c7566;
-    --edge-field-search: #7c7566;
-    --edge-input: #7c7566;
-    --edge-olive: #4c5a41;
-    --placeholder: #9a9588;
-    --scrollbar: #4a463f;
-    --selection: #6b3a2c;
-    --nav-text: #b9b4a7;
-    --nav-hover: #2b2824;
-    --nav-current: #322f2a;
-    --card-hover: #2d2a26;
-    --stage: #232120;
-    --panel-soft: #24211e;
-    --artwork-ground: #2b2825;
-    --quiet-text: #aaa597;
-    --tab-text: #b0ab9d;
-    --olive-strong: #d3e2c4;
-    --warning-soft: #3a2c18;
-    --warning-ink: #f0cc9a;
-    --swatch-edge: rgba(236, 232, 223, 0.2);
-    --shadow-notice: 0 10px 28px rgba(0, 0, 0, 0.5);
-    --shadow-dialog: 0 18px 48px rgba(0, 0, 0, 0.6);
-    --shadow-drawer: 14px 0 32px rgba(0, 0, 0, 0.5);
-    --scrim: rgba(0, 0, 0, 0.55);
-    --scrim-dialog: rgba(0, 0, 0, 0.6);
-  }
-
-  /* The default logo is made for a light ground; it gets the light ground of the brand kit here. */
-  .studio-identity img {
+  :root:not([data-theme="light"]) .studio-identity img {
     padding: 10px 16px;
     border-radius: var(--round-s);
     background: #fff7f3;
@@ -473,16 +434,16 @@ details.block > .block-content {
 button,
 .button,
 .button-link {
-  min-height: 35px;
+  min-height: 38px;
   height: auto;
-  padding: 7px 13px;
+  padding: 8px 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   border-radius: var(--round-s);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 570;
   font-family: inherit;
   line-height: 1.3;
   text-decoration: none;
@@ -646,7 +607,7 @@ table.list tbody tr:last-child td {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 212px minmax(0, 1fr);
+  grid-template-columns: 216px minmax(0, 1fr);
   background: var(--background);
 }
 
@@ -656,31 +617,31 @@ table.list tbody tr:last-child td {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 22px 14px 12px;
+  padding: 26px 18px 22px;
   background: var(--sidebar);
   border-right: 1px solid var(--edge);
   z-index: 30;
 }
 
 .app-brand {
-  margin: 0 8px 20px;
+  margin: 0 8px 30px;
 }
 
 .app-brand .logo {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
   color: var(--ink);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.03em;
   text-decoration: none;
 }
 
 .app-brand .logo img {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   display: block;
 }
@@ -695,7 +656,7 @@ table.list tbody tr:last-child td {
 }
 
 .nav-group + .nav-group {
-  margin-top: 22px;
+  margin-top: 28px;
 }
 
 .nav-group.nav-bottom {
@@ -703,26 +664,33 @@ table.list tbody tr:last-child td {
   padding-top: 22px;
 }
 
+/* A quiet line above Settings, at the foot of the sidebar. */
+.app-local {
+  margin: 0 11px 12px;
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+}
+
 .nav-group-label {
   display: block;
   padding: 0 11px 8px;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-size: var(--t-xs);
+  font-weight: 550;
 }
 
 .app-navigation a {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 8px 11px;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 12px;
   margin: 2px 0;
   border-radius: var(--round-s);
   text-decoration: none;
   color: var(--nav-text);
   font-size: 13px;
+  font-weight: 520;
 }
 
 .app-navigation a .icon {
@@ -736,9 +704,9 @@ table.list tbody tr:last-child td {
 }
 
 .app-navigation a[aria-current] {
-  background: var(--nav-current);
+  background: var(--accent-soft);
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 620;
 }
 
 .app-workspace {
@@ -749,8 +717,8 @@ table.list tbody tr:last-child td {
   position: sticky;
   top: 0;
   z-index: 20;
-  min-height: 64px;
-  padding: 10px 28px;
+  min-height: 72px;
+  padding: 10px 40px;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -794,9 +762,9 @@ table.list tbody tr:last-child td {
 }
 
 .app-content {
-  width: min(100%, 1320px);
+  width: min(100%, 1520px);
   margin-inline: auto;
-  padding: 28px 28px 64px;
+  padding: 34px 40px 64px;
 }
 
 .app-content :is(input, select, textarea, button, a, summary) {
@@ -1462,14 +1430,80 @@ textarea[readonly] {
   font-size: var(--t-xs);
 }
 
+/* The shell's heading stays for screen readers; the editor's title field is the visible heading. */
+.app-content:has(.studio-editor-head) .page-heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .studio-editor-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "back back"
+    "title bar";
   align-items: center;
-  gap: var(--r4);
-  margin-bottom: var(--r4);
+  gap: var(--r2) var(--r4);
+  margin-bottom: var(--r5);
+  padding-bottom: var(--r4);
+  border-bottom: 1px solid var(--edge);
+}
+
+.studio-editor-head > .studio-back {
+  grid-area: back;
+  justify-self: start;
+  margin-right: 0;
+}
+
+.studio-editor-title {
+  grid-area: title;
+  min-width: 0;
+}
+
+/* Looks like the page heading; the field only shows itself on hover and focus. */
+.studio .studio-title-field {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  padding: 2px 8px;
+  margin: 0 0 var(--r1) -8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--t-2xl);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
+.studio .studio-title-field:hover {
+  border-color: var(--edge-strong);
+}
+
+.studio .studio-title-field:focus {
+  background: var(--card);
+}
+
+.studio-editor-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--r1) var(--r3);
+  margin: 0;
+  font-size: var(--t-s);
+  color: var(--text-muted);
 }
 
 .studio-editor-bar {
+  grid-area: bar;
   display: flex;
   align-items: center;
   gap: var(--r4);
@@ -1500,10 +1534,11 @@ textarea[readonly] {
   font-weight: 600;
 }
 
+/* Content is narrow, Artwork wide on the canvas, Review a rail with hairlines between its parts. */
 .studio-editor {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.5fr) minmax(300px, 1fr);
-  gap: var(--r4);
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr) minmax(250px, 0.85fr);
+  gap: var(--r5);
   align-items: start;
 }
 
@@ -1521,14 +1556,192 @@ textarea[readonly] {
 }
 
 .studio-column h2 {
-  font-size: var(--t-m);
+  font-size: var(--t-l);
   margin: 0 0 var(--r3);
+}
+
+.studio-editor > :first-child {
+  padding-right: var(--r5);
+  border-right: 1px solid var(--edge);
+}
+
+.studio-editor > :last-child {
+  padding-left: var(--r5);
+  border-left: 1px solid var(--edge);
+}
+
+/* Fields that belong together (a step and its explanation): a numbered heading with a hairline. */
+.studio-field-group {
+  margin: 0 0 var(--r2);
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.studio-field-group legend {
+  display: flex;
+  align-items: center;
+  gap: var(--r2);
+  width: 100%;
+  margin-bottom: var(--r3);
+  padding: 0;
+  font-size: var(--t-s);
+  font-weight: 600;
+}
+
+.studio-field-group legend::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--edge);
+}
+
+.studio-field-group-number {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  border-radius: var(--round-s);
+  background: var(--stage);
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+}
+
+.studio-field-group-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-optional {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+  font-weight: 400;
+}
+
+.studio-field-headline label {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: var(--r2);
+}
+
+/* Disclosures: Post details, Export options and the extras of the caption. */
+:is(.studio-post-details, .studio-export, .studio-caption-extra) {
+  margin-top: var(--r3);
+  border-top: 1px solid var(--edge);
+}
+
+:is(.studio-post-details, .studio-export, .studio-caption-extra) > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--r2);
+  padding: var(--r3) 0;
+  font-size: var(--t-s);
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+:is(.studio-post-details, .studio-export, .studio-caption-extra) > summary::-webkit-details-marker {
+  display: none;
+}
+
+:is(.studio-post-details, .studio-export, .studio-caption-extra) > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin: 0 3px 3px auto;
+  border-right: 1.7px solid currentColor;
+  border-bottom: 1.7px solid currentColor;
+  transform: rotate(45deg);
+}
+
+:is(.studio-post-details, .studio-export, .studio-caption-extra)[open] > summary::after {
+  margin-bottom: -3px;
+  transform: rotate(225deg);
+}
+
+.studio-export {
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--round-s);
+  background: var(--card);
+}
+
+.studio-export > summary {
+  padding: var(--r3) var(--r4);
+}
+
+.studio-export > :not(summary) {
+  margin-inline: var(--r4);
+}
+
+.studio-export > :last-child {
+  margin-bottom: var(--r4);
+}
+
+.studio-caption-extra > summary {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.studio-format-line {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--r3);
+  margin: 0;
+  font-size: var(--t-s);
+  color: var(--text-muted);
+}
+
+.studio-scheduled {
+  display: flex;
+  align-items: center;
+  gap: var(--r3);
+  margin-bottom: var(--r3);
+}
+
+.studio-scheduled p {
+  margin: 2px 0 0;
+  font-size: var(--t-s);
+  color: var(--text-muted);
+}
+
+.studio-manual-note {
+  margin: var(--r4) 0 0;
+}
+
+/* "More" in the status card is a real menu here, also on a wide screen. */
+.studio-status .post-menu:not([open])::details-content {
+  content-visibility: hidden;
+}
+.studio-status .post-menu summary {
+  display: inline-flex;
+  padding: 0 var(--r3);
+  font-size: var(--t-s);
+}
+.studio-status .post-menu-list {
+  position: absolute;
+  display: grid;
+  gap: 4px;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--round-s);
+  background: var(--card);
+  box-shadow: var(--shadow-notice);
+}
+.studio-status .post-menu-list .field {
+  margin: 0;
+  padding: var(--r1) var(--r2);
 }
 
 .studio-center {
   display: grid;
   gap: var(--r3);
-  padding: 16px;
+  padding: 20px;
   border-radius: var(--round-m);
   background: var(--stage);
   position: sticky;
@@ -1544,6 +1757,8 @@ textarea[readonly] {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--r4);
+    padding-left: 0;
+    border-left: 0;
   }
   .studio-editor > :last-child > .card {
     margin-bottom: 0;
@@ -1553,6 +1768,16 @@ textarea[readonly] {
 /* Phones and tablets (up to 1179px): the bar with Save, the brand check and the status sticks to
    the bottom of the screen, and the page gets room so it never covers the last field. */
 @media (max-width: 1179px) {
+  /* In the flow, so the page can scroll the open menu clear of the fixed bar. */
+  .studio-status .post-menu-list {
+    position: static;
+  }
+  .studio-editor-head {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "back"
+      "title";
+  }
   .studio-editor-bar {
     position: fixed;
     left: 212px;
@@ -1652,6 +1877,9 @@ textarea[readonly] {
     background: var(--background);
     border-bottom: 1px solid var(--edge);
   }
+  .studio .studio-title-field {
+    font-size: var(--t-xl);
+  }
   .studio-editor-tab {
     min-height: 44px;
     padding: 6px 8px;
@@ -1669,6 +1897,10 @@ textarea[readonly] {
   }
   .studio-editor {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .studio-editor > :first-child {
+    padding-right: 0;
+    border-right: 0;
   }
   .studio-editor > :nth-child(3) {
     display: block;
@@ -2001,23 +2233,6 @@ textarea[readonly] {
 
 .studio-check li.level-error {
   background: color-mix(in srgb, var(--error) 8%, var(--card));
-}
-
-.studio-check li.studio-check-ok {
-  display: block;
-  background: none;
-  padding: 0;
-}
-
-.studio-check-ok summary {
-  cursor: pointer;
-  color: var(--confirmed);
-  font-weight: 600;
-  padding: 4px 0;
-}
-
-.studio-check-ok .studio-check {
-  margin-top: 6px;
 }
 
 .studio-check li.level-attention {
@@ -2394,8 +2609,272 @@ textarea[readonly] {
   margin: -0.4em 0 var(--r2);
 }
 
-.studio-plan-block .empty-state {
-  padding: var(--r4) var(--r3);
+/* The planner: the agenda wide, drafts and campaigns in a column beside it. */
+.studio-planner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--r5);
+  align-items: start;
+}
+
+.studio-planner-main,
+.studio-planner-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--r4);
+  min-width: 0;
+}
+
+.studio-planner-side {
+  gap: var(--r5);
+}
+
+.studio-period > summary {
+  cursor: pointer;
+}
+
+.studio-period > summary h2,
+.studio-campaign-form > summary {
+  display: inline;
+  margin: 0;
+}
+
+.studio-period[open] > summary {
+  margin-bottom: var(--r3);
+}
+
+.studio-campaign-form > summary {
+  color: var(--accent);
+  font-size: var(--t-s);
+  cursor: pointer;
+}
+
+.studio-campaign-form[open] > summary {
+  display: block;
+  margin-bottom: var(--r3);
+}
+
+.studio-week-agenda {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-plan-day {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--r4);
+  padding: var(--r3) 0;
+  border-top: 1px solid var(--edge);
+}
+
+.studio-plan-date {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-muted);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.studio-plan-date strong {
+  color: var(--text);
+  font-size: var(--t-xl);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.studio-plan-day[aria-current="date"] .studio-plan-date strong {
+  color: var(--accent);
+}
+
+.studio-plan-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--r2);
+  min-width: 0;
+}
+
+.studio-plan-items > .help-text {
+  margin: 0;
+  padding: 6px 0;
+}
+
+.studio-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--r2);
+}
+
+.studio-plan-item {
+  display: flex;
+  align-items: center;
+  gap: var(--r3);
+  padding: var(--r3);
+  border: 1px solid var(--edge);
+  border-radius: var(--round-m);
+  background: var(--card);
+}
+
+.studio-plan-time {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--t-s);
+  font-variant-numeric: tabular-nums;
+}
+
+.studio-plan-item .studio-artwork,
+.studio-draft .studio-artwork {
+  flex: none;
+  width: 64px;
+  border-radius: var(--round-s);
+}
+
+.studio-plan-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.studio-plan-title {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+a.studio-plan-title:hover {
+  color: var(--accent);
+}
+
+.studio-plan-body .table-subtext,
+.studio-draft .table-subtext {
+  display: block;
+  margin: 0;
+}
+
+.studio-item-more {
+  flex: none;
+  font-size: var(--t-s);
+}
+
+.studio-item-more > summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.studio-plan-item:has(.studio-item-more[open]) {
+  flex-wrap: wrap;
+}
+
+.studio-item-more[open] {
+  flex-basis: 100%;
+}
+
+.studio-week-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--r3);
+  padding: var(--r3) 0;
+  border-top: 1px solid var(--edge);
+  color: var(--text-muted);
+}
+
+.studio-plan-closing {
+  margin: var(--r4) 0 0;
+  padding-top: var(--r3);
+  border-top: 1px solid var(--edge);
+}
+
+.studio-side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--r3);
+}
+
+.studio-side-head h2 {
+  margin: 0;
+  font-size: var(--t-l);
+}
+
+.studio-draft-list {
+  display: flex;
+  flex-direction: column;
+  margin: var(--r3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-draft {
+  display: flex;
+  gap: var(--r3);
+  padding: var(--r3) 0;
+  border-top: 1px solid var(--edge);
+}
+
+.studio-draft > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.studio-draft-warning {
+  color: var(--warning);
+  font-size: var(--t-s);
+}
+
+.studio-note {
+  padding: var(--r4);
+  border-radius: var(--round-m);
+  background: var(--quiet-soft);
+  font-size: var(--t-s);
+}
+
+.studio-note p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  /* One column: the week first, then the period form, then drafts and campaigns. */
+  .studio-planner {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .studio-planner-main {
+    display: contents;
+  }
+  .studio-plan-card {
+    order: 0;
+  }
+  .studio-period,
+  .studio-planner-main > :not(.studio-plan-card):not(.studio-period) {
+    order: 1;
+  }
+  .studio-planner-side {
+    order: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .studio-plan-day {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: var(--r3);
+  }
+  .studio-plan-item {
+    flex-wrap: wrap;
+  }
+  .studio-plan-body {
+    flex-basis: 8em;
+  }
 }
 
 .studio-idea-info p {
@@ -2522,44 +3001,28 @@ textarea[readonly] {
   }
 }
 
-/* The project picker as the workspace card at the top of the sidebar. */
+/* The project picker: a small label and the project name as plain text with its chevron. */
 .project-picker {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 22px;
-  padding: 8px 9px;
-  border: 1px solid var(--edge-strong);
-  border-radius: 8px;
-  background: var(--panel-soft);
-}
-
-.project-picker img {
-  width: 24px;
-  height: 24px;
-  flex: none;
-}
-
-.project-picker div {
-  flex: 1;
-  min-width: 0;
+  margin: 0 10px 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--edge-strong);
 }
 
 .project-picker label {
   margin: 0;
   color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: var(--t-xs);
+  font-weight: 400;
 }
 
 .project-picker select {
   width: 100%;
   height: auto;
-  padding: 0 18px 0 0;
+  padding: 0;
   border: 0;
   background: transparent;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 570;
   cursor: pointer;
 }
 
@@ -2568,7 +3031,7 @@ textarea[readonly] {
 }
 
 .project-picker:focus-within {
-  border-color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .studio-input-list {
@@ -2625,7 +3088,7 @@ textarea[readonly] {
 }
 
 .studio-desk {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .studio-post-card {
@@ -2648,9 +3111,11 @@ textarea[readonly] {
   transition: transform 0.18s ease;
 }
 
+/* The artwork fills the card: no frame, no padding around it. */
 .studio-artwork .studio-thumbnail {
   border: 0;
   border-radius: 0;
+  padding: 0;
   background: transparent;
 }
 
@@ -2659,10 +3124,11 @@ textarea[readonly] {
 }
 
 .studio-post-link h3 {
+  display: -webkit-box;
   margin: 12px 1px 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .studio-post-link:hover h3 {
@@ -2710,12 +3176,76 @@ textarea[readonly] {
   margin-left: 0;
 }
 
+.studio-fact-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.studio-fact-warning:hover {
+  text-decoration: underline;
+}
+
 .studio-more {
   justify-content: center;
   margin-top: 24px;
 }
 
+/* A date as a tile: the day number over the short month (week panel, editor, planner). */
+.studio-date-tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  align-content: center;
+  width: 48px;
+  height: 52px;
+  border-radius: var(--round-s);
+  background: var(--stage);
+  line-height: 1.1;
+}
+.studio-date-tile strong {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.studio-date-tile small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 /* Overview: the desk next to the week. */
+.studio-overview-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 20px;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--edge);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.studio-overview-top b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.studio-separator {
+  margin: 0 10px;
+  opacity: 0.6;
+}
+
+.studio-desk-note {
+  margin: 20px 0 0;
+}
+
 .studio-dashboard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 260px;
@@ -2831,18 +3361,104 @@ textarea[readonly] {
   margin: 0 0 4px;
 }
 
-.studio-week-panel > .text-link {
-  margin-top: 14px;
+.studio-breathing {
+  margin-top: 18px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--edge);
 }
 
-/* Overview: the rest at a glance, three quiet lists between hairlines. */
+.studio-breathing > .icon {
+  width: 22px;
+  height: 22px;
+  color: var(--text-muted);
+}
+
+.studio-breathing h3 {
+  margin: 10px 0 4px;
+  font-size: 14px;
+}
+
+.studio-breathing p {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.studio-next-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.studio-next-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.studio-next-item small {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.studio-next-item:hover strong {
+  color: var(--accent);
+}
+
+/* Overview: brand and results, then the rest at a glance, between hairlines. */
+.studio-foot,
 .studio-glance {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px;
   margin-top: 40px;
   padding-top: 24px;
   border-top: 1px solid var(--edge);
+}
+
+.studio-glance {
+  margin-top: 32px;
+}
+
+.studio-foot h2 {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.studio-foot .status-row a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.studio-foot .status-row a:hover {
+  color: var(--accent);
+}
+
+.studio-foot table.list thead th {
+  position: static;
+  background: transparent;
+}
+
+/* Tablet: two cards a row; phone: one. Specific enough to beat the general grid rules. */
+@media (max-width: 1180px) {
+  .studio-dashboard .studio-desk {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .studio-dashboard .studio-desk,
+  .studio-foot,
+  .studio-glance {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .studio-glance h2 {
@@ -3204,23 +3820,54 @@ button.studio-filter-tab[aria-pressed="true"] {
   }
 }
 
-@media (max-width: 700px) {
-  /* The planner: the week first, then the period and ideas form. */
-  .studio-planner {
-    display: flex;
-    flex-direction: column;
-  }
-  .studio-plan-card {
-    order: 0;
-  }
-  .studio-period,
-  .studio-planner > :not(.studio-plan-card):not(.studio-campaigns-card):not(.studio-period) {
-    order: 1;
-  }
-  .studio-campaigns-card {
-    order: 2;
-  }
+/* Campaigns in the planner's narrow side column stack like the cards on a phone. */
+.studio-planner-side table.cards,
+.studio-planner-side table.cards tbody,
+.studio-planner-side table.cards tr,
+.studio-planner-side table.cards td {
+  display: block;
+}
+.studio-planner-side table.cards thead {
+  display: none;
+}
+.studio-planner-side table.cards tbody tr {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--edge);
+}
+.studio-planner-side table.cards tbody tr:last-child {
+  border-bottom: 0;
+}
+.studio-planner-side table.cards tbody td {
+  padding: 0;
+  border: 0;
+}
+.studio-planner-side table.cards td:empty {
+  display: none;
+}
+.studio-planner-side table.cards td.card-title {
+  order: -1;
+  font-size: 14px;
+  font-weight: 500;
+}
+.studio-planner-side table.cards td[data-label] {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.studio-planner-side table.cards td[data-label]::before {
+  content: attr(data-label);
+  flex: 0 0 6.5em;
+  color: var(--text-muted);
+}
+.studio-planner-side table.cards td .row-actions {
+  margin-top: 4px;
+}
 
+@media (max-width: 700px) {
   /* Breadcrumb: only the screen name. */
   .app-breadcrumb span {
     display: none;

@@ -98,6 +98,7 @@ describe.skipIf(!browser)("posts with several slides", () => {
       expect(await page.getByRole("button", { name: "↑ Up" }).count()).toBe(0);
 
       // Export refuses before the "Export anyway?" dialog: it could only fail on that slide.
+      await page.locator(".studio-export summary").click();
       await page.getByRole("button", { name: "Everything as ZIP" }).click();
       await page
         .locator("#notices")

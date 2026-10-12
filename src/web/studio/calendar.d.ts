@@ -18,3 +18,4 @@ export function choosePeriod(
 ): { from: string | null; to: string | null };
 export function defaultCount(from: string, to: string): number;
 export function workdayCount(from: string, to: string): number;
+export function agendaDays<R extends { sort: string }>(monday: string, rows: R[]): Array<{ date: string; rows: R[] }>;

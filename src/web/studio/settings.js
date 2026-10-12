@@ -5,6 +5,7 @@ import { confirmDialog, el, notice } from "/ui.js";
 import { FORMATS, CHANNELS } from "/studio/formats.js";
 import { getAiMode } from "/studio/writing-help-ui.js";
 import { loadMedia } from "/studio/brand.js";
+import { chooseTheme, readTheme } from "/studio/theme.js";
 
 export async function show(container, ctx) {
   const [i, { media: mediaList }, ai] = await Promise.all([ctx.reloadSettings(), ctx.api("/api/media"), getAiMode()]);
@@ -204,6 +205,20 @@ export async function show(container, ctx) {
       ...children.filter(Boolean),
     ]);
 
+  const theme = readTheme();
+  const appearance = ["system", "light", "dark"].map((value) =>
+    el("label", { class: "studio-radio" }, [
+      el("input", {
+        type: "radio",
+        name: "appearance",
+        value,
+        ...(value === theme ? { checked: "" } : {}),
+        onchange: () => chooseTheme(value),
+      }),
+      el("span", { text: value[0].toUpperCase() + value.slice(1) }),
+    ]),
+  );
+
   container.replaceChildren(
     el("div", { class: "sheet" }, [
       row(
@@ -280,6 +295,12 @@ export async function show(container, ctx) {
         "An image that is still in a post (archived too) cannot be deleted here; remove it from there first.",
         [mediaHolder],
       ),
+      row("Appearance", "Light, dark, or the same as your computer. Kept in this browser.", [
+        el("fieldset", { class: "studio-choice" }, [
+          el("legend", { text: "Colour mode" }),
+          el("div", { class: "studio-choice-options" }, appearance),
+        ]),
+      ]),
     ]),
   );
 }

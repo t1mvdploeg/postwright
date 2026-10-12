@@ -1,14 +1,16 @@
 // Overview: the posts on the desk and a look at the week, then the rest at a glance: what has
-// been left behind, where a post relies on a fact that is no longer correct, the rhythm (last
+// been left behind, a quiet note on facts that are no longer correct, the rhythm (last
 // publication, empty weeks), the occasions coming up and the manual results.
 import { el, emptyState, icon, notice } from "/ui.js";
 import { localToday } from "/studio/recipe.js";
 import { daysAgo } from "/studio/calendar.js";
-import { template } from "/studio/templates.js";
-import { drawArtwork, postCard } from "/studio/post-cards.js";
+import { allTemplates, template } from "/studio/templates.js";
+import { format } from "/studio/formats.js";
+import { deskOf, factProblems } from "/studio/desk.js";
+import { dateTile, drawArtwork, postCard } from "/studio/post-cards.js";
 
 /** How many posts lie on the desk. */
-const DESK = 4;
+const DESK = 3;
 
 /** YYYY-MM-DD readable, without time: "6 Oct". */
 function readableDate(d) {
@@ -42,7 +44,7 @@ function weekOf(today) {
   });
 }
 
-/** The week panel: the days with a dot where something is scheduled, today and what comes. */
+/** The week panel: the days with a dot where something is scheduled, then what is planned. */
 function weekPanel(posts) {
   const today = localToday();
   const days = weekOf(today);
@@ -59,13 +61,35 @@ function weekPanel(posts) {
       el("span", {}, [el("strong", { text: p.title }), el("small", { text: "Scheduled" })]),
     ]);
   const todays = thisWeek.filter((p) => p.day === today);
-  const coming = scheduled.filter((p) => p.day > today).slice(0, 3);
+  // Today's posts have their own list above; "next" starts tomorrow.
+  const upcoming = scheduled.filter((p) => p.day > today);
+  const later = upcoming[0];
+  const weekday = (iso, style) => new Intl.DateTimeFormat("en-GB", style).format(new Date(iso));
+  const next = (p) =>
+    el("a", { class: "studio-next-item", href: `#editor/${p.id}` }, [
+      dateTile(p.scheduled),
+      el("span", {}, [
+        el("strong", { text: p.title }),
+        el("small", {
+          text: `${weekday(p.scheduled, { weekday: "long" })} · ${time(p.scheduled)} · ${format(p.formats[0])?.name ?? p.formats[0]}`,
+        }),
+      ]),
+    ]);
+  // Nothing from today to Sunday: say so kindly and point at the next post.
+  const breathing = el("div", { class: "studio-breathing" }, [
+    icon("calendar"),
+    el("h3", { text: "A little breathing room." }),
+    el("p", {
+      text: `No posts planned this week.${later ? ` Your next post is on ${weekday(later.scheduled, { weekday: "long", day: "numeric", month: "long" })}.` : ""}`,
+    }),
+    el("a", { class: "text-link", href: "#planning" }, ["Look at your plan ", icon("arrow")]),
+  ]);
   const first = new Date(`${days[0]}T12:00:00`);
   const last = new Date(`${days[6]}T12:00:00`);
   const range = `${first.getDate()}–${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(last)}`;
-  return el("aside", { class: "studio-week-panel", "aria-label": "This week" }, [
+  return el("aside", { class: "studio-week-panel", "aria-label": "The week ahead" }, [
     el("div", { class: "section-heading" }, [
-      el("div", {}, [el("h2", { text: "A look at your week" }), el("p", { class: "help-text", text: range })]),
+      el("div", {}, [el("h2", { text: "The week ahead" }), el("p", { class: "help-text", text: range })]),
       el("a", { class: "text-link", href: "#planning", "aria-label": "Open the planner" }, [icon("calendar")]),
     ]),
     el(
@@ -82,15 +106,18 @@ function weekPanel(posts) {
         ]),
       ),
     ),
-    el("p", { class: "studio-agenda-label", text: "Today" }),
     todays.length
-      ? el("div", {}, todays.map(item))
-      : el("p", { class: "help-text studio-agenda-empty", text: "Nothing goes out today." }),
-    el("p", { class: "studio-agenda-label", text: "Coming up" }),
-    coming.length
-      ? el("div", {}, coming.map(item))
-      : el("p", { class: "help-text studio-agenda-empty", text: "Nothing scheduled yet." }),
-    el("a", { class: "text-link", href: "#planning" }, ["Open planner ", icon("arrow")]),
+      ? el("div", {}, [el("p", { class: "studio-agenda-label", text: "Today" }), ...todays.map(item)])
+      : thisWeek.some((p) => p.day > today)
+        ? null
+        : breathing,
+    el("p", { class: "studio-agenda-label", text: "Next on the calendar" }),
+    upcoming.length
+      ? el("div", {}, upcoming.slice(0, 3).map(next))
+      : el("p", {
+          class: "help-text studio-agenda-empty",
+          text: todays.length ? "Nothing scheduled after today." : "Nothing scheduled yet.",
+        }),
   ]);
 }
 
@@ -103,7 +130,12 @@ function row(label, value, href) {
 }
 
 export async function show(container, ctx) {
-  const [o, { posts }] = await Promise.all([ctx.api("/api/overview"), ctx.api("/api/posts")]);
+  const [o, { posts }, { facts }, { snippets }] = await Promise.all([
+    ctx.api("/api/overview"),
+    ctx.api("/api/posts"),
+    ctx.api("/api/facts").catch(() => ({ facts: null })),
+    ctx.api("/api/snippets").catch(() => ({ snippets: [] })),
+  ]);
   if (!ctx.valid()) return undefined;
   const mb = o.media.bytes / (1024 * 1024);
   const today = localToday();
@@ -134,26 +166,29 @@ export async function show(container, ctx) {
   };
 
   // The desk: the posts worked on most recently, the archive left out.
-  const desk = posts
-    .filter((p) => p.status !== "archived")
-    .sort((a, b) => b.updated.localeCompare(a.updated))
-    .slice(0, DESK);
+  const desk = deskOf(posts, DESK);
+  const problems = facts ? factProblems(posts, facts, today) : new Set();
   const deskGrid = el(
     "div",
     { class: "studio-post-grid studio-desk" },
-    desk.map((p) => postCard(p)),
+    desk.map((p) =>
+      postCard(p, {
+        meta: `${template(p.template)?.name ?? p.template} · ${format(p.formats[0])?.name ?? p.formats[0]}`,
+        detail: p.status === "scheduled" && p.scheduled ? readableDate(localToday(new Date(p.scheduled))) : null,
+        warning: problems.has(p.id)
+          ? el("a", { class: "studio-fact-warning", href: `#editor/${p.id}` }, [
+              icon("attention"),
+              "Review linked fact",
+            ])
+          : null,
+      }),
+    ),
   );
+  const offDesk = [...problems].filter((id) => !desk.some((p) => p.id === id)).length;
+  const count = (key) => posts.filter((p) => p.status === key).length;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
   const signals = [
-    o.withUnusableFact
-      ? el("div", { class: "studio-signal", role: "status" }, [
-          el("b", {
-            text: `${o.withUnusableFact} post${o.withUnusableFact === 1 ? "" : "s"} ${o.withUnusableFact === 1 ? "relies" : "rely"} on a fact that has expired, been withdrawn or been deleted.`,
-          }),
-          " ",
-          el("a", { href: "#library/fact", text: "See which" }),
-        ])
-      : null,
     o.overdue
       ? el("div", { class: "studio-signal", role: "status" }, [
           el("b", {
@@ -167,6 +202,23 @@ export async function show(container, ctx) {
 
   container.replaceChildren(
     ...signals,
+    el("div", { class: "studio-overview-top" }, [
+      el("span", {
+        text: new Intl.DateTimeFormat("en-GB", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(new Date(`${today}T12:00:00`)),
+      }),
+      el("span", {}, [
+        el("b", { text: String(count("draft")) }),
+        count("draft") === 1 ? " draft" : " drafts",
+        el("span", { class: "studio-separator", "aria-hidden": "true", text: "/" }),
+        el("b", { text: String(count("scheduled")) }),
+        " scheduled",
+      ]),
+    ]),
     el("section", { class: "studio-dashboard" }, [
       el("div", {}, [
         el("div", { class: "section-heading" }, [
@@ -174,33 +226,23 @@ export async function show(container, ctx) {
           el("a", { class: "text-link", href: "#library" }, ["View all posts ", icon("arrow")]),
         ]),
         desk.length ? deskGrid : emptyDesk(),
+        offDesk
+          ? el("p", { class: "help-text studio-desk-note" }, [
+              `${plural(offDesk, "more post relies", "more posts rely")} on a fact that is no longer usable. `,
+              el("a", { href: "#library/fact", text: "See which" }),
+            ])
+          : null,
       ]),
       weekPanel(posts),
     ]),
-    el("section", { class: "studio-glance", "aria-label": "At a glance" }, [
+    el("section", { class: "studio-foot", "aria-label": "Brand and results" }, [
       el("div", {}, [
-        el("h2", { text: "Rhythm" }),
-        row("Scheduled, next 7 days", o.scheduledThisWeek, "#planning"),
-        row("Drafts", o.drafts, "#library/draft"),
-        row("Published, 30 days", o.published30, "#library/published"),
-        row("Last publication", agoText(o.lastPublished), "#library/published"),
-        row("Empty weeks of the next four", o.emptyWeeks.length, "#planning"),
-        row("Open ideas", o.openIdeas, "#planning"),
-      ]),
-      el("div", {}, [
-        el("h2", { text: "Moments coming up" }),
-        o.moments.length
-          ? el(
-              "div",
-              {},
-              o.moments.map((m) =>
-                el("div", { class: "status-row" }, [
-                  el("span", { text: m.title }),
-                  el("b", { text: readableDate(m.date) }),
-                ]),
-              ),
-            )
-          : el("p", { class: "help-text", text: "No moments in the next 60 days." }),
+        el("h2", { text: "Built on your brand" }),
+        row("Templates", allTemplates().length, "#templates"),
+        row("Facts to review", (facts ?? []).filter((f) => f.status === "draft").length, "#facts"),
+        row("Snippets", snippets.length, "#snippets"),
+        row(`Uploaded images · ${o.media.count}`, `${mb.toFixed(1)} MB`, "#settings"),
+        mb > 100 ? el("p", { class: "help-text", text: "Clear out old uploaded images under Settings." }) : null,
       ]),
       el("div", {}, [
         el("h2", { text: "Results, past six months" }),
@@ -231,16 +273,39 @@ export async function show(container, ctx) {
                 ),
               ]),
             ])
-          : el("p", { class: "help-text", text: "Fill in the figures on a published post; they appear here." }),
-        row(`Uploaded images · ${o.media.count}`, `${mb.toFixed(1)} MB`, "#settings"),
-        mb > 100 ? el("p", { class: "help-text", text: "Clear out old uploaded images under Settings." }) : null,
+          : el("p", {
+              class: "help-text",
+              text: "Once a post is published, add its figures in the studio. Your results will appear here.",
+            }),
+      ]),
+    ]),
+    el("section", { class: "studio-glance", "aria-label": "At a glance" }, [
+      el("div", {}, [
+        el("h2", { text: "Rhythm" }),
+        row("Scheduled, next 7 days", o.scheduledThisWeek, "#planning"),
+        row("Drafts", o.drafts, "#library/draft"),
+        row("Published, 30 days", o.published30, "#library/published"),
+        row("Last publication", agoText(o.lastPublished), "#library/published"),
+        row("Empty weeks of the next four", o.emptyWeeks.length, "#planning"),
+        row("Open ideas", o.openIdeas, "#planning"),
+      ]),
+      el("div", {}, [
+        el("h2", { text: "Moments coming up" }),
+        o.moments.length
+          ? el(
+              "div",
+              {},
+              o.moments.map((m) =>
+                el("div", { class: "status-row" }, [
+                  el("span", { text: m.title }),
+                  el("b", { text: readableDate(m.date) }),
+                ]),
+              ),
+            )
+          : el("p", { class: "help-text", text: "No moments in the next 60 days." }),
       ]),
     ]),
   );
   const observer = drawArtwork(deskGrid, desk, ctx.brand);
-  // The date stays in the heading line, as on a desk calendar.
-  ctx.setLede(
-    `${new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${today}T12:00:00`))} · Your posts on the desk, and the week ahead.`,
-  );
   return { leave: () => observer.disconnect() };
 }

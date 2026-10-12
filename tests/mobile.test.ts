@@ -199,6 +199,8 @@ describe.skipIf(!browser)("the editor on a phone and a tablet", () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(375);
       await page.keyboard.press("End");
       expect(await page.locator("#editor-tab-caption").getAttribute("aria-selected")).toBe("true");
+      // The alt text sits in a disclosure under the caption.
+      await page.locator(".studio-caption-extra summary").click();
       expect(await page.locator("#field-altText").isVisible()).toBe(true);
     } finally {
       await page.close();
@@ -252,6 +254,76 @@ describe.skipIf(!browser)("the editor on a phone and a tablet", () => {
     }
   });
 
+  it('"Go to" opens a closed disclosure and puts focus inside it (1440)', async () => {
+    const posts = (await (await fetch(`${studio.base}/api/posts`)).json()).posts;
+    const statistic = posts.find((p: { template: string }) => p.template === "statistic");
+    const page = await open(1440, 900, `editor/${statistic.id}`);
+    try {
+      // Without alt text the check points into the disclosure under the caption.
+      await page.locator(".studio-caption-extra summary").click();
+      await page.fill("#field-altText", "");
+      const go = page.locator('.studio-go-to[aria-label^="Go to: No alt text yet"]');
+      await go.waitFor();
+      await page.evaluate(() => document.querySelector(".studio-caption-extra")!.removeAttribute("open"));
+      await go.click();
+      expect(await page.locator(".studio-caption-extra").getAttribute("open")).not.toBeNull();
+      expect(await page.evaluate(() => document.activeElement?.closest(".studio-caption-extra") !== null)).toBe(true);
+    } finally {
+      await page.close();
+    }
+  });
+
+  for (const [width, height] of [
+    [375, 812],
+    [1100, 700],
+    [1440, 900],
+  ])
+    it(`shows the actions under "More" when it is opened (${width})`, async () => {
+      const page = await open(width, height, `editor/${postId}`);
+      try {
+        if (width < 700) await page.click("#editor-tab-caption");
+        const menu = page.locator("#editor-panel-caption .post-menu");
+        expect(await menu.locator("button", { hasText: "Duplicate" }).isVisible()).toBe(false);
+        await menu.locator("summary").click();
+        // Visible means painted: the button itself is what sits at its own centre. The last
+        // button counts most, because the fixed Save bar can cover it.
+        const last = menu.locator("button").last();
+        const onTop = await last.evaluate((b) => {
+          b.scrollIntoView({ block: "center" });
+          const r = b.getBoundingClientRect();
+          return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === b;
+        });
+        expect(onTop).toBe(true);
+      } finally {
+        await page.close();
+      }
+    });
+
+  it('"Insert link" without a link opens the disclosure and focuses the field (1440)', async () => {
+    const page = await open(1440, 900, `editor/${postId}`);
+    try {
+      await page.locator(".studio-caption-extra summary").click();
+      await page.fill("#field-link", "");
+      await page.evaluate(() => document.querySelector(".studio-caption-extra")!.removeAttribute("open"));
+      await page.getByRole("button", { name: "Insert link" }).click();
+      expect(await page.locator(".studio-caption-extra").getAttribute("open")).not.toBeNull();
+      expect(await page.evaluate(() => document.activeElement?.id)).toBe("field-link");
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("a long title does not push the phone sideways (375)", async () => {
+    const page = await open(375, 812, `editor/${postId}`);
+    try {
+      await page.fill("#field-title", "Long title ".repeat(11).slice(0, 120));
+      const { scrollWidth, width } = await sideways(page);
+      expect(scrollWidth).toBeLessThanOrEqual(width);
+    } finally {
+      await page.close();
+    }
+  });
+
   it("still saves with Ctrl+S on a phone", async () => {
     const page = await open(375, 812, `editor/${postId}`);
     try {
@@ -263,6 +335,55 @@ describe.skipIf(!browser)("the editor on a phone and a tablet", () => {
       );
       const saved = await (await fetch(`${studio.base}/api/posts/${postId}`)).json();
       expect(saved.title).toBe("Saved with the keyboard");
+    } finally {
+      await page.close();
+    }
+  });
+});
+
+describe.skipIf(!browser)("the planner", () => {
+  it("scrolls the month table inside its box, not the page (375)", async () => {
+    const page = await open(375, 812, "planning");
+    try {
+      await page.getByRole("button", { name: "Month" }).click();
+      await page.locator("table.studio-month").waitFor();
+      const { scrollWidth, width } = await sideways(page);
+      expect(scrollWidth).toBeLessThanOrEqual(width);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("shows a date on the items of the Overdue block (1440)", async () => {
+    const page = await browser!.newPage({ viewport: { width: 1440, height: 900 } });
+    try {
+      // The sample content schedules a post soon; ten days later it is overdue.
+      await page.clock.setFixedTime(Date.now() + 10 * 86400000);
+      await page.goto(`${studio.base}/#planning`);
+      const overdue = page.locator(".studio-plan-block", { hasText: "Overdue" });
+      await overdue.waitFor();
+      const time = await overdue.locator(".studio-plan-time").first().innerText();
+      expect(time).toMatch(/\d{4}|\d{1,2} \w+/);
+      expect(time.length).toBeGreaterThan(5);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it("keeps every campaign action inside the side column (1440)", async () => {
+    const json = { "content-type": "application/json" };
+    const made = await fetch(`${studio.base}/api/campaigns`, {
+      method: "POST",
+      headers: json,
+      body: JSON.stringify({ name: "Wide actions", utmCampaign: "wide-actions", from: "2026-10-01", to: "2026-12-31" }),
+    });
+    expect(made.status).toBe(201);
+    const page = await open(1440, 900, "planning");
+    try {
+      const side = (await page.locator(".studio-planner-side").boundingBox())!;
+      const box = (await page.locator(".studio-planner-side table.cards button").last().boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(side.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(side.x + side.width);
     } finally {
       await page.close();
     }
