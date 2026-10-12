@@ -5,3 +5,5 @@ node_modules
 .claude
 
 /.superdesign/
+/build
+/release

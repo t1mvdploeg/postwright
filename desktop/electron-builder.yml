@@ -1,0 +1,18 @@
+appId: io.github.t1mvdploeg.postwright
+productName: Postwright
+# Unpacked files: the server reads its web folder from disk next to itself.
+asar: false
+directories:
+  output: release
+files:
+  - build/**
+  - package.json
+mac:
+  icon: desktop/icon.png
+  category: public.app-category.productivity
+  # No developer certificate: an ad-hoc signature, so Apple Silicon does not call the program damaged.
+  identity: "-"
+  artifactName: Postwright-${version}-mac-apple-silicon.${ext}
+  target:
+    - target: dmg
+      arch: arm64

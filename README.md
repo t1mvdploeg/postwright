@@ -21,6 +21,14 @@
 
 Postwright turns a brand into templates. You fill in the words; layout, colours, fonts and logo follow. Before a post can be scheduled, a brand check reads it, down to whether every number in it is backed by a fact with a source. No account, nothing to host.
 
+## Download
+
+On a Mac with Apple Silicon you can skip the setup: download the `.dmg` from the [latest release](https://github.com/t1mvdploeg/postwright/releases/latest), open it and drag Postwright to Applications. Your work is saved in `~/Library/Application Support/postwright/data`.
+
+The program has no Apple developer signature, so macOS stops it the first time. Open it once, close the warning, then choose **Open Anyway** under **System Settings → Privacy & Security**.
+
+The program gives sample answers for the AI features. To use your own API key, run the local version below.
+
 ## Quick start
 
 You need Node 22.2 or later.
@@ -73,6 +81,7 @@ The browser does the drawing. A template turns fields into HTML and CSS; the pre
 
 ```bash
 npm test            # unit tests, a leak check on every tracked file, and a phone-width check in Chrome
+npm run test:desktop   # the real desktop program; opens a window
 npm run typecheck
 npm run format:check
 ```
@@ -84,6 +93,7 @@ The design is described in [DESIGN.md](DESIGN.md).
 - It does not post for you: you export and upload, and the planner shows what is due.
 - No accounts, no team features, no hosting. It is a tool for one computer.
 - Export is tested in Chrome. Older Safari versions refuse to export a canvas with an SVG `foreignObject`; you get a message instead.
+- The download is for Apple Silicon Macs. On Windows, Linux and Intel Macs, use the local version.
 
 ## Licence
 

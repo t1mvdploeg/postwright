@@ -3,17 +3,36 @@
   "version": "0.1.0",
   "description": "Make on-brand social posts from templates, with planning and AI writing help.",
   "type": "module",
+  "main": "build/desktop/main.js",
   "license": "MIT",
-  "engines": { "node": ">=22.2" },
+  "engines": {
+    "node": ">=22.2"
+  },
   "scripts": {
     "start": "node --import tsx src/server/start.ts",
+    "desktop": "node desktop/build.mjs && electron .",
+    "desktop:pack": "node desktop/build.mjs && electron-builder --config desktop/electron-builder.yml --mac --arm64 --publish never",
     "test": "vitest run",
+    "test:desktop": "vitest run --config desktop/vitest.config.ts",
     "brand:check": "node --import tsx src/server/brand-check-cli.ts",
     "template:check": "node --import tsx src/server/template-check-cli.ts",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write src tests",
-    "format:check": "prettier --check src tests"
+    "format": "prettier --write src tests desktop",
+    "format:check": "prettier --check src tests desktop"
   },
-  "dependencies": { "@anthropic-ai/sdk": "^0.124.0", "tsx": "^4.19.0", "zod": "^4.5.4" },
-  "devDependencies": { "@types/node": "^22.20.4", "fflate": "^0.8.3", "playwright-core": "^1.63.0", "prettier": "^3.0.0", "typescript": "^5.9.0", "vitest": "^3.0.0" }
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
+    "tsx": "^4.19.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "fflate": "^0.8.3",
+    "playwright-core": "^1.63.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.0.0"
+  }
 }

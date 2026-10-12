@@ -1,0 +1,42 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:desktop
+      - run: npm run desktop:pack
+      - run: POSTWRIGHT_APP=release/mac-arm64/Postwright.app/Contents/MacOS/Postwright npm run test:desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postwright-mac-apple-silicon
+          path: release/*.dmg
+          if-no-files-found: error
+  # The only job that may write. It runs no code from the repository: it attaches the built file.
+  draft:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: mac
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: postwright-mac-apple-silicon
+          path: release
+      - run: gh release create "$GITHUB_REF_NAME" release/*.dmg --repo "$GITHUB_REPOSITORY" --draft --title "Postwright $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

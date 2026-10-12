@@ -18,7 +18,7 @@ A new folder `desktop/` holds one small Electron main script. On start it:
 
 1. Takes the single-instance lock. A second launch focuses the existing window and exits.
 2. Picks the data folder: `POSTWRIGHT_DATA_DIR` when set, otherwise `data` inside Electron's per-user folder (`app.getPath("userData")`). It never writes next to the program.
-3. Calls the existing `prepareData`, `createApp` and `startServer` with port 0, so the system picks a free port. The server already binds `127.0.0.1` only.
+3. Calls the existing `prepareData`, `createApp` and `startServer` on a fixed port (48173), because the studio remembers the theme and the chosen project per address. If that port is taken, it uses port 0 and the system picks a free one. The server already binds `127.0.0.1` only.
 4. Opens one window on the URL `startServer` returns.
 
 When the last window closes, the script calls the server's `close()` and quits, on macOS as well.
@@ -31,6 +31,7 @@ If the server cannot start, the script shows the error in a dialog and quits.
 - Navigation stays on the server's own origin. Any other `http(s)` link opens in the system browser; anything else is refused.
 - Export keeps using the browser download the studio already triggers. Electron answers it with its save dialog.
 - The default application menu stays, so copy, paste and undo work.
+- Closing the window or quitting with unsaved changes in a post asks first: Leave or Stay. A browser asks this by itself; Electron does not.
 - The window background is the studio's paper colour, so there is no white flash on start.
 
 ## Build
@@ -58,7 +59,9 @@ The rule for links is a small function with unit tests in the normal suite. One 
 - exporting a post saves a PNG;
 - a link to another site does not open inside the window;
 - a second launch does not open a second window;
+- closing the window with unsaved changes asks first, and Stay keeps it open;
 - closing the window stops the server and the program;
+- a second start comes back on the same address;
 - no studio window appears when the data folder cannot be used.
 
 This test opens a real window, so it has its own script (`npm run test:desktop`) and is not part of `npm test`. The release workflow runs it, also against the packed program. The existing suite, type check and format check must keep passing.
