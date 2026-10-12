@@ -1,0 +1,1027 @@
+<!doctype html>
+<!-- impeccable-disable overused-font: The standalone brief permits the local Inter font and retains Postwright's identity. -->
+<!-- impeccable-disable cramped-padding: Artwork uses explicit 7cqw insets; responsive zero-padding states also remove their borders. Scoped triage is in .impeccable/config.json. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="A standalone interface study for Postwright: Overview, Editor and Planner."
+    />
+    <title>Overview · Postwright</title>
+    <link rel="icon" href="assets/mark-light.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="studio.css" />
+    <script src="studio.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <svg
+      class="icon-definitions"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <symbol id="i-grid" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24">
+        <path d="m15 4 5 5M4 20l5-1L20 8a2 2 0 0 0-5-5L4 14z" />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M7 3v4m10-4v4M3 10h18m-12 5h6" />
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24">
+        <path d="M4 12h15m-6-6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24">
+        <path d="m8 4 8 8-8 8" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4 10-10" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v6m0 3v1" />
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24">
+        <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />
+      </symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24">
+        <path d="m3 8 9-5 9 5-9 5zM3 12l9 5 9-5M3 16l9 5 9-5" />
+      </symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24">
+        <path
+          d="M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-4 2 2 0 0 1 1-4h3a3 3 0 0 0 3-3c0-4-4-7-9-7Z"
+        />
+        <path d="M7 9h.01M11 6h.01M16 8h.01M6 14h.01" />
+      </symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24">
+        <path d="m12 3 8 4v5c0 5-8 9-8 9s-8-4-8-9V7zM8 12l3 3 5-6" />
+      </symbol>
+      <symbol id="i-text" viewBox="0 0 24 24">
+        <path d="M4 5h16M4 10h16M4 15h11M4 20h7" />
+      </symbol>
+      <symbol id="i-local" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="13" rx="2" />
+        <path d="M8 21h8m-4-4v4" />
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+    </svg>
+
+    <div class="studio-shell">
+      <aside class="sidebar" aria-label="Studio sidebar">
+        <a class="brand" href="#overview" aria-label="Postwright overview">
+          <img
+            class="logo-light"
+            src="assets/logo-light.svg"
+            alt="Postwright"
+            width="158"
+            height="40"
+          />
+          <img
+            class="logo-dark"
+            src="assets/logo-dark.svg"
+            alt="Postwright"
+            width="158"
+            height="40"
+          />
+        </a>
+        <div class="project-control">
+          <span>Project</span><strong>Postwright</strong>
+        </div>
+        <nav class="primary-nav" aria-label="Workspace">
+          <a href="#overview" data-screen="overview" aria-current="page"
+            ><svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg
+            >Overview</a
+          >
+          <a href="#editor" data-screen="editor"
+            ><svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg
+            >Editor</a
+          >
+          <a href="#planner" data-screen="planner"
+            ><svg class="icon" aria-hidden="true">
+              <use href="#i-calendar" /></svg
+            >Planner<span class="nav-count">1</span></a
+          >
+        </nav>
+        <div class="foundation">
+          <p class="nav-label">Your foundation</p>
+          <ul aria-label="Foundation screens outside this mockup">
+            <li>
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-palette" /></svg
+              ><span>Brand kit</span>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#i-layers" /></svg
+              ><span>Templates</span><span class="nav-count">9</span>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#i-shield" /></svg
+              ><span>Fact bank</span>
+            </li>
+            <li>
+              <svg class="icon" aria-hidden="true"><use href="#i-text" /></svg
+              ><span>Snippets</span>
+            </li>
+          </ul>
+        </div>
+        <div class="sidebar-foot">
+          <span class="local-label"
+            ><svg class="icon" aria-hidden="true"><use href="#i-local" /></svg
+            >Made on your computer.</span
+          >
+          <p>Standalone mockup · Sample content</p>
+          <a href="REPORT.md">Design notes &amp; verification</a>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar">
+          <a
+            class="mobile-brand"
+            href="#overview"
+            aria-label="Postwright overview"
+            ><img
+              src="assets/mark-light.svg"
+              alt=""
+              width="30"
+              height="30"
+            /><span>Postwright</span></a
+          >
+          <div class="breadcrumb">
+            <span>Workspace</span><span aria-hidden="true">/</span
+            ><strong id="current-screen">Overview</strong>
+          </div>
+          <label class="appearance"
+            ><span class="sr-only">Colour mode</span
+            ><select id="appearance">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select></label
+          >
+        </header>
+
+        <main id="main" tabindex="-1">
+          <section
+            id="overview"
+            class="screen"
+            aria-labelledby="overview-title"
+          >
+            <header class="screen-heading">
+              <div>
+                <h1 id="overview-title" tabindex="-1">Overview</h1>
+                <p>
+                  Your posts on the desk. A little room for what comes next.
+                </p>
+              </div>
+              <a class="button primary" href="#editor"
+                >Open editor<svg class="icon" aria-hidden="true">
+                  <use href="#i-arrow" /></svg
+              ></a>
+            </header>
+            <div class="desk-context">
+              <span>Monday, 12 October 2026</span
+              ><span
+                ><b>2</b> drafts
+                <span class="separator" aria-hidden="true">/</span>
+                <b>1</b> scheduled</span
+              >
+            </div>
+            <div class="overview-grid">
+              <section class="desk" aria-labelledby="desk-title">
+                <div class="section-heading">
+                  <h2 id="desk-title">On your creative desk</h2>
+                  <span class="quiet">3 posts</span>
+                </div>
+                <div class="post-grid">
+                  <article class="post-card">
+                    <div
+                      class="artwork statement-art"
+                      role="img"
+                      aria-label="Statement artwork: Your posts. Your computer. Postwright runs locally. There is no account."
+                    >
+                      <div class="art-watermark" aria-hidden="true">W</div>
+                      <img
+                        class="art-logo"
+                        src="assets/on-accent.svg"
+                        alt=""
+                        width="1003"
+                        height="256"
+                      />
+                      <div class="statement-body">
+                        <p class="art-headline">
+                          Your posts.<br /><em>Your computer.</em>
+                        </p>
+                        <p class="art-description">
+                          Postwright runs locally. There is no account.
+                        </p>
+                      </div>
+                      <div class="art-foot">
+                        <span>Try it yourself</span><span>Postwright</span>
+                      </div>
+                    </div>
+                    <div class="post-info">
+                      <h3>No account needed</h3>
+                      <p>
+                        Statement <span aria-hidden="true">·</span> LinkedIn
+                        square
+                      </p>
+                      <span class="status"
+                        ><span class="status-dot" aria-hidden="true"></span
+                        >Draft</span
+                      >
+                    </div>
+                  </article>
+                  <article class="post-card">
+                    <div
+                      class="artwork statistic-art"
+                      role="img"
+                      aria-label="Statistic artwork: 9 post templates. Ready to use, out of the box. Source: README."
+                    >
+                      <div class="art-watermark" aria-hidden="true">W</div>
+                      <img
+                        class="art-logo"
+                        src="assets/on-ink.svg"
+                        alt=""
+                        width="1003"
+                        height="256"
+                      />
+                      <div class="statistic-body">
+                        <p class="art-number">9</p>
+                        <p class="art-unit">post templates</p>
+                        <p class="art-headline">
+                          Ready to use,<br /><em>out of the box.</em>
+                        </p>
+                      </div>
+                      <div class="art-foot">
+                        <span>Source: README</span><span>Postwright</span>
+                      </div>
+                    </div>
+                    <div class="post-info">
+                      <h3>Templates out of the box</h3>
+                      <p>
+                        Statistic <span aria-hidden="true">·</span> LinkedIn
+                        square
+                      </p>
+                      <span class="status"
+                        ><span class="status-dot" aria-hidden="true"></span
+                        >Draft</span
+                      >
+                    </div>
+                    <details class="fact-issue">
+                      <summary>
+                        <svg class="icon" aria-hidden="true">
+                          <use href="#i-alert" /></svg
+                        >Review linked fact<svg
+                          class="icon chevron"
+                          aria-hidden="true"
+                        >
+                          <use href="#i-down" />
+                        </svg>
+                      </summary>
+                      <div>
+                        <p>
+                          The “9 post templates” claim is linked to a draft
+                          fact.
+                        </p>
+                        <dl>
+                          <dt>Source</dt>
+                          <dd>README.md</dd>
+                          <dt>Next step</dt>
+                          <dd>
+                            Review and activate it in the Fact bank before
+                            scheduling.
+                          </dd>
+                        </dl>
+                      </div>
+                    </details>
+                  </article>
+                  <article class="post-card">
+                    <a
+                      class="artwork-link"
+                      href="#editor"
+                      aria-label="Edit From idea to scheduled post"
+                    >
+                      <div
+                        class="artwork steps-art"
+                        role="img"
+                        aria-label="Steps artwork: From idea to scheduled post. Pick a template, write your post, check against your brand kit."
+                      >
+                        <img
+                          class="art-logo"
+                          src="assets/on-ink.svg"
+                          alt=""
+                          width="1003"
+                          height="256"
+                        />
+                        <div class="steps-body">
+                          <p class="art-headline">
+                            From idea to<br /><em>scheduled post.</em>
+                          </p>
+                          <ol class="art-steps">
+                            <li>
+                              <div>
+                                <b>Pick a template</b>
+                                <p>
+                                  Start from a statement, a statistic or steps.
+                                </p>
+                              </div>
+                            </li>
+                            <li>
+                              <div>
+                                <b>Write your post</b>
+                                <p>
+                                  Fill in the fields and add a caption per
+                                  channel.
+                                </p>
+                              </div>
+                            </li>
+                            <li>
+                              <div>
+                                <b>Check against your brand kit</b>
+                                <p>
+                                  The brand check runs before you can schedule.
+                                </p>
+                              </div>
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    </a>
+                    <div class="post-info">
+                      <h3>
+                        <a href="#editor"
+                          >From idea to scheduled post<svg
+                            class="icon"
+                            aria-hidden="true"
+                          >
+                            <use href="#i-arrow" /></svg
+                        ></a>
+                      </h3>
+                      <p>
+                        Steps <span aria-hidden="true">·</span> LinkedIn square
+                      </p>
+                      <span class="status scheduled"
+                        ><svg class="icon" aria-hidden="true">
+                          <use href="#i-clock" /></svg
+                        >Scheduled · 19 Oct</span
+                      >
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="week-panel" aria-labelledby="week-title">
+                <div class="section-heading">
+                  <h2 id="week-title">The week ahead</h2>
+                  <svg class="icon quiet" aria-hidden="true">
+                    <use href="#i-calendar" />
+                  </svg>
+                </div>
+                <p class="week-range">12–18 October</p>
+                <ol class="mini-week" aria-label="Week of 12 October">
+                  <li class="today" aria-current="date">
+                    <span>M</span><b>12</b>
+                  </li>
+                  <li><span>T</span><b>13</b></li>
+                  <li><span>W</span><b>14</b></li>
+                  <li><span>T</span><b>15</b></li>
+                  <li><span>F</span><b>16</b></li>
+                  <li><span>S</span><b>17</b></li>
+                  <li><span>S</span><b>18</b></li>
+                </ol>
+                <div class="week-empty">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-calendar" />
+                  </svg>
+                  <h3>A little breathing room.</h3>
+                  <p>
+                    No posts planned this week. Your next post is on Monday, 19
+                    October.
+                  </p>
+                  <a class="text-link" href="#planner"
+                    >Look at your plan<svg class="icon" aria-hidden="true">
+                      <use href="#i-arrow" /></svg
+                  ></a>
+                </div>
+                <div class="upcoming">
+                  <span class="small-label">Next on the calendar</span
+                  ><a href="#editor"
+                    ><time datetime="2026-10-19T09:00"
+                      ><b>19</b><span>OCT</span></time
+                    >
+                    <div>
+                      <h3>From idea to scheduled post</h3>
+                      <p>Monday · 09:00 · LinkedIn</p>
+                    </div></a
+                  >
+                </div>
+              </aside>
+            </div>
+
+            <div class="overview-foot">
+              <section class="foundation-summary" aria-labelledby="ready-title">
+                <h2 id="ready-title">Built on your brand</h2>
+                <p>One identity. Plenty of starting points.</p>
+                <ul>
+                  <li>
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-layers" /></svg
+                    ><span><b>9</b> templates</span>
+                  </li>
+                  <li>
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-shield" /></svg
+                    ><span><b>5</b> facts to review</span>
+                  </li>
+                  <li>
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-text" /></svg
+                    ><span><b>2</b> reusable snippets</span>
+                  </li>
+                </ul>
+              </section>
+              <section class="results-empty" aria-labelledby="results-title">
+                <h2 id="results-title">Make first. Measure after.</h2>
+                <p>
+                  Once a post is published, add its figures in the studio. Your
+                  results will appear here.
+                </p>
+                <details>
+                  <summary>
+                    How results work<svg class="icon" aria-hidden="true">
+                      <use href="#i-down" />
+                    </svg>
+                  </summary>
+                  <p>
+                    Export your post, upload it yourself, then mark it as
+                    published. Add impressions, comments and clicks manually;
+                    Postwright does not fetch live results.
+                  </p>
+                </details>
+              </section>
+            </div>
+          </section>
+
+          <section
+            id="editor"
+            class="screen"
+            aria-labelledby="editor-title"
+            hidden
+          >
+            <header class="editor-heading">
+              <div>
+                <a class="back-link" href="#overview"
+                  ><svg class="icon" aria-hidden="true">
+                    <use href="#i-arrow" /></svg
+                  >Back to your desk</a
+                >
+                <h1 id="editor-title" tabindex="-1">
+                  From idea to scheduled post
+                </h1>
+                <p>
+                  <span class="status scheduled"
+                    ><svg class="icon" aria-hidden="true">
+                      <use href="#i-clock" /></svg
+                    >Scheduled</span
+                  ><span>Steps · 1 slide · LinkedIn</span>
+                </p>
+              </div>
+              <div class="save-action">
+                <span
+                  ><svg class="icon" aria-hidden="true">
+                    <use href="#i-check" /></svg
+                  >Saved</span
+                ><button
+                  class="button primary"
+                  type="button"
+                  disabled
+                  title="Saving is not connected in this static mockup"
+                >
+                  Save post
+                </button>
+              </div>
+            </header>
+
+            <div class="editor-tabs" role="tablist" aria-label="Editor panels">
+              <button
+                type="button"
+                role="tab"
+                id="tab-content"
+                aria-controls="panel-content"
+                aria-selected="false"
+                tabindex="-1"
+                data-panel="content"
+              >
+                Content</button
+              ><button
+                type="button"
+                role="tab"
+                id="tab-preview"
+                aria-controls="panel-preview"
+                aria-selected="true"
+                data-panel="preview"
+              >
+                Preview</button
+              ><button
+                type="button"
+                role="tab"
+                id="tab-review"
+                aria-controls="panel-review"
+                aria-selected="false"
+                tabindex="-1"
+                data-panel="review"
+              >
+                Review<svg class="icon" aria-hidden="true">
+                  <use href="#i-check" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="editor-grid">
+              <section
+                id="panel-content"
+                class="editor-panel content-panel"
+                aria-labelledby="content-heading"
+              >
+                <div class="section-heading">
+                  <h2 id="content-heading">Content</h2>
+                  <span class="quiet">Slide 1 of 1</span>
+                </div>
+                <div class="template-control">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-layers" />
+                  </svg>
+                  <div>
+                    <span class="small-label">Template</span
+                    ><strong>Steps</strong>
+                  </div>
+                  <span class="quiet">Single image</span>
+                </div>
+                <div class="field">
+                  <label for="headline"
+                    >Headline<span class="field-count">30 / 50</span></label
+                  ><textarea id="headline" rows="2" readonly>
+From idea to *scheduled post.*</textarea>
+                  <p class="field-help">
+                    Asterisks give one phrase the brand accent.
+                  </p>
+                </div>
+                <fieldset class="step-fields">
+                  <legend><span>1</span>Pick a template</legend>
+                  <div class="field">
+                    <label for="step-1">Step title</label
+                    ><input id="step-1" value="Pick a template" readonly />
+                  </div>
+                  <div class="field">
+                    <label for="step-1-text"
+                      >Explanation<span class="optional">Optional</span></label
+                    ><textarea id="step-1-text" rows="2" readonly>
+Start from a statement, a statistic or steps.</textarea>
+                  </div>
+                </fieldset>
+                <fieldset class="step-fields">
+                  <legend><span>2</span>Write your post</legend>
+                  <div class="field">
+                    <label for="step-2">Step title</label
+                    ><input id="step-2" value="Write your post" readonly />
+                  </div>
+                  <div class="field">
+                    <label for="step-2-text"
+                      >Explanation<span class="optional">Optional</span></label
+                    ><textarea id="step-2-text" rows="2" readonly>
+Fill in the fields and add a caption per channel.</textarea>
+                  </div>
+                </fieldset>
+                <fieldset class="step-fields">
+                  <legend><span>3</span>Check against your brand kit</legend>
+                  <div class="field">
+                    <label for="step-3">Step title</label
+                    ><input
+                      id="step-3"
+                      value="Check against your brand kit"
+                      readonly
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="step-3-text"
+                      >Explanation<span class="optional">Optional</span></label
+                    ><textarea id="step-3-text" rows="2" readonly>
+The brand check runs before you can schedule.</textarea>
+                  </div>
+                </fieldset>
+                <details class="optional-fields">
+                  <summary>
+                    Post details<svg class="icon" aria-hidden="true">
+                      <use href="#i-down" />
+                    </svg>
+                  </summary>
+                  <div class="field">
+                    <label for="post-title">Title in the studio</label
+                    ><input
+                      id="post-title"
+                      value="Example: from idea to scheduled post"
+                      readonly
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="campaign">Campaign</label
+                    ><input id="campaign" value="No campaign" readonly />
+                  </div>
+                </details>
+              </section>
+
+              <section
+                id="panel-preview"
+                class="editor-panel preview-panel is-active"
+                aria-labelledby="preview-heading"
+              >
+                <div class="preview-toolbar">
+                  <h2 id="preview-heading">Artwork</h2>
+                  <span class="quiet">Export preview</span>
+                </div>
+                <div class="preview-canvas">
+                  <div
+                    class="artwork steps-art editor-art"
+                    role="img"
+                    aria-label="Export preview. From idea to scheduled post. Pick a template, write your post, check against your brand kit."
+                  >
+                    <img
+                      class="art-logo"
+                      src="assets/on-ink.svg"
+                      alt=""
+                      width="1003"
+                      height="256"
+                    />
+                    <div class="steps-body">
+                      <p class="art-headline">
+                        From idea to<br /><em>scheduled post.</em>
+                      </p>
+                      <ol class="art-steps">
+                        <li>
+                          <div>
+                            <b>Pick a template</b>
+                            <p>Start from a statement, a statistic or steps.</p>
+                          </div>
+                        </li>
+                        <li>
+                          <div>
+                            <b>Write your post</b>
+                            <p>
+                              Fill in the fields and add a caption per channel.
+                            </p>
+                          </div>
+                        </li>
+                        <li>
+                          <div>
+                            <b>Check against your brand kit</b>
+                            <p>The brand check runs before you can schedule.</p>
+                          </div>
+                        </li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+                <div class="preview-meta">
+                  <span>LinkedIn square</span><span>1200 × 1200 px</span>
+                </div>
+                <details class="export-options">
+                  <summary class="button secondary">
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-download" /></svg
+                    >Export options<svg class="icon chevron" aria-hidden="true">
+                      <use href="#i-down" />
+                    </svg>
+                  </summary>
+                  <div>
+                    <p>Artwork and caption, ready for you to upload.</p>
+                    <div class="export-list">
+                      <button type="button" disabled>
+                        PNG image<span>This format</span></button
+                      ><button type="button" disabled>
+                        JPEG image<span>This format</span></button
+                      ><button type="button" disabled>
+                        ZIP bundle<span>Artwork + caption</span>
+                      </button>
+                    </div>
+                    <p class="field-help">
+                      Export is shown for design review only.
+                    </p>
+                  </div>
+                </details>
+                <p class="preview-note">
+                  Your brand stays the same in light and dark mode.
+                </p>
+              </section>
+
+              <section
+                id="panel-review"
+                class="editor-panel review-panel"
+                aria-labelledby="review-heading"
+              >
+                <section class="check-section">
+                  <div class="section-heading">
+                    <h2 id="review-heading">Brand check</h2>
+                    <span class="check-pass"
+                      ><svg class="icon" aria-hidden="true">
+                        <use href="#i-check" /></svg
+                      >Passed</span
+                    >
+                  </div>
+                  <p class="section-description">
+                    Ready for its place in the planner.
+                  </p>
+                  <ul class="check-list">
+                    <li>
+                      <svg class="icon" aria-hidden="true">
+                        <use href="#i-check" />
+                      </svg>
+                      <div>
+                        <b>Artwork fits</b
+                        ><span>Text fits within the template.</span>
+                      </div>
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true">
+                        <use href="#i-check" />
+                      </svg>
+                      <div>
+                        <b>Words &amp; accessibility</b
+                        ><span>No banned words. Alt text added.</span>
+                      </div>
+                    </li>
+                  </ul>
+                </section>
+                <section class="caption-section">
+                  <div class="section-heading">
+                    <h2>Caption</h2>
+                    <span class="channel-label">LinkedIn</span>
+                  </div>
+                  <div class="field">
+                    <label class="sr-only" for="caption">LinkedIn caption</label
+                    ><textarea id="caption" rows="4" readonly>
+From idea to scheduled post in three steps.</textarea
+                    ><span class="field-help caption-count"
+                      >43 / 3000 characters</span
+                    >
+                  </div>
+                  <details class="alt-details">
+                    <summary>
+                      <svg class="icon" aria-hidden="true">
+                        <use href="#i-check" /></svg
+                      >Alt text included<svg
+                        class="icon chevron"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-down" />
+                      </svg>
+                    </summary>
+                    <div class="field">
+                      <label for="alt-text">Image description</label
+                      ><textarea id="alt-text" rows="4" readonly>
+Three steps: pick a template, write your post, check it against your brand kit.</textarea>
+                    </div>
+                  </details>
+                </section>
+                <section class="schedule-section">
+                  <div class="section-heading">
+                    <h2>Planned for</h2>
+                    <svg class="icon quiet" aria-hidden="true">
+                      <use href="#i-calendar" />
+                    </svg>
+                  </div>
+                  <div class="scheduled-date">
+                    <span class="date-tile"><b>19</b><span>OCT</span></span>
+                    <div>
+                      <strong>Monday, 19 October</strong>
+                      <p>09:00 · LinkedIn</p>
+                    </div>
+                  </div>
+                  <a class="text-link" href="#planner"
+                    >View in planner<svg class="icon" aria-hidden="true">
+                      <use href="#i-arrow" /></svg
+                  ></a>
+                  <p class="manual-note">
+                    Export the post, then upload it yourself. The planner keeps
+                    track of when it is due.
+                  </p>
+                </section>
+              </section>
+            </div>
+            <div class="editor-mobile-status">
+              <span
+                ><svg class="icon" aria-hidden="true">
+                  <use href="#i-check" /></svg
+                >Check passed</span
+              ><a href="#planner"
+                >19 Oct · 09:00<svg class="icon" aria-hidden="true">
+                  <use href="#i-calendar" /></svg
+              ></a>
+            </div>
+          </section>
+
+          <section
+            id="planner"
+            class="screen"
+            aria-labelledby="planner-title"
+            hidden
+          >
+            <header class="screen-heading">
+              <div>
+                <h1 id="planner-title" tabindex="-1">Planner</h1>
+                <p>A plan for your posts. Room for your next idea.</p>
+              </div>
+              <button
+                class="button secondary"
+                type="button"
+                disabled
+                title="Calendar export is not connected in this static mockup"
+              >
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-download" /></svg
+                >Export calendar
+              </button>
+            </header>
+            <div class="planner-layout">
+              <section class="agenda" aria-labelledby="agenda-title">
+                <div class="agenda-toolbar">
+                  <div>
+                    <h2 id="agenda-title">19–25 October</h2>
+                    <p>1 scheduled post · LinkedIn</p>
+                  </div>
+                  <span class="week-view"
+                    ><svg class="icon" aria-hidden="true">
+                      <use href="#i-calendar" /></svg
+                    >Week view</span
+                  >
+                </div>
+                <ol class="agenda-days">
+                  <li class="agenda-day has-post">
+                    <div class="day-name"><span>MON</span><b>19</b></div>
+                    <div class="agenda-event">
+                      <span class="event-time">09:00</span
+                      ><a href="#editor" class="event-post"
+                        ><div class="event-thumbnail" aria-hidden="true">
+                          <img src="assets/mark-dark.svg" alt="" /><span
+                            >From idea to<br /><em>scheduled post.</em></span
+                          >
+                        </div>
+                        <div>
+                          <span class="status scheduled"
+                            ><svg class="icon" aria-hidden="true">
+                              <use href="#i-clock" /></svg
+                            >Scheduled</span
+                          >
+                          <h3>From idea to scheduled post</h3>
+                          <p>Steps · LinkedIn square</p>
+                        </div>
+                        <svg class="icon event-arrow" aria-hidden="true">
+                          <use href="#i-arrow" /></svg
+                      ></a>
+                    </div>
+                  </li>
+                  <li class="agenda-day">
+                    <div class="day-name"><span>TUE</span><b>20</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                  <li class="agenda-day">
+                    <div class="day-name"><span>WED</span><b>21</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                  <li class="agenda-day">
+                    <div class="day-name"><span>THU</span><b>22</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                  <li class="agenda-day">
+                    <div class="day-name"><span>FRI</span><b>23</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                  <li class="agenda-day weekend">
+                    <div class="day-name"><span>SAT</span><b>24</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                  <li class="agenda-day weekend">
+                    <div class="day-name"><span>SUN</span><b>25</b></div>
+                    <span class="day-empty">No post planned</span>
+                  </li>
+                </ol>
+                <div class="agenda-note">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-local" />
+                  </svg>
+                  <p>
+                    Postwright keeps the plan. You export and upload the posts.
+                  </p>
+                </div>
+              </section>
+              <aside class="planner-aside">
+                <section class="drafts-section">
+                  <div class="section-heading">
+                    <h2>Still on your desk</h2>
+                    <span class="quiet">2 drafts</span>
+                  </div>
+                  <p class="section-description">
+                    A couple of good starting points.
+                  </p>
+                  <div class="draft-row">
+                    <div class="draft-thumb statement-thumb" aria-hidden="true">
+                      Your posts.<br /><em>Your computer.</em>
+                    </div>
+                    <div>
+                      <h3>No account needed</h3>
+                      <p>Statement · Draft</p>
+                    </div>
+                  </div>
+                  <div class="draft-row">
+                    <div class="draft-thumb statistic-thumb" aria-hidden="true">
+                      <b>9</b><span>post templates</span>
+                    </div>
+                    <div>
+                      <h3>Templates out of the box</h3>
+                      <p>Statistic · Draft</p>
+                    </div>
+                  </div>
+                  <div class="draft-warning">
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-alert" />
+                    </svg>
+                    <p>
+                      The statistic needs an active fact before it can be
+                      scheduled.
+                    </p>
+                  </div>
+                  <a class="text-link" href="#overview"
+                    >Back to your desk<svg class="icon" aria-hidden="true">
+                      <use href="#i-arrow" /></svg
+                  ></a>
+                </section>
+                <section class="campaigns-empty">
+                  <h2>Campaigns</h2>
+                  <p>
+                    No campaigns yet. Group related posts and give their links a
+                    shared UTM name.
+                  </p>
+                  <details>
+                    <summary>
+                      What goes in a campaign?<svg
+                        class="icon"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-down" />
+                      </svg>
+                    </summary>
+                    <p>
+                      A name, a date range and an optional goal. Add posts to it
+                      from the editor.
+                    </p>
+                  </details>
+                </section>
+                <section class="planning-help">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#i-shield" />
+                  </svg>
+                  <h3>Check before you schedule.</h3>
+                  <p>
+                    Save the post with a passing brand check, then choose a
+                    future date.
+                  </p>
+                </section>
+              </aside>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <nav class="phone-nav" aria-label="Workspace on phone">
+      <a href="#overview" data-screen="overview" aria-current="page"
+        ><svg class="icon" aria-hidden="true"><use href="#i-grid" /></svg
+        >Overview</a
+      ><a href="#editor" data-screen="editor"
+        ><svg class="icon" aria-hidden="true"><use href="#i-edit" /></svg
+        >Editor</a
+      ><a href="#planner" data-screen="planner"
+        ><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg
+        >Planner</a
+      >
+    </nav>
+    <noscript
+      ><p class="noscript-note">
+        Screen switching needs JavaScript. The Overview is available above.
+      </p></noscript
+    >
+  </body>
+</html>

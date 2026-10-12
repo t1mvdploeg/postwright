@@ -1,0 +1,27 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "index.html",
+          "studio.css"
+        ],
+        "createdAt": "2026-10-12T08:54:34.329Z",
+        "reason": "Agent: the task retains the Postwright brand, explicitly permits its local Inter font, and requires an offline standalone mockup; the repository studio design specifies Inter."
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-10-12T08:55:39.272Z",
+        "reason": "Agent: source audit confirms explicit 7cqw artwork insets; the Steps bottom clearance was corrected by moving its body to 24cqw. Review and caption sections have 20-24px inset where borders exist, while responsive zero-padding states remove those borders. The static detector misses absolute insets and breakpoint border resets."
+      }
+    ]
+  }
+}

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Postwright: current and mockup</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px 24px 48px;
+        font: 15px/1.4 system-ui, sans-serif;
+        background: #f8f7f4;
+        color: #292b27;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 12px 0;
+        background: #f8f7f4;
+      }
+      h1 {
+        margin: 0 auto 0 0;
+        font-size: 18px;
+      }
+      h2 {
+        margin: 32px 0 8px;
+        font-size: 16px;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+        margin: 0 auto;
+        border: 1px solid #e7e7e0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Current app next to the mockup</h1>
+      <label>Mode <select id="mode"><option>light</option><option>dark</option></select></label>
+      <label>Width <select id="width"><option>1440</option><option>390</option></select></label>
+    </header>
+    <main id="pairs"></main>
+    <script>
+      const mode = document.querySelector("#mode");
+      const width = document.querySelector("#width");
+      function draw() {
+        document.querySelector("#pairs").innerHTML = ["overview", "editor", "planner"]
+          .map(
+            (screen) => `<h2>${screen[0].toUpperCase() + screen.slice(1)}</h2>
+          <div class="pair">${["current", "mockup"]
+            .map(
+              (side) => `<figure><figcaption>${side === "current" ? "Current" : "Mockup"}</figcaption>
+              <img src="screens/${side}-${screen}-${mode.value}-${width.value}.png" alt="${side} ${screen}, ${mode.value}, ${width.value}px" /></figure>`,
+            )
+            .join("")}</div>`,
+          )
+          .join("");
+      }
+      mode.onchange = width.onchange = draw;
+      draw();
+    </script>
+  </body>
+</html>
